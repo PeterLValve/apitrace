@@ -38,11 +38,39 @@
 
 #include "os.hpp"
 #include "os_string.hpp"
+#include "os_process.hpp"
 #include "trace.hpp"
 
 
 namespace trace {
 
+static bool s_checkedEnv = false;
+static bool s_singleFrameCaptureEnabled = false;
+static unsigned long s_frameNumToTrace = 0;
+static unsigned long s_currentFrameNum = 0;
+
+void incrementFrameNumber(void) {
+    ++s_currentFrameNum;
+}
+
+bool isFrameToTrace(void) {
+    if ( !s_checkedEnv ) {
+        s_checkedEnv = true;
+        const char* strFrame = getenv( "TRACE_FRAME" );
+        os::unsetEnvironment("TRACE_FRAME");
+        s_singleFrameCaptureEnabled = ( strFrame != NULL );
+        if ( s_singleFrameCaptureEnabled ) {
+            s_frameNumToTrace = strtoul( strFrame, NULL, 10 );
+        }
+    }
+
+    if ( !s_singleFrameCaptureEnabled )
+    {
+        return true;
+    } else {
+        return s_currentFrameNum == s_frameNumToTrace;
+    }
+}
 
 #ifdef ANDROID
 
@@ -78,6 +106,10 @@ getZygoteProcessName(void)
 bool
 isTracingEnabled(void)
 {
+    if (!isFrameToTrace()) {
+        return false;
+    }
+
     static pid_t cached_pid;
     static bool enabled;
     pid_t pid;

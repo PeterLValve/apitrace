@@ -314,7 +314,7 @@ class GlTracer(Tracer):
         print '}'
         print
 
-    getProcAddressFunctionNames = []
+    getProcAddressFunctionNames = ["glXGetProcAddress", "glXGetProcAddressARB", "wglGetProcAddress"]
 
     def traceApi(self, api):
         if self.getProcAddressFunctionNames:
@@ -474,6 +474,11 @@ class GlTracer(Tracer):
          'GL_T2F_C4F_N3F_V3F',
          'GL_T4F_C4F_N3F_V4F',
     ]
+
+    frame_terminator_functions = set((
+        "glFrameTerminatorGREMEDY",
+        "wglSwapBuffers",
+    ))
 
     def traceFunctionImplBody(self, function):
         # Defer tracing of user array pointers...
@@ -682,7 +687,12 @@ class GlTracer(Tracer):
 
         self.shadowBufferProlog(function)
 
-        Tracer.traceFunctionImplBody(self, function)
+        if function.name == 'glLinkProgram' or function.name == 'glLinkProgramARB':
+            Tracer.traceFunctionImplBodyNoInvoke(self, function)
+        else:
+            Tracer.traceFunctionImplBody(self, function)
+        if function.name in self.frame_terminator_functions:
+            print '    trace::incrementFrameNumber();'
 
     marker_functions = [
         # GL_GREMEDY_string_marker
@@ -695,11 +705,19 @@ class GlTracer(Tracer):
         'glPopGroupMarkerEXT',
     ]
 
-    def invokeFunction(self, function):
-        if function.name in ('glLinkProgram', 'glLinkProgramARB'):
-            # These functions have been dispatched already
-            return
+    def traceEnabledCheck(self, function):
+        # No-op if tracing is disabled
+        print '    if (!trace::isTracingEnabled()) {'
+        self.invokeFunction(function)
+        if function.name in self.frame_terminator_functions:
+            print '        trace::incrementFrameNumber();'
+        if function.type is not stdapi.Void:
+            print '        return _result;'
+        else:
+            print '        return;'
+        print '    }'
 
+    def invokeFunction(self, function):
         Tracer.invokeFunction(self, function)
 
     def doInvokeFunction(self, function):
@@ -735,6 +753,7 @@ class GlTracer(Tracer):
             if function.name in self.getProcAddressFunctionNames:
                 print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name,)
 
+            print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name)
             print '    }'
             return
 
