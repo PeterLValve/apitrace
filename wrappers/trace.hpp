@@ -32,9 +32,10 @@
 #ifndef _TRACE_HPP_
 #define _TRACE_HPP_
 
-
 namespace trace {
 
+void incrementFrameNumber(void);
+bool isFrameToTrace(void);
 
 #ifdef ANDROID
 
@@ -44,7 +45,7 @@ bool isTracingEnabled(void);
 
 static inline bool
 isTracingEnabled(void) {
-    return true;
+    return isFrameToTrace();
 }
 
 #endif /* !ANDROID */

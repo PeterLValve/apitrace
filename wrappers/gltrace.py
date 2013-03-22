@@ -314,7 +314,7 @@ class GlTracer(Tracer):
         print '}'
         print
 
-    getProcAddressFunctionNames = []
+    getProcAddressFunctionNames = ["glXGetProcAddress", "glXGetProcAddressARB", "wglGetProcAddress"]
 
     def traceApi(self, api):
         if self.getProcAddressFunctionNames:
@@ -470,6 +470,11 @@ class GlTracer(Tracer):
          'GL_T2F_C4F_N3F_V3F',
          'GL_T4F_C4F_N3F_V4F',
     ]
+
+    frame_terminator_functions = set((
+        "glFrameTerminatorGREMEDY",
+        "wglSwapBuffers",
+    ))
 
     def traceFunctionImplBody(self, function):
         # Defer tracing of user array pointers...
@@ -678,7 +683,12 @@ class GlTracer(Tracer):
 
         self.shadowBufferProlog(function)
 
-        Tracer.traceFunctionImplBody(self, function)
+        if function.name == 'glLinkProgram' or function.name == 'glLinkProgramARB':
+            Tracer.traceFunctionImplBodyNoInvoke(self, function)
+        else:
+            Tracer.traceFunctionImplBody(self, function)
+        if function.name in self.frame_terminator_functions:
+            print '    trace::incrementFrameNumber();'
 
     marker_functions = [
         # GL_GREMEDY_string_marker
@@ -691,17 +701,25 @@ class GlTracer(Tracer):
         'glPopGroupMarkerEXT',
     ]
 
-    def invokeFunction(self, function):
-        if function.name in ('glLinkProgram', 'glLinkProgramARB'):
-            # These functions have been dispatched already
-            return
+    def traceEnabledCheck(self, function):
+        # No-op if tracing is disabled
+        print '    if (!trace::isTracingEnabled()) {'
+        self.invokeFunction(function)
+        if function.name in self.frame_terminator_functions:
+            print '        trace::incrementFrameNumber();'
+        if function.type is not stdapi.Void:
+            print '        return _result;'
+        else:
+            print '        return;'
+        print '    }'
 
+    def invokeFunction(self, function):
         # We implement GL_EXT_debug_marker, GL_GREMEDY_*, etc., and not the
         # driver
         if function.name in self.marker_functions:
             return
 
-        if function.name in ('glXGetProcAddress', 'glXGetProcAddressARB', 'wglGetProcAddress'):
+        if function.name in self.getProcAddressFunctionNames:
             else_ = ''
             for marker_function in self.marker_functions:
                 if self.api.getFunctionByName(marker_function):
@@ -711,6 +729,7 @@ class GlTracer(Tracer):
                 else_ = 'else '
             print '    %s{' % else_
             Tracer.invokeFunction(self, function)
+            print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name)
             print '    }'
             return
 
@@ -737,10 +756,6 @@ class GlTracer(Tracer):
 
     def wrapRet(self, function, instance):
         Tracer.wrapRet(self, function, instance)
-
-        # Replace function addresses with ours
-        if function.name in self.getProcAddressFunctionNames:
-            print '    %s = _wrapProcAddress(%s, %s);' % (instance, function.args[0].name, instance)
 
         # Keep track of buffer mappings
         if function.name in ('glMapBuffer', 'glMapBufferARB'):
