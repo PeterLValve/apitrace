@@ -246,11 +246,19 @@ usage(void)
                                                       ");\n"
         "                        default is `gl`\n"
         "    -o, --output=TRACE  specify output trace file;\n"
-        "                        default is `PROGRAM.trace`\n";
+        "                        default is `PROGRAM.trace`\n"
+        "    -f, --frame=NUM     specify which frame number to trace;\n"
+        "                        default is unset (capture all frames)\n"
+        "    -f, --frame=NUM-NUM specify a range of frame numbers to trace\n"
+        "        --frame=ALPHA   enable on-demand frame tracing;\n"
+        "                        create a file called `snap` to initiate single-frame tracing;\n"
+        "                          writing a number in the `snap` file will indicate the number of frames to trace;\n"
+        "                        create a file called `starttrace` to start tracing a range of frames;\n"
+        "                        create a file called `stoptrace` to stop tracing a range of frames\n";
 }
 
 const static char *
-shortOptions = "+hva:o:";
+shortOptions = "+hva:o:f:";
 
 const static struct option
 longOptions[] = {
@@ -258,6 +266,7 @@ longOptions[] = {
     {"verbose", no_argument, 0, 'v'},
     {"api", required_argument, 0, 'a'},
     {"output", required_argument, 0, 'o'},
+    {"frame", optional_argument, 0, 'f'},
     {0, 0, 0, 0}
 };
 
@@ -302,6 +311,9 @@ command(int argc, char *argv[])
             break;
         case 'o':
             output = optarg;
+            break;
+        case 'f':
+            os::setEnvironment("TRACE_FRAME", optarg);
             break;
         default:
             std::cerr << "error: unexpected option `" << opt << "`\n";
