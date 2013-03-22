@@ -35,6 +35,21 @@ from specs.cglapi import cglapi
 
 class CglTracer(GlTracer):
 
+    getProcAddressFunctionNames = [
+    ]
+
+    createContextFunctionNames = [
+        'CGLCreateContext',
+    ]
+
+    destroyContextFunctionNames = [
+        'CGLDestroyContext',
+    ]
+
+    makeCurrentFunctionNames = [
+        'CGLSetCurrentContext',
+    ]
+
     def isFunctionPublic(self, function):
         # all OpenGL symbols are visible on MacOSX
         return True
@@ -92,10 +107,10 @@ if __name__ == '__main__':
     print '#include "glproc.hpp"'
     print '#include "glsize.hpp"'
     print
-
+    
     module = Module()
-    module.mergeModule(cglapi)
     module.mergeModule(glapi)
+    module.mergeModule(cglapi)
     api = API()
     api.addModule(module)
     tracer = CglTracer()

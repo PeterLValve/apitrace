@@ -361,6 +361,12 @@ elseif (APPLE)
         cgltrace.cpp
         glcaps.cpp
         gltrace_state.cpp
+        gltrace.hpp
+        trace.cpp
+        trace.hpp
+        cgltrace.py
+        gltrace.py
+        trace.py
     )
 
     add_dependencies (cgltrace glproc)

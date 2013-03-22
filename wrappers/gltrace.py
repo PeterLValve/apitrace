@@ -314,35 +314,34 @@ class GlTracer(Tracer):
         print '}'
         print
 
-    getProcAddressFunctionNames = []
-
     def traceApi(self, api):
         if self.getProcAddressFunctionNames:
             # Generate a function to wrap proc addresses
-            getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
-            argType = getProcAddressFunction.args[0].type
-            retType = getProcAddressFunction.type
+            if (len(self.getProcAddressFunctionNames) > 0):
+                getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
+                argType = getProcAddressFunction.args[0].type
+                retType = getProcAddressFunction.type
             
-            print 'static %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
-            print
+                print 'static %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
+                print
             
-            Tracer.traceApi(self, api)
+                Tracer.traceApi(self, api)
             
-            print 'static %s _wrapProcAddress(%s procName, %s procPtr) {' % (retType, argType, retType)
-            print '    if (!procPtr) {'
-            print '        return procPtr;'
-            print '    }'
-            for function in api.getAllFunctions():
-                ptype = function_pointer_type(function)
-                pvalue = function_pointer_value(function)
-                print '    if (strcmp("%s", (const char *)procName) == 0) {' % function.name
-                print '        %s = (%s)procPtr;' % (pvalue, ptype)
-                print '        return (%s)&%s;' % (retType, function.name,)
+                print 'static %s _wrapProcAddress(%s procName, %s procPtr) {' % (retType, argType, retType)
+                print '    if (!procPtr) {'
+                print '        return procPtr;'
                 print '    }'
-            print '    os::log("apitrace: warning: unknown function \\"%s\\"\\n", (const char *)procName);'
-            print '    return procPtr;'
-            print '}'
-            print
+                for function in api.getAllFunctions():
+                    ptype = function_pointer_type(function)
+                    pvalue = function_pointer_value(function)
+                    print '    if (strcmp("%s", (const char *)procName) == 0) {' % function.name
+                    print '        %s = (%s)procPtr;' % (pvalue, ptype)
+                    print '        return (%s)&%s;' % (retType, function.name,)
+                    print '    }'
+                print '    os::log("apitrace: warning: unknown function \\"%s\\"\\n", (const char *)procName);'
+                print '    return procPtr;'
+                print '}'
+                print
         else:
             Tracer.traceApi(self, api)
 
@@ -474,6 +473,14 @@ class GlTracer(Tracer):
          'GL_T2F_C4F_N3F_V3F',
          'GL_T4F_C4F_N3F_V4F',
     ]
+
+    frame_terminator_functions = set((
+        "wglSwapBuffers",
+        "glXSwapBuffers",
+        "eglSwapBuffers",
+        "glSwapAPPLE",
+        "CGLFlushDrawable"
+    ))
 
     def traceFunctionImplBody(self, function):
         # Defer tracing of user array pointers...
@@ -682,7 +689,12 @@ class GlTracer(Tracer):
 
         self.shadowBufferProlog(function)
 
-        Tracer.traceFunctionImplBody(self, function)
+        if function.name == 'glLinkProgram' or function.name == 'glLinkProgramARB':
+            Tracer.traceFunctionImplBodyNoInvoke(self, function)
+        else:
+            Tracer.traceFunctionImplBody(self, function)
+        if function.name in self.frame_terminator_functions:
+            print '    trace::incrementFrameNumber();'
 
     marker_functions = [
         # GL_GREMEDY_string_marker
@@ -696,10 +708,6 @@ class GlTracer(Tracer):
     ]
 
     def invokeFunction(self, function):
-        if function.name in ('glLinkProgram', 'glLinkProgramARB'):
-            # These functions have been dispatched already
-            return
-
         Tracer.invokeFunction(self, function)
 
     def doInvokeFunction(self, function):
@@ -735,6 +743,7 @@ class GlTracer(Tracer):
             if function.name in self.getProcAddressFunctionNames:
                 print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name,)
 
+            print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name)
             print '    }'
             return
 
