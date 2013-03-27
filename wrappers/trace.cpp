@@ -57,6 +57,10 @@ static bool s_checkForStop = false;
 
 void incrementFrameNumber(void) {
     ++s_currentFrameNum;
+    if (isFrameToTrace() && s_singleFrameTraceEnabled && s_currentFrameNum == s_frameNumToStartTrace)
+    {
+        snapshotState();
+    }
 
     if (s_singleFrameTraceEnabled && s_currentFrameNum == s_frameNumToStopTrace)
     {

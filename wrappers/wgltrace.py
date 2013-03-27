@@ -55,30 +55,6 @@ class WglTracer(GlTracer):
         'wglMakeContextCurrentEXT',
     ]
 
-    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
-        if function.name in self.destroyContextFunctionNames:
-            # Unlike other GL APIs like EGL or GLX, WGL will make the context
-            # inactive if it's currently the active context.
-            print '    if (_wglGetCurrentContext() == hglrc) {'
-            print '        gltrace::clearContext();'
-            print '    }'
-            print '    gltrace::releaseContext((uintptr_t)hglrc);'
-
-        GlTracer.generateTraceFunctionImplBody(self, function, bInvoke)
-
-        if function.name in self.createContextFunctionNames:
-            print '    if (_result)'
-            print '        gltrace::createContext((uintptr_t)_result);'
-
-        if function.name in self.makeCurrentFunctionNames:
-            print '    if (_result) {'
-            print '        if (hglrc != NULL)'
-            print '            gltrace::setContext((uintptr_t)hglrc);'
-            print '        else'
-            print '            gltrace::clearContext();'
-            print '    }'
-
-
 if __name__ == '__main__':
     print
     print '#define _GDI32_'

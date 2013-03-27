@@ -112,7 +112,7 @@ bool releaseContext(uintptr_t context_id)
     return res;
 }
 
-void createContext(uintptr_t context_id)
+void createContext(uintptr_t hdc, uintptr_t context_id)
 {
     // wglCreateContextAttribsARB causes internal calls to wglCreateContext to be
     // traced, causing context to be defined twice.
@@ -121,6 +121,7 @@ void createContext(uintptr_t context_id)
     }
 
     context_ptr_t ctx(new Context);
+    ctx->hdc = hdc;
 
     context_map_mutex.lock();
 
