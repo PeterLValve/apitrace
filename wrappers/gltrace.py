@@ -488,6 +488,107 @@ class GlTracer(Tracer):
         "wglSwapBuffers",
     ))
 
+    state_setup_entrypoints = [
+        'glGenLists',
+        'glDeleteLists',
+        'glGenTextures',
+        'glDeleteTextures',
+        'glGenQueries',
+        'glDeleteQueries',
+        'glGenBuffers',
+        'glDeleteBuffers',
+        'glCreateProgram',
+        'glDeleteProgram',
+        'glCreateShader',
+        'glDeleteShader',
+        'glGenProgramsARB',
+        'glDeleteProgramsARB',
+        'glGenBuffersARB',
+        'glDeleteBuffersARB',
+        'glGenQueriesARB',
+        'glDeleteQueriesARB',
+        'glCreateShaderObjectARB',
+        'glCreateProgramObjectARB',
+        'glCreateShaderProgramv',
+        'glCreateShaderProgramEXT',
+        'glDeleteObjectARB',
+        'glGenRenderbuffers',
+        'glDeleteRenderbuffers',
+        'glGenFramebuffers',
+        'glDeleteFramebuffers',
+        'glGenVertexArrays',
+        'glDeleteVertexArrays',
+        'glFenceSync',
+        'glDeleteSync',
+        'glDeleteNamedStringARB',
+        'glGenSamplers',
+        'glDeleteSamplers',
+        'glGenTransformFeedbacks',
+        'glDeleteTransformFeedbacks',
+        'glGenProgramPipelines',
+        'glDeleteProgramPipelines',
+        'glGenTexturesEXT',
+        'glDeleteTexturesEXT',
+        'glGenAsyncMarkersSGIX',
+        'glDeleteAsyncMarkersSGIX',
+        'glGenFencesNV',
+        'glDeleteFencesNV',
+        'glGenProgramsNV',
+        'glDeleteProgramsNV',
+        'glGenFragmentShadersATI',
+        'glDeleteFragmentShaderATI',
+        'glGenVertexShadersEXT',
+        'glDeleteVertexShaderEXT',
+        'glGenSymbolsEXT',
+        'glGenOcclusionQueriesNV',
+        'glDeleteOcclusionQueriesNV',
+        'glGenFencesAPPLE',
+        'glDeleteFencesAPPLE',
+        'glGenVertexArraysAPPLE',
+        'glDeleteVertexArraysAPPLE',
+        'glGenRenderbuffersEXT',
+        'glDeleteRenderbuffersEXT',
+        'glGenFramebuffersEXT',
+        'glDeleteFramebuffersEXT',
+        'glGenTransformFeedbacksNV',
+        'glDeleteTransformFeedbacksNV',
+        'glGenNamesAMD',
+        'glDeleteNamesAMD',
+        'glNewBufferRegion',
+        'glDeleteBufferRegion',
+        'wglCreateContext',
+        'wglDeleteContext',
+        'wglMakeCurrent',
+        'wglCopyContext',
+        'wglChoosePixelFormat',
+        'wglShareLists',
+        'wglCreateLayerContext',
+        'wglSetLayerPaletteEntries',
+        'wglRealizeLayerPalette',
+        'wglUseFontBitmapsA',
+        'wglUseFontBitmapsW',
+        'wglUseFontOutlinesA',
+        'wglUseFontOutlinesW',
+        'wglCreateBufferRegionARB',
+        'wglSaveBufferRegionARB',
+        'wglRestoreBufferRegionARB',
+        'wglChoosePixelFormatARB',
+        'wglChoosePixelFormatARB',
+        'wglMakeContextCurrentARB',
+        'wglCreatePbufferARB',
+        'wglReleasePbufferDCARB',
+        'wglDestroyPbufferARB',
+        'wglBindTexImageARB',
+        'wglReleaseTexImageARB',
+        'wglSetPbufferAttribARB',
+        'wglCreateContextAttribsARB',
+        'wglMakeContextCurrentEXT',
+        'wglChoosePixelFormatEXT',
+        'wglSwapIntervalEXT',
+        'wglAllocateMemoryNV',
+        'wglFreeMemoryNV',
+    ]
+
     def generateTraceFunctionImplBody(self, function, bInvoke = 1):
         # Defer tracing of user array pointers...
         if function.name in self.array_pointer_function_names:
@@ -699,7 +800,7 @@ class GlTracer(Tracer):
             Tracer.generateTraceFunctionImplBody(self, function, 0)
         else:
             Tracer.generateTraceFunctionImplBody(self, function, 1)
-        self.frameTermination(function, '    ')
+        self.frameTerminationTraceFunction(function, '        ')
 
     marker_functions = [
         # GL_GREMEDY_string_marker
@@ -711,6 +812,13 @@ class GlTracer(Tracer):
         'glPushGroupMarkerEXT',
         'glPopGroupMarkerEXT',
     ]
+
+    def frameTerminationTraceFunction(self, function, indentation):
+        if function.name in self.frame_terminator_functions:
+            indentation = indentation + '    '
+            print '    if ( makeRealCall ) {'
+            self.frameTermination(function, indentation)
+            print '    }'
 
     def frameTermination(self, function, indentation):
         if function.name in self.frame_terminator_functions:

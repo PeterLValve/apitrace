@@ -29,18 +29,14 @@
 
 namespace gltrace {
 
-HDC g_hdc;
-
 void snapshotState()
 {
-    HGLRC hglrcResult = (HGLRC)2;
-    g_hdc = (HDC)1;
-    hglrcResult = _trace_wglCreateContext( g_hdc, hglrcResult, false );
+    gltrace::Context* pCurrentContext = gltrace::getContext();
 
     _trace_glClearColor(0,0,0,1, false);
     _trace_glClear(GL_COLOR_BUFFER_BIT, false);
     BOOL bResult = TRUE;
-    bResult = _trace_wglSwapBuffers(g_hdc, bResult, false);
+    bResult = _trace_wglSwapBuffers((HDC)pCurrentContext->hdc, bResult, false);
 }
 
 }
