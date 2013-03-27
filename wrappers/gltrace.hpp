@@ -96,6 +96,7 @@ public:
     bool user_arrays_arb;
     bool user_arrays_nv;
     unsigned retain_count;
+    uintptr_t hdc;
 
     // TODO: This will fail for buffers shared by multiple contexts.
     std::map <GLuint, Buffer> buffers;
@@ -105,7 +106,8 @@ public:
         user_arrays(false),
         user_arrays_arb(false),
         user_arrays_nv(false),
-        retain_count(0)
+        retain_count(0),
+        hdc(NULL)
     { }
 
     inline bool
@@ -116,7 +118,7 @@ public:
 };
 
 void
-createContext(uintptr_t context_id);
+createContext(uintptr_t hdc, uintptr_t context_id);
 
 void
 retainContext(uintptr_t context_id);

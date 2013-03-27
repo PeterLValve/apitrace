@@ -45,16 +45,21 @@
 namespace trace {
 
 static bool s_checkedEnv = false;
-static bool s_singleFrameCaptureEnabled = false;
+static bool s_singleFrameTraceEnabled = false;
 static unsigned long s_frameNumToTrace = 0;
 static unsigned long s_currentFrameNum = 0;
 
 void incrementFrameNumber(void) {
     ++s_currentFrameNum;
-    if (isFrameToTrace() && s_singleFrameCaptureEnabled)
+    if (isFrameToTrace() && s_singleFrameTraceEnabled)
     {
         snapshotState();
     }
+}
+
+bool isTracingStateSetupFunctions(void)
+{
+    return s_singleFrameTraceEnabled && (s_currentFrameNum <= s_frameNumToTrace);
 }
 
 bool isFrameToTrace(void) {
@@ -62,13 +67,13 @@ bool isFrameToTrace(void) {
         s_checkedEnv = true;
         const char* strFrame = getenv( "TRACE_FRAME" );
         os::unsetEnvironment("TRACE_FRAME");
-        s_singleFrameCaptureEnabled = ( strFrame != NULL );
-        if ( s_singleFrameCaptureEnabled ) {
+        s_singleFrameTraceEnabled = ( strFrame != NULL );
+        if ( s_singleFrameTraceEnabled ) {
             s_frameNumToTrace = strtoul( strFrame, NULL, 10 );
         }
     }
 
-    if ( !s_singleFrameCaptureEnabled )
+    if ( !s_singleFrameTraceEnabled )
     {
         return true;
     } else {

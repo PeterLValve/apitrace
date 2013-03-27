@@ -497,6 +497,8 @@ class Tracer:
         print '}'
         print
 
+    state_setup_entrypoints = []
+
     def generateEntrypointImpl(self, function):
         if self.isFunctionPublic(function):
             print 'extern "C" PUBLIC'
@@ -514,7 +516,12 @@ class Tracer:
             print '    %s _result;' % function.type
             resultEq = '_result = '
             resultParam = '_result, '
-        print '    if ( trace::isTracingEnabled() ) {'
+
+        isSetupEntrypoint = ''
+        if function.name in self.state_setup_entrypoints:
+            isSetupEntrypoint = '|| trace::isTracingStateSetupFunctions() '
+
+        print '    if ( trace::isTracingEnabled() %s) {' % isSetupEntrypoint
         print '        %s_trace_%s(%s%strue);' % (resultEq, function.name, argParams, resultParam)
         print '    } else {'
         self.invokeFunction(function, '        ')
