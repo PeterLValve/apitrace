@@ -35,14 +35,20 @@ if __name__ == '__main__':
     print
     print '#include "trace_writer_local.hpp"'
     print '#include "os.hpp"'
+    print '#include "trace.hpp"'
     print
     print '#define DWRITE_EXPORT WINAPI'
     print
     print '#include "d2dimports.hpp"'
+    print
+    print 'namespace trace {'
+    print 'void snapshotState(void) {}'
+    print '}'
     print
 
     api = API()
     api.addModule(d2d1)
     api.addModule(dwrite)
     tracer = DllTracer()
+    tracer.generateTraceCalls(api)
     tracer.traceApi(api)

@@ -51,6 +51,10 @@ static unsigned long s_currentFrameNum = 0;
 
 void incrementFrameNumber(void) {
     ++s_currentFrameNum;
+    if (isFrameToTrace() && s_singleFrameCaptureEnabled)
+    {
+        snapshotState();
+    }
 }
 
 bool isFrameToTrace(void) {
