@@ -316,19 +316,29 @@ class GlTracer(Tracer):
 
     getProcAddressFunctionNames = ["glXGetProcAddress", "glXGetProcAddressARB", "wglGetProcAddress"]
 
-    def traceApi(self, api):
+    def generateTraceCalls(self, api):
         if self.getProcAddressFunctionNames:
             # Generate a function to wrap proc addresses
             getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
             argType = getProcAddressFunction.args[0].type
             retType = getProcAddressFunction.type
-            
-            print 'static %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
+
+            print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
             print
-            
-            Tracer.traceApi(self, api)
-            
-            print 'static %s _wrapProcAddress(%s procName, %s procPtr) {' % (retType, argType, retType)
+
+            Tracer.generateTraceCalls(self, api)
+        else:
+            Tracer.generateTraceCalls(self, api)
+
+    def traceApi(self, api):
+        Tracer.traceApi(self, api)
+
+        if self.getProcAddressFunctionNames:
+            # Generate a function to wrap proc addresses
+            getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
+            argType = getProcAddressFunction.args[0].type
+            retType = getProcAddressFunction.type
+            print '%s _wrapProcAddress(%s procName, %s procPtr) {' % (retType, argType, retType)
             print '    if (!procPtr) {'
             print '        return procPtr;'
             print '    }'
@@ -343,8 +353,6 @@ class GlTracer(Tracer):
             print '    return procPtr;'
             print '}'
             print
-        else:
-            Tracer.traceApi(self, api)
 
     def defineShadowBufferHelper(self):
         print 'void _shadow_glGetBufferSubData(GLenum target, GLintptr offset,'
@@ -476,7 +484,7 @@ class GlTracer(Tracer):
         "wglSwapBuffers",
     ))
 
-    def traceFunctionImplBody(self, function):
+    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
         # Defer tracing of user array pointers...
         if function.name in self.array_pointer_function_names:
             print '    GLint _array_buffer = 0;'
@@ -488,7 +496,7 @@ class GlTracer(Tracer):
                 print '        ctx->user_arrays_arb = true;'
             if function.name == "glVertexAttribPointerNV":
                 print '        ctx->user_arrays_nv = true;'
-            self.invokeFunction(function)
+            self.invokeFunction(function, '        ')
 
             # And also break down glInterleavedArrays into the individual calls
             if function.name == 'glInterleavedArrays':
@@ -645,7 +653,7 @@ class GlTracer(Tracer):
         # be an herculian task given that vertex attrib locations appear in
         # many entry-points, including non-shader related ones.
         if function.name == 'glLinkProgram':
-            Tracer.invokeFunction(self, function)
+            Tracer.invokeFunction(self, function, '    ')
             print '    GLint active_attributes = 0;'
             print '    _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &active_attributes);'
             print '    for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
@@ -663,7 +671,7 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
         if function.name == 'glLinkProgramARB':
-            Tracer.invokeFunction(self, function)
+            Tracer.invokeFunction(self, function, '    ')
             print '    GLint active_attributes = 0;'
             print '    _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_ATTRIBUTES_ARB, &active_attributes);'
             print '    for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
@@ -684,11 +692,10 @@ class GlTracer(Tracer):
         self.shadowBufferProlog(function)
 
         if function.name == 'glLinkProgram' or function.name == 'glLinkProgramARB':
-            Tracer.traceFunctionImplBodyNoInvoke(self, function)
+            Tracer.generateTraceFunctionImplBody(self, function, 0)
         else:
-            Tracer.traceFunctionImplBody(self, function)
-        if function.name in self.frame_terminator_functions:
-            print '    trace::incrementFrameNumber();'
+            Tracer.generateTraceFunctionImplBody(self, function, 1)
+        self.frameTermination(function, '    ')
 
     marker_functions = [
         # GL_GREMEDY_string_marker
@@ -701,19 +708,11 @@ class GlTracer(Tracer):
         'glPopGroupMarkerEXT',
     ]
 
-    def traceEnabledCheck(self, function):
-        # No-op if tracing is disabled
-        print '    if (!trace::isTracingEnabled()) {'
-        self.invokeFunction(function)
+    def frameTermination(self, function, indentation):
         if function.name in self.frame_terminator_functions:
-            print '        trace::incrementFrameNumber();'
-        if function.type is not stdapi.Void:
-            print '        return _result;'
-        else:
-            print '        return;'
-        print '    }'
+            print '%strace::incrementFrameNumber();' % indentation
 
-    def invokeFunction(self, function):
+    def invokeFunction(self, function, indentation):
         # We implement GL_EXT_debug_marker, GL_GREMEDY_*, etc., and not the
         # driver
         if function.name in self.marker_functions:
@@ -723,22 +722,22 @@ class GlTracer(Tracer):
             else_ = ''
             for marker_function in self.marker_functions:
                 if self.api.getFunctionByName(marker_function):
-                    print '    %sif (strcmp("%s", (const char *)%s) == 0) {' % (else_, marker_function, function.args[0].name)
-                    print '        _result = (%s)&%s;' % (function.type, marker_function)
-                    print '    }'
+                    print '%s%sif (strcmp("%s", (const char *)%s) == 0) {' % (indentation, else_, marker_function, function.args[0].name)
+                    print '%s    _result = (%s)&%s;' % (indentation, function.type, marker_function)
+                    print '%s}' % indentation
                 else_ = 'else '
-            print '    %s{' % else_
-            Tracer.invokeFunction(self, function)
-            print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name)
-            print '    }'
+            print '%s%s{' % (indentation, else_)
+            Tracer.invokeFunction(self, function, indentation + '    ')
+            print '%s_result = _wrapProcAddress(%s, _result);' % (indentation, function.args[0].name)
+            print '%s}' % indentation
             return
 
         # Override GL extensions
         if function.name in ('glGetString', 'glGetIntegerv', 'glGetStringi'):
-            Tracer.invokeFunction(self, function, prefix = 'gltrace::_', suffix = '_override')
+            Tracer.invokeFunction(self, function, indentation, prefix = 'gltrace::_', suffix = '_override')
             return
 
-        Tracer.invokeFunction(self, function)
+        Tracer.invokeFunction(self, function, indentation)
 
     buffer_targets = [
         'ARRAY_BUFFER',
@@ -930,7 +929,7 @@ class GlTracer(Tracer):
             print '  }'
             print
 
-        # Samething, but for glVertexAttribPointer*
+        # Same thing, but for glVertexAttribPointer*
         #
         # Some variants of glVertexAttribPointer alias conventional and generic attributes:
         # - glVertexAttribPointer: no

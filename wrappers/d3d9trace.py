@@ -83,9 +83,15 @@ if __name__ == '__main__':
     print '#include "d3d9size.hpp"'
     print '#include "d3d9shader.hpp"'
     print '#include "dxvaint.h"'
+    print '#include "trace.hpp"'
+    print
+    print 'namespace trace {'
+    print 'void snapshotState(void) {}'
+    print '}'
     print
 
     api = API()
     api.addModule(d3d9)
     tracer = D3D9Tracer()
+    tracer.generateTraceCalls(api)
     tracer.traceApi(api)
