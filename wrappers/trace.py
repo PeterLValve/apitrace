@@ -396,16 +396,25 @@ class Tracer:
 
         return ValueSerializer()
 
-    def generateTraceCalls(self, api):
+    def generateTraceCallHeader(self, api):
         self.api = api
-
-        self.header(api)
 
         # Includes
         for module in api.modules:
             for header in module.headers:
                 print header
         print
+
+    def generateTraceCallDecls(self, api):
+        self.interface = None
+        self.base = None
+        for function in api.getAllFunctions():
+            self.traceFunctionDecl(function)
+
+    def generateTraceCalls(self, api):
+        self.api = api
+
+        self.header(api)
 
         # Generate the serializer functions
         types = api.getAllTypes()
@@ -419,13 +428,15 @@ class Tracer:
         # Function wrappers
         self.interface = None
         self.base = None
-        for function in api.getAllFunctions():
-            self.traceFunctionDecl(function)
+#        for function in api.getAllFunctions():
+#            self.traceFunctionDecl(function)
         for function in api.getAllFunctions():
             self.generateTraceFunctionImpl(function)
         print
 
-    def traceApi(self, api):
+        self.footer(api)
+
+    def generateEntrypoints(self, api):
         self.api = api
 
         # Includes
@@ -440,8 +451,6 @@ class Tracer:
         for function in api.getAllFunctions():
             self.generateEntrypointImpl(function)
         print
-
-        self.footer(api)
 
     def header(self, api):
         print '#ifdef _WIN32'
@@ -469,6 +478,15 @@ class Tracer:
             else:
                 print 'static const char ** _%s_args = NULL;' % (function.name,)
             print 'static const trace::FunctionSig _%s_sig = {%u, "%s", %u, _%s_args};' % (function.name, self.getFunctionSigId(), function.name, len(function.args), function.name)
+#            print
+            argString = ''
+            if function.args:
+                argString = ', '.join([str(arg.type) + ' ' + arg.name for arg in function.args]) + ', '
+            resultString = ''
+            if function.type is not stdapi.Void:
+                resultString = '%s& _result, ' % function.type
+#            print 'static %s _trace_%s(%s%sbool makeRealCall);' % (function.type, function.name, argString, resultString)
+            print 'extern %s _trace_%s(%s%sbool makeRealCall);' % (function.type, function.name, argString, resultString)
             print
 
     def getFunctionSigId(self):
@@ -489,7 +507,8 @@ class Tracer:
         resultString = ''
         if function.type is not stdapi.Void:
             resultString = '%s& _result, ' % function.type
-        print 'static %s _trace_%s(%s%sbool makeRealCall) {' % (function.type, function.name, argString, resultString)
+#        print 'static %s _trace_%s(%s%sbool makeRealCall) {' % (function.type, function.name, argString, resultString)
+        print '%s _trace_%s(%s%sbool makeRealCall) {' % (function.type, function.name, argString, resultString)
 
         self.generateTraceFunctionImplBody(function)
         if function.type is not stdapi.Void:
