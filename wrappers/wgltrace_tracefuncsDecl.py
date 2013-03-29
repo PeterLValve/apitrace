@@ -24,32 +24,59 @@
 ##########################################################################/
 
 
-from dlltrace import DllTracer
-from specs.stdapi import API
-from specs.dwrite import dwrite
-from specs.d2d1 import d2d1
+"""WGL tracing code generator."""
 
+
+from gltrace import GlTracer
+from specs.stdapi import Module, API
+from specs.glapi import glapi
+from specs.wglapi import wglapi
+
+
+class WglTraceCallWriter(GlTracer):
+
+    getProcAddressFunctionNames = [
+        "wglGetProcAddress",
+    ]
+
+    createContextFunctionNames = [
+        'wglCreateContext',
+        'wglCreateContextAttribsARB',
+        'wglCreateLayerContext',
+    ]
+
+    destroyContextFunctionNames = [
+        'wglDeleteContext',
+    ]
+
+    makeCurrentFunctionNames = [
+        'wglMakeCurrent',
+        'wglMakeContextCurrentARB',
+        'wglMakeContextCurrentEXT',
+    ]
 
 if __name__ == '__main__':
-    print '#define INITGUID'
+    print
+    print '#define _GDI32_'
+    print
+    print '#include <string.h>'
+    print '#include <windows.h>'
     print
     print '#include "trace_writer_local.hpp"'
     print '#include "os.hpp"'
-    print '#include "trace.hpp"'
     print
-    print '#define DWRITE_EXPORT WINAPI'
+    print '// To validate our prototypes'
+    print '#define GL_GLEXT_PROTOTYPES'
+    print '#define WGL_GLXEXT_PROTOTYPES'
     print
-    print '#include "d2dimports.hpp"'
-    print
-    print 'namespace trace {'
-    print 'void snapshotState(void) {}'
-    print '}'
+    print '#include "glproc.hpp"'
+    print '#include "glsize.hpp"'
     print
 
+    module = Module()
+    module.mergeModule(glapi)
+    module.mergeModule(wglapi)
     api = API()
-    api.addModule(d2d1)
-    api.addModule(dwrite)
-    tracer = DllTracer()
+    api.addModule(module)
+    tracer = WglTraceCallWriter()
     tracer.generateTraceCallDecls(api)
-    tracer.generateTraceCalls(api)
-    tracer.generateEntrypoints(api)

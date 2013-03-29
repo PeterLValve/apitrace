@@ -316,22 +316,8 @@ class GlTracer(Tracer):
 
     getProcAddressFunctionNames = ["glXGetProcAddress", "glXGetProcAddressARB", "wglGetProcAddress"]
 
-    def generateTraceCalls(self, api):
-        if self.getProcAddressFunctionNames:
-            # Generate a function to wrap proc addresses
-            getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
-            argType = getProcAddressFunction.args[0].type
-            retType = getProcAddressFunction.type
-
-            print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
-            print
-
-            Tracer.generateTraceCalls(self, api)
-        else:
-            Tracer.generateTraceCalls(self, api)
-
-    def traceApi(self, api):
-        Tracer.traceApi(self, api)
+    def generateEntrypoints(self, api):
+        Tracer.generateEntrypoints(self, api)
 
         if self.getProcAddressFunctionNames:
             # Generate a function to wrap proc addresses
@@ -588,6 +574,19 @@ class GlTracer(Tracer):
         'wglAllocateMemoryNV',
         'wglFreeMemoryNV',
     ]
+
+    def generateTraceCallDecls(self, api):
+        self.generateTraceCallHeader(api)
+
+        # declare a function to wrap proc addresses
+        getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
+        argType = getProcAddressFunction.args[0].type
+        retType = getProcAddressFunction.type
+        print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
+        print
+
+        for function in api.getAllFunctions():
+            self.traceFunctionDecl(function)
 
     def generateTraceFunctionImplBody(self, function, bInvoke = 1):
         # Defer tracing of user array pointers...
@@ -1205,14 +1204,4 @@ class GlTracer(Tracer):
         print '        trace::localWriter.endEnter();'
         print '        trace::localWriter.beginLeave(_fake_call);'
         print '        trace::localWriter.endLeave();'
-
-
-
-
-
-
-
-
-
-
 

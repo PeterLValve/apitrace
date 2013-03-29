@@ -25,13 +25,16 @@
  *
  *********************************************************************/
 #include <gltrace.hpp>
-#include "wgltrace_tracefuncs.hpp"
+#include "wgltrace_tracefuncs.h"
+#include "../../retrace/glstate.hpp"
 
 namespace gltrace {
 
 void snapshotState()
 {
     gltrace::Context* pCurrentContext = gltrace::getContext();
+
+    glstate::snapshotParameters();
 
     _trace_glClearColor(0,0,0,1, false);
     _trace_glClear(GL_COLOR_BUFFER_BIT, false);
