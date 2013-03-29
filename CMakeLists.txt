@@ -324,6 +324,7 @@ add_library (common STATIC
     common/trace_loader.cpp
     common/trace_profiler.cpp
     common/trace_option.cpp
+    common/scoped_allocator.hpp
     common/${os}
     common/trace_backtrace.cpp
 )
