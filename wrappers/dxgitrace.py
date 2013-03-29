@@ -165,5 +165,6 @@ if __name__ == '__main__':
         api.addModule(d3d11.d3d11)
 
     tracer = D3DCommonTracer()
+    tracer.generateTraceCallDecls(api)
     tracer.generateTraceCalls(api)
-    tracer.traceApi(api)
+    tracer.generateEntrypoints(api)

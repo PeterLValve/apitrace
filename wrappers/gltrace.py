@@ -307,7 +307,7 @@ class GlTracer(Tracer):
         print
 
         # states such as GL_UNPACK_ROW_LENGTH are not available in GLES
-        print 'static inline bool'
+        print 'bool'
         print 'can_unpack_subimage(void) {'
         print '    gltrace::Context *ctx = gltrace::getContext();'
         print '    return (ctx->profile == gltrace::PROFILE_COMPAT);'
@@ -316,22 +316,8 @@ class GlTracer(Tracer):
 
     getProcAddressFunctionNames = ["glXGetProcAddress", "glXGetProcAddressARB", "wglGetProcAddress"]
 
-    def generateTraceCalls(self, api):
-        if self.getProcAddressFunctionNames:
-            # Generate a function to wrap proc addresses
-            getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
-            argType = getProcAddressFunction.args[0].type
-            retType = getProcAddressFunction.type
-
-            print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
-            print
-
-            Tracer.generateTraceCalls(self, api)
-        else:
-            Tracer.generateTraceCalls(self, api)
-
-    def traceApi(self, api):
-        Tracer.traceApi(self, api)
+    def generateEntrypoints(self, api):
+        Tracer.generateEntrypoints(self, api)
 
         if self.getProcAddressFunctionNames:
             # Generate a function to wrap proc addresses
@@ -487,7 +473,8 @@ class GlTracer(Tracer):
         "wglSwapBuffers",
     ))
 
-    state_setup_entrypoints = [
+    ## these are always traced
+    state_setup_entrypoints = (
         'glGenLists',
         'glDeleteLists',
         'glGenTextures',
@@ -496,20 +483,10 @@ class GlTracer(Tracer):
         'glDeleteQueries',
         'glGenBuffers',
         'glDeleteBuffers',
-        'glCreateProgram',
-        'glDeleteProgram',
-        'glCreateShader',
-        'glDeleteShader',
-        'glGenProgramsARB',
-        'glDeleteProgramsARB',
         'glGenBuffersARB',
         'glDeleteBuffersARB',
         'glGenQueriesARB',
         'glDeleteQueriesARB',
-        'glCreateShaderObjectARB',
-        'glCreateProgramObjectARB',
-        'glCreateShaderProgramv',
-        'glCreateShaderProgramEXT',
         'glDeleteObjectARB',
         'glGenRenderbuffers',
         'glDeleteRenderbuffers',
@@ -524,8 +501,6 @@ class GlTracer(Tracer):
         'glDeleteSamplers',
         'glGenTransformFeedbacks',
         'glDeleteTransformFeedbacks',
-        'glGenProgramPipelines',
-        'glDeleteProgramPipelines',
         'glGenTexturesEXT',
         'glDeleteTexturesEXT',
         'glGenAsyncMarkersSGIX',
@@ -586,7 +561,60 @@ class GlTracer(Tracer):
         'wglSwapIntervalEXT',
         'wglAllocateMemoryNV',
         'wglFreeMemoryNV',
-    ]
+
+        ## texture state
+        'glTexImage1D',
+        'glTexImage2D',
+        'glTexImage3D',
+        'glCompressedTexImage1D',
+        'glCompressedTexImage2D',
+        'glCompressedTexImage3D',
+        'glGenerateMipmap',
+
+        ## texture EXT_direct_state_access
+        'glTextureImage1D',
+        'glTextureImage2D',
+        'glTextureImage3D',
+        'glCompressedTextureImage1D',
+        'glCompressedTextureImage2D',
+        'glCompressedTextureImage3D',
+
+        ## shaders and programs
+        'glCreateProgram',
+        'glDeleteProgram',
+        'glCreateShader',
+        'glDeleteShader',
+        'glLinkProgram',
+
+        ## ARB shaders and programs
+        'glGenProgramsARB',
+        'glDeleteProgramsARB',
+        'glCreateShaderObjectARB',
+        'glCreateProgramObjectARB',
+        'glProgramStringARB',
+        'glLinkProgramARB',
+
+        ## ARB separate shader objects
+        'glGenProgramPipelines',
+        'glDeleteProgramPipelines',
+        'glCreateShaderProgramv',
+        'glCreateShaderProgramEXT',
+    )
+
+    def generateTraceCallDecls(self, api):
+        self.generateTraceCallHeader(api)
+
+        print 'bool can_unpack_subimage(void);'
+
+        # declare a function to wrap proc addresses
+        getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
+        argType = getProcAddressFunction.args[0].type
+        retType = getProcAddressFunction.type
+        print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
+        print
+
+        for function in api.getAllFunctions():
+            self.traceFunctionDecl(function)
 
     def generateTraceFunctionImplBody(self, function, bInvoke = 1):
         # Defer tracing of user array pointers...
@@ -653,7 +681,7 @@ class GlTracer(Tracer):
             print '        GLuint _count = _%s_count(%s);' % (function.name, arg_names)
             print '        _trace_user_arrays(_count);'
             print '    }'
-        
+
         # Emit a fake memcpy on buffer uploads
         if function.name == 'glBufferParameteriAPPLE':
             print '    if (pname == GL_BUFFER_FLUSHING_UNMAP_APPLE && param == GL_FALSE) {'
@@ -792,14 +820,121 @@ class GlTracer(Tracer):
             print '            }'
             print '        }'
             print '    }'
-
-        self.shadowBufferProlog(function)
-
-        if function.name == 'glLinkProgram' or function.name == 'glLinkProgramARB':
-            Tracer.generateTraceFunctionImplBody(self, function, 0)
+        elif function.name in ('glGenerateMipmap'):
+            print '    // glGenerateMipmap calls are special cased'
+            print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
+            print '    // The actual call will be added to the trace at a later time.'
+            print '    unsigned _tmpCall = 0;'
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        GLint boundTexture = 0;'
+            print '        if (target == GL_TEXTURE_1D) _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_1D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_1D_ARRAY, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_2D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_3D) _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            
+            print '        _glGetIntegerv(target, &boundTexture);'
+            print '        if (boundTexture > 0) {'
+            print '            ctx->textures[boundTexture].m_generateMipmap = true;'
+            print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            print '    _tmpCall = _call;'
+            print '    }'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function, bInvoke)
+            print '    if (trace::isTracingStateSetupFunctions() == false) {'
+            print '    unsigned _call = _tmpCall;'
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    }'
+        elif function.name in ('glTexImage1D', 'glTexImage2D', 'glTexImage3D', 'glCompressedTexImage1D', 'glCompressedTexImage2D', 'glCompressedTexImage3D', 'glTextureImage1DEXT', 'glTextureImage2DEXT', 'glTextureImage3DEXT', 'glCompressedTextureImage1DEXT', 'glCompressedTextureImage2DEXT', 'glCompressedTextureImage3DEXT'):
+            print '    // glTex*Image* calls are special cased'
+            print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
+            print '    // The actual call will be added to the trace at a later time.'
+            print '    unsigned _tmpCall = 0;'
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            self.generateTraceTexImage(function)
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            print '    _tmpCall = _call;'
+            print '    }'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function, 1)
+            print '    if (trace::isTracingStateSetupFunctions() == false) {'
+            print '    unsigned _call = _tmpCall;'
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    }'
         else:
             Tracer.generateTraceFunctionImplBody(self, function, 1)
         self.frameTerminationTraceFunction(function, '        ')
+
+        if function.name  in ('glGenTextures', 'glGenTexturesEXT'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->textures[textures[i]];'
+            print '        }'
+            print '    }'
+        if function.name in ('glDeleteTextures', 'glDeleteTexturesEXT'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->textures.erase(textures[i]);'
+            print '        }'
+            print '    }'
+
+    def generateTraceTexImage(self, function):
+        print '        gltrace::Context *ctx = gltrace::getContext();'
+        if function.name in ('glTexImage1D',):
+            print '        GLint boundTexture = 0;'
+            print '        _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
+            print '        ctx->textures[boundTexture].texImage(boundTexture, GL_TEXTURE_1D, level, internalformat, width, format, type);'
+        if function.name in ('glTextureImage1DEXT',):
+            print '        ctx->textures[texture].texImage(texture, GL_TEXTURE_1D, level, internalformat, width, format, type);'
+        if function.name in ('glCompressedTexImage1D',):
+            print '        GLint boundTexture = 0;'
+            print '        _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
+            print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, GL_TEXTURE_1D, level, internalformat, width, imageSize);'
+        if function.name in ('glCompressedTextureImage1DEXT',):
+            print '        ctx->textures[texture].compressedTexImage(texture, GL_TEXTURE_1D, level, internalformat, width, imageSize);'
+        if function.name in ('glTexImage2D',):
+            print '        GLint boundTexture = 0;'
+            print '        if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_RECTANGLE) _glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        ctx->textures[boundTexture].texImage(boundTexture, target, level, internalformat, width, height, format, type);'
+        if function.name in ('glTextureImage2DEXT',):
+            print '        ctx->textures[texture].texImage(texture, target, level, internalformat, width, height, format, type);'
+        if function.name in ('glCompressedTexImage2D',):
+            print '        GLint boundTexture = 0;'
+            print '        if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_RECTANGLE) _glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, target, level, internalformat, width, height, imageSize);'
+        if function.name in ('glCompressedTextureImage2DEXT',):
+            print '        ctx->textures[texture].compressedTexImage(texture, target, level, internalformat, width, height, imageSize);'
+        if function.name in ('glTexImage3D',):
+            print '        GLint boundTexture = 0;'
+            print '        _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
+            print '        ctx->textures[boundTexture].texImage(boundTexture, GL_TEXTURE_3D, level, internalformat, width, height, depth, format, type);'
+        if function.name in ('glTextureImage3DEXT',):
+            print '        ctx->textures[texture].texImage(texture, GL_TEXTURE_3D, level, internalformat, width, height, depth, format, type);'
+        if function.name in ('glCompressedTexImage3D',):
+            print '        GLint boundTexture = 0;'
+            print '        _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
+            print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, GL_TEXTURE_3D, level, internalformat, width, height, depth, imageSize);'
+        if function.name in ('glCompressedTextureImage3DEXT',):
+            print '        ctx->textures[texture].compressedTexImage(texture, GL_TEXTURE_3D, level, internalformat, width, height, depth, imageSize);'
 
     marker_functions = [
         # GL_GREMEDY_string_marker
@@ -1204,14 +1339,4 @@ class GlTracer(Tracer):
         print '        trace::localWriter.endEnter();'
         print '        trace::localWriter.beginLeave(_fake_call);'
         print '        trace::localWriter.endLeave();'
-
-
-
-
-
-
-
-
-
-
 

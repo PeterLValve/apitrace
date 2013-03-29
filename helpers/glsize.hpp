@@ -42,6 +42,7 @@
 
 #include "os.hpp"
 #include "glimports.hpp"
+#include "glproc.hpp"
 
 
 static inline size_t

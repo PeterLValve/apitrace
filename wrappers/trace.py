@@ -462,16 +462,25 @@ class Tracer:
 
         return ValueSerializer()
 
-    def generateTraceCalls(self, api):
+    def generateTraceCallHeader(self, api):
         self.api = api
-
-        self.header(api)
 
         # Includes
         for module in api.modules:
             for header in module.headers:
                 print header
         print
+
+    def generateTraceCallDecls(self, api):
+        self.interface = None
+        self.base = None
+        for function in api.getAllFunctions():
+            self.traceFunctionDecl(function)
+
+    def generateTraceCalls(self, api):
+        self.api = api
+
+        self.header(api)
 
         # Generate the serializer functions
         types = api.getAllTypes()
@@ -485,16 +494,14 @@ class Tracer:
         # Function wrappers
         self.interface = None
         self.base = None
-        for function in api.getAllFunctions():
-            self.traceFunctionDecl(function)
+
         for function in api.getAllFunctions():
             self.generateTraceFunctionImpl(function)
         print
 
         self.footer(api)
 
-
-    def traceApi(self, api):
+    def generateEntrypoints(self, api):
         self.api = api
 
         # Includes
@@ -536,6 +543,14 @@ class Tracer:
             else:
                 print 'static const char ** _%s_args = NULL;' % (function.name,)
             print 'static const trace::FunctionSig _%s_sig = {%u, "%s", %u, _%s_args};' % (function.name, self.getFunctionSigId(), function.name, len(function.args), function.name)
+
+            argString = ''
+            if function.args:
+                argString = ', '.join([str(arg.type) + ' ' + arg.name for arg in function.args]) + ', '
+            resultString = ''
+            if function.type is not stdapi.Void:
+                resultString = '%s& _result, ' % function.type
+            print 'extern %s _trace_%s(%s%sbool makeRealCall);' % (function.type, function.name, argString, resultString)
             print
 
     def getFunctionSigId(self):
@@ -610,7 +625,7 @@ class Tracer:
         print '}'
         print
 
-    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+    def generateTraceFunctionImplBodyArgs(self, function):
         if not function.internal:
             print '    unsigned _call = trace::localWriter.beginEnter(&_%s_sig);' % (function.name,)
             for arg in function.args:
@@ -620,12 +635,16 @@ class Tracer:
                 if not arg.output:
                     self.serializeArg(function, arg)
             print '    trace::localWriter.endEnter();'
+
+    def generateTraceFunctionImplBodyRealCall(self, function, bInvoke):
         print '    if ( makeRealCall ) {'
         if bInvoke:
             self.invokeFunction(function, '        ')
         else:
             print '        // Intentionally not making the real call here'
         print '    }'
+
+    def generateTraceFunctionImplBodyReturn(self, function):
         if not function.internal:
             print '    trace::localWriter.beginLeave(_call);'
             print '    if (%s) {' % self.wasFunctionSuccessful(function)
@@ -639,6 +658,11 @@ class Tracer:
             if function.type is not stdapi.Void:
                 self.wrapRet(function, "_result")
             print '    trace::localWriter.endLeave();'
+
+    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+        self.generateTraceFunctionImplBodyArgs(function)
+        self.generateTraceFunctionImplBodyRealCall(function, bInvoke)
+        self.generateTraceFunctionImplBodyReturn(function)
 
     def invokeFunction(self, function, indentation):
         self.doInvokeFunction(function, indentation)

@@ -30,9 +30,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <map>
-
+#include <list>
 #include "glimports.hpp"
-
+#include "glsize.hpp"
 
 namespace gltrace {
 
@@ -89,6 +89,136 @@ public:
     }
 };
 
+struct TextureLevel
+{
+    GLenum m_target;
+    GLint m_level;
+    GLsizei m_width;
+    GLsizei m_height;
+    GLsizei m_depth;
+    GLsizei m_imageSize;
+};
+
+// this helps track texture parameters that are needed to recreate a texture
+class Texture {
+public:
+    GLenum m_name;
+    GLenum m_target;
+    GLint m_internalFormat;
+    GLenum m_format;
+    GLenum m_type;
+    bool m_generateMipmap;
+
+    // list of mipmap levels that had contents uploaded
+    std::list<TextureLevel> m_levels;
+
+    Texture() :
+       m_name(GL_NONE),
+       m_target(GL_NONE),
+       m_format(GL_NONE),
+       m_type(GL_NONE),
+       m_generateMipmap(false)
+    {}
+
+    ~Texture() {
+    }
+
+    void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLenum format, GLenum type)
+    {
+        SetTextureInfo(name, target, internalFormat, format, type);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, 1, 1, true);
+        AddTextureLevel(target, level, width, 1, 1, imageSize);
+    }
+
+    void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type)
+    {
+        SetTextureInfo(name, target, internalFormat, format, type);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, 1, true);
+        AddTextureLevel(target, level, width, height, 1, imageSize);
+    }
+
+    void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type)
+    {
+        SetTextureInfo(name, target, internalFormat, format, type);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, depth, true);
+        AddTextureLevel(target, level, width, height, depth, imageSize);
+    }
+
+    void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei imageSize)
+    {
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, 1, 1, imageSize);
+    }
+
+    void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei imageSize)
+    {
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, height, 1, imageSize);
+    }
+
+    void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLsizei imageSize)
+    {
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, height, depth, imageSize);
+    }
+
+private:
+    void SetTextureInfo(GLuint name, GLenum target, GLint internalFormat, GLenum format, GLenum type)
+    {
+        if (m_name == 0)
+        {
+            // we only want to populate this information the first time
+            m_name = name;
+            if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X ||
+                target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y ||
+                target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z )
+            {
+                m_target = GL_TEXTURE_CUBE_MAP;
+            } else {
+                m_target = target;
+            }
+            m_internalFormat = internalFormat;
+            m_format = format;
+            m_type = type;
+        }
+    }
+
+    void AddTextureLevel(GLenum target, GLint level, GLsizei width, GLsizei height, GLsizei depth, GLsizei compressedImageSize)
+    {
+        // see if the level and target is already in the list
+        std::list<gltrace::TextureLevel>::iterator iter = m_levels.begin();
+        for (; iter != m_levels.end(); ++iter)
+        {
+            if (iter->m_level == level && iter->m_target == target)
+            {
+                // level already exists
+                break;
+            }
+        }
+
+        if (iter != this->m_levels.end())
+        {
+            // update the level
+            iter->m_target = target;
+            iter->m_width = width;
+            iter->m_height = height;
+            iter->m_depth = depth;
+            iter->m_imageSize = compressedImageSize;
+        }
+        else
+        {
+            TextureLevel texLevel;
+            texLevel.m_target = target;
+            texLevel.m_level = level;
+            texLevel.m_width = width;
+            texLevel.m_height = height;
+            texLevel.m_depth = depth;
+            texLevel.m_imageSize = compressedImageSize;
+            this->m_levels.push_back(texLevel);
+        }
+    }
+};
+
 class Context {
 public:
     enum Profile profile;
@@ -104,6 +234,8 @@ public:
     // TODO: This will fail for buffers shared by multiple contexts.
     std::map <GLuint, Buffer> buffers;
 
+    std::map <GLuint, Texture> textures;
+
     Context(void) :
         profile(PROFILE_COMPAT),
         user_arrays(false),
@@ -113,6 +245,12 @@ public:
         hdc(NULL),
         bound(false)
     { }
+
+    ~Context(void)
+    {
+        buffers.clear();
+        textures.clear();
+    }
 
     inline bool
     needsShadowBuffers(void)

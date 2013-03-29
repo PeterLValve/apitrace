@@ -10,6 +10,7 @@ include_directories (
 )
 
 add_library (common_trace STATIC
+    trace.hpp
     trace.cpp
 )
 
@@ -323,8 +324,8 @@ if (WIN32)
                 ${CMAKE_SOURCE_DIR}/specs/stdapi.py
     )
     add_custom_command (
-        OUTPUT wgltrace_tracefuncs.hpp
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/wgltrace_tracefuncs.py > ${CMAKE_CURRENT_BINARY_DIR}/wgltrace_tracefuncs.hpp
+        OUTPUT wgltrace_tracefuncs.cpp
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/wgltrace_tracefuncs.py > ${CMAKE_CURRENT_BINARY_DIR}/wgltrace_tracefuncs.cpp
         DEPENDS
                 wgltrace_tracefuncs.py
                 gltrace.py
@@ -338,15 +339,45 @@ if (WIN32)
                 ${CMAKE_SOURCE_DIR}/specs/winapi.py
                 ${CMAKE_SOURCE_DIR}/specs/stdapi.py
     )
+    add_custom_command (
+        OUTPUT wgltrace_tracefuncs.h
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/wgltrace_tracefuncsDecl.py > ${CMAKE_CURRENT_BINARY_DIR}/wgltrace_tracefuncs.h
+        DEPENDS
+                wgltrace_tracefuncsDecl.py
+                gltrace.py
+                trace.py
+                ${CMAKE_SOURCE_DIR}/dispatch/dispatch.py
+                ${CMAKE_SOURCE_DIR}/specs/wglapi.py
+                ${CMAKE_SOURCE_DIR}/specs/wglenum.py
+                ${CMAKE_SOURCE_DIR}/specs/glapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/winapi.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
+    add_custom_command (
+        OUTPUT glstate_snapshot.cpp
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/glstate_snapshot.py > ${CMAKE_CURRENT_BINARY_DIR}/glstate_snapshot.cpp
+        DEPENDS
+                glstate_snapshot.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
     add_library (wgltrace MODULE opengl32.def
         wgltrace.cpp
-        wgltrace_tracefuncs.hpp
+        wgltrace_tracefuncs.cpp
+        wgltrace_tracefuncs.h
         glcaps.cpp
         gltrace_state.cpp
+        glstate_snapshot.cpp
+        gltrace.hpp
         gltrace_state_snapshot.hpp
         wgltrace.py
         wgltrace_tracefuncs.py
+        wgltrace_tracefuncsDecl.py
         gltrace.py
+        glstate_snapshot.py
         trace.py
     )
     add_dependencies (wgltrace glproc)

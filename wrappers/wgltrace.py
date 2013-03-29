@@ -71,6 +71,7 @@ if __name__ == '__main__':
     print
     print '#include "glproc.hpp"'
     print '#include "glsize.hpp"'
+    print '#include "trace.hpp"'
     print '#include "gltrace_state_snapshot.hpp"'
     print
     print 'namespace trace'
@@ -88,4 +89,4 @@ if __name__ == '__main__':
     api = API()
     api.addModule(module)
     tracer = WglTracer()
-    tracer.traceApi(api)
+    tracer.generateEntrypoints(api)
