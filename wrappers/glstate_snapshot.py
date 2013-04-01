@@ -48,17 +48,371 @@ framebuffer_targets = [
     ('GL_READ_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER_BINDING'),
 ]
 
-state_that_cannot_replay = [
+state_that_cannot_replay = (
     'GL_VENDOR',
     'GL_RENDERER',
     'GL_VERSION',
+    'GL_MAJOR_VERSION',
+    'GL_MINOR_VERSION',
     'GL_EXTENSIONS',
+    'GL_NUM_EXTENSIONS',
+    'GL_CONTEXT_FLAGS',
     'GL_PROGRAM_ERROR_STRING_ARB',
     'GL_SHADING_LANGUAGE_VERSION',
-    'GL_MAX_SERVER_WAIT_TIMEOUT'
-]
+    'GL_MAX_SERVER_WAIT_TIMEOUT',
+    'GL_POINT_SIZE_RANGE',
+    'GL_POINT_SIZE_GRANULARITY',
+    'GL_LINE_WIDTH_RANGE',
+    'GL_LINE_WIDTH_GRANULARITY',
+    'GL_MAX_LIST_NESTING',
+    'GL_MODELVIEW_STACK_DEPTH',
+    'GL_PROJECTION_STACK_DEPTH',
+    'GL_TEXTURE_STACK_DEPTH',
+    'GL_ATTRIB_STACK_DEPTH',
+    'GL_CLIENT_ATTRIB_STACK_DEPTH',
+    'GL_AUX_BUFFERS',
+    'GL_INDEX_MODE',
+    'GL_RGBA_MODE',
+    'GL_DOUBLEBUFFER',
+    'GL_STEREO',
+    'GL_MAX_EVAL_ORDER',
+    'GL_MAX_LIGHTS',
+    'GL_MAX_CLIP_DISTANCES',
+    'GL_MAX_TEXTURE_SIZE',
+    'GL_MAX_PIXEL_MAP_TABLE',
+    'GL_MAX_ATTRIB_STACK_DEPTH',
+    'GL_MAX_MODELVIEW_STACK_DEPTH',
+    'GL_MAX_NAME_STACK_DEPTH',
+    'GL_MAX_PROJECTION_STACK_DEPTH',
+    'GL_MAX_TEXTURE_STACK_DEPTH',
+    'GL_MAX_VIEWPORT_DIMS',
+    'GL_NAME_STACK_DEPTH',
+    'GL_MAX_COMPUTE_SHARED_MEMORY_SIZE',
+    'GL_MAX_COMPUTE_UNIFORM_COMPONENTS',
+    'GL_MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS',
+    'GL_MAX_COMPUTE_ATOMIC_COUNTERS',
+    'GL_MAX_COMBINED_COMPUTE_UNIFORM_COMPONENTS',
+    'GL_MAX_UNIFORM_LOCATIONS',
+    'GL_MAX_TEXTURE_UNITS',
+    'GL_MAX_RENDERBUFFER_SIZE',
+    'GL_MAX_RECTANGLE_TEXTURE_SIZE',
+    'GL_MAX_TEXTURE_LOD_BIAS',
+    'GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT',
+    'GL_MAX_SHININESS_NV',
+    'GL_MAX_SPOT_EXPONENT_NV',
+    'GL_MAX_CUBE_MAP_TEXTURE_SIZE',
+    'GL_MAX_GENERAL_COMBINERS_NV',
+    'GL_NUM_GENERAL_COMBINERS_NV',
+    'GL_MAX_PROGRAM_MATRIX_STACK_DEPTH_ARB',
+    'GL_MAX_PROGRAM_MATRICES_ARB',
+    'GL_CURRENT_MATRIX_STACK_DEPTH_ARB',
+    'GL_NUM_COMPRESSED_TEXTURE_FORMATS',
+    'GL_MAX_VERTEX_UNITS_ARB',
+    'GL_ACTIVE_VERTEX_UNITS_ARB',
+    'GL_MAX_DRAW_BUFFERS',
+    'GL_MAX_VERTEX_ATTRIBS',
+    'GL_MAX_TEXTURE_COORDS',
+    'GL_MAX_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_DUAL_SOURCE_DRAW_BUFFERS',
+    'GL_MAX_ARRAY_TEXTURE_LAYERS',
+    'GL_MIN_PROGRAM_TEXEL_OFFSET',
+    'GL_MAX_PROGRAM_TEXEL_OFFSET',
+    'GL_MAX_VERTEX_UNIFORM_BLOCKS',
+    'GL_MAX_GEOMETRY_UNIFORM_BLOCKS',
+    'GL_MAX_FRAGMENT_UNIFORM_BLOCKS',
+    'GL_MAX_COMBINED_UNIFORM_BLOCKS',
+    'GL_MAX_UNIFORM_BUFFER_BINDINGS',
+    'GL_MAX_UNIFORM_BLOCK_SIZE',
+    'GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS',
+    'GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS',
+    'GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS',
+    'GL_MAX_FRAGMENT_UNIFORM_COMPONENTS',
+    'GL_MAX_VERTEX_UNIFORM_COMPONENTS',
+    'GL_MAX_VARYING_COMPONENTS',
+    'GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_TEXTURE_BUFFER_SIZE',
+    'GL_MAX_COLOR_ATTACHMENTS',
+    'GL_MAX_SAMPLES',
+    'GL_MAX_ELEMENT_INDEX',
+    'GL_MAX_GEOMETRY_VARYING_COMPONENTS_ARB',
+    'GL_MAX_VERTEX_VARYING_COMPONENTS_ARB',
+    'GL_MAX_GEOMETRY_UNIFORM_COMPONENTS',
+    'GL_MAX_GEOMETRY_OUTPUT_VERTICES',
+    'GL_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS',
+    'GL_MAX_SUBROUTINES',
+    'GL_MAX_SUBROUTINE_UNIFORM_LOCATIONS',
+    'GL_MAX_BINDABLE_UNIFORM_SIZE_EXT',
+    'GL_NUM_SHADER_BINARY_FORMATS',
+    'GL_MAX_VERTEX_UNIFORM_VECTORS',
+    'GL_MAX_VARYING_VECTORS',
+    'GL_MAX_FRAGMENT_UNIFORM_VECTORS',
+    'GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS',
+    'GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS',
+    'GL_MAX_COMBINED_TESS_EVALUATION_UNIFORM_COMPONENTS',
+    'GL_MAX_SAMPLE_MASK_WORDS',
+    'GL_MAX_TRANSFORM_FEEDBACK_BUFFERS',
+    'GL_MAX_VERTEX_STREAMS',
+    'GL_MAX_PATCH_VERTICES',
+    'GL_MAX_TESS_GEN_LEVEL',
+    'GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS',
+    'GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS',
+    'GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS',
+    'GL_MAX_TESS_PATCH_COMPONENTS',
+    'GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS',
+    'GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS',
+    'GL_MAX_TESS_CONTROL_UNIFORM_BLOCKS',
+    'GL_MAX_TESS_EVALUATION_UNIFORM_BLOCKS',
+    'GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX',
+    'GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX',
+    'GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX',
+    'GL_GPU_MEMORY_INFO_EVICTION_COUNT_NVX',
+    'GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX',
+    'GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS',
+    'GL_MAX_COMPUTE_LOCAL_INVOCATIONS',
+    'GL_MAX_COLOR_TEXTURE_SAMPLES',
+    'GL_MAX_DEPTH_TEXTURE_SAMPLES',
+    'GL_MAX_INTEGER_SAMPLES',
+    'GL_MAX_DEBUG_MESSAGE_LENGTH',
+    'GL_MAX_DEBUG_LOGGED_MESSAGES',
+    'GL_MAX_COMPUTE_UNIFORM_BLOCKS',
+    'GL_MAX_COMPUTE_TEXTURE_IMAGE_UNITS',
+    'GL_MAX_COMPUTE_IMAGE_UNIFORMS',
+    'GL_MAX_COMPUTE_WORK_GROUP_COUNT',
+    'GL_MAX_COMPUTE_WORK_GROUP_SIZE',
+    'GL_MAX_FRAMEBUFFER_WIDTH',
+    'GL_MAX_FRAMEBUFFER_HEIGHT',
+    'GL_MAX_FRAMEBUFFER_LAYERS',
+    'GL_MAX_FRAMEBUFFER_SAMPLES',
+    'GL_MAX_CLIENT_ATTRIB_STACK_DEPTH',
+    'GL_MAX_3D_TEXTURE_SIZE',
+    'GL_MAX_COLOR_MATRIX_STACK_DEPTH',
+    'GL_MAX_ELEMENTS_VERTICES',
+    'GL_MAX_FOG_FUNC_POINTS_SGIS',
+    'GL_MAX_4D_TEXTURE_SIZE_SGIS',
+    'GL_MAX_CLIPMAP_DEPTH_SGIX',
+    'GL_MAX_CLIPMAP_VIRTUAL_DEPTH_SGIX',
+    'GL_MAX_FRAMEZOOM_FACTOR_SGIX',
+    'GL_MAX_VIEWPORTS',
+    'GL_MAX_ELEMENTS_INDICES',
+    'GL_MAX_FRAGMENT_LIGHTS_SGIX',
+    'GL_MAX_ACTIVE_LIGHTS_SGIX',
+    'GL_MAX_MATRIX_PALETTE_STACK_DEPTH_ARB',
+    'GL_MAX_PALETTE_MATRICES_ARB',
+    'GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_TEX_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_TEX_INDIRECTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB',
+    'GL_MAX_PROGRAM_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_TEMPORARIES_ARB',
+    'GL_MAX_PROGRAM_NATIVE_TEMPORARIES_ARB',
+    'GL_MAX_PROGRAM_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_ATTRIBS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_ATTRIBS_ARB',
+    'GL_MAX_PROGRAM_ADDRESS_REGISTERS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB',
+    'GL_MAX_PROGRAM_LOCAL_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_ENV_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_EXEC_INSTRUCTIONS_NV',
+    'GL_MAX_PROGRAM_CALL_DEPTH_NV',
+    'GL_MAX_PROGRAM_IF_DEPTH_NV',
+    'GL_MAX_PROGRAM_LOOP_DEPTH_NV',
+    'GL_MAX_PROGRAM_LOOP_COUNT_NV',
+    'GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_TEX_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_TEX_INDIRECTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB',
+    'GL_MAX_PROGRAM_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_INSTRUCTIONS_ARB',
+    'GL_MAX_PROGRAM_TEMPORARIES_ARB',
+    'GL_MAX_PROGRAM_NATIVE_TEMPORARIES_ARB',
+    'GL_MAX_PROGRAM_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_ATTRIBS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_ATTRIBS_ARB',
+    'GL_MAX_PROGRAM_ADDRESS_REGISTERS_ARB',
+    'GL_MAX_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB',
+    'GL_MAX_PROGRAM_LOCAL_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_ENV_PARAMETERS_ARB',
+    'GL_MAX_PROGRAM_EXEC_INSTRUCTIONS_NV',
+    'GL_MAX_PROGRAM_CALL_DEPTH_NV',
+    'GL_MAX_PROGRAM_IF_DEPTH_NV',
+    'GL_MAX_PROGRAM_LOOP_DEPTH_NV',
+    'GL_MAX_PROGRAM_LOOP_COUNT_NV',
+)
 
-state_enable_disable = [
+state_deprecated_before_gl33 = (
+    'GL_CURRENT_INDEX',
+    'GL_CURRENT_NORMAL',
+    'GL_CURRENT_TEXTURE_COORDS',
+    'GL_CURRENT_RASTER_COLOR',
+    'GL_CURRENT_RASTER_INDEX',
+    'GL_CURRENT_RASTER_TEXTURE_COORDS',
+    'GL_CURRENT_RASTER_POSITION',
+    'GL_CURRENT_RASTER_POSITION_VALID',
+    'GL_CURRENT_RASTER_DISTANCE',
+    'GL_POINT_SMOOTH',
+    'GL_LINE_STIPPLE',
+    'GL_LINE_STIPPLE_PATTERN',
+    'GL_LINE_STIPPLE_REPEAT',
+    'GL_LIST_MODE',
+    'GL_LIST_BASE',
+    'GL_LIST_INDEX',
+    'GL_POLYGON_STIPPLE',
+    'GL_EDGE_FLAG',
+    'GL_LIGHT_MODEL_LOCAL_VIEWER',
+    'GL_LIGHT_MODEL_TWO_SIDE',
+    'GL_LIGHT_MODEL_AMBIENT',
+    'GL_COLOR_MATERIAL_FACE',
+    'GL_COLOR_MATERIAL_PARAMETER',
+    'GL_COLOR_MATERIAL',
+    'GL_FOG',
+    'GL_FOG_INDEX',
+    'GL_FOG_DENSITY',
+    'GL_FOG_START',
+    'GL_FOG_END',
+    'GL_MATRIX_MODE',
+    'GL_NORMALIZE',
+    'GL_MODELVIEW_MATRIX',
+    'GL_PROJECTION_MATRIX',
+    'GL_TEXTURE_MATRIX',
+    'GL_INDEX_CLEAR_VALUE',
+    'GL_INDEX_WRITEMASK',
+    'GL_RENDER_MODE',
+    'GL_PERSPECTIVE_CORRECTION_HINT',
+    'GL_POINT_SMOOTH_HINT',
+    'GL_FOG_HINT',
+    'GL_MAP_COLOR',
+    'GL_MAP_STENCIL',
+    'GL_INDEX_SHIFT',
+    'GL_INDEX_OFFSET',
+    'GL_RED_SCALE',
+    'GL_RED_BIAS',
+    'GL_ZOOM_X',
+    'GL_ZOOM_Y',
+    'GL_GREEN_SCALE',
+    'GL_GREEN_BIAS',
+    'GL_BLUE_SCALE',
+    'GL_BLUE_BIAS',
+    'GL_ALPHA_BIAS',
+    'GL_DEPTH_SCALE',
+    'GL_DEPTH_BIAS',
+    'GL_INDEX_BITS',
+    'GL_RED_BITS',
+    'GL_GREEN_BITS',
+    'GL_BLUE_BITS',
+    'GL_ALPHA_BITS',
+    'GL_DEPTH_BITS',
+    'GL_STENCIL_BITS',
+    'GL_ACCUM_RED_BITS',
+    'GL_ACCUM_GREEN_BITS',
+    'GL_ACCUM_BLUE_BITS',
+    'GL_ACCUM_ALPHA_BITS',
+    'GL_AUTO_NORMAL',
+    'GL_MAP1_COLOR_4',
+    'GL_MAP1_INDEX',
+    'GL_MAP1_NORMAL',
+    'GL_MAP1_TEXTURE_COORD_1',
+    'GL_MAP1_TEXTURE_COORD_2',
+    'GL_MAP1_TEXTURE_COORD_3',
+    'GL_MAP1_TEXTURE_COORD_4',
+    'GL_MAP1_VERTEX_3',
+    'GL_MAP1_VERTEX_4',
+    'GL_MAP2_COLOR_4',
+    'GL_MAP2_INDEX',
+    'GL_MAP2_NORMAL',
+    'GL_MAP2_TEXTURE_COORD_1',
+    'GL_MAP2_TEXTURE_COORD_2',
+    'GL_MAP2_TEXTURE_COORD_3',
+    'GL_MAP2_TEXTURE_COORD_4',
+    'GL_MAP2_VERTEX_3',
+    'GL_MAP2_VERTEX_4',
+    'GL_MAP1_GRID_DOMAIN',
+    'GL_MAP1_GRID_SEGMENTS',
+    'GL_MAP2_GRID_DOMAIN',
+    'GL_MAP2_GRID_SEGMENTS',
+    'GL_FEEDBACK_BUFFER_POINTER',
+    'GL_FEEDBACK_BUFFER_SIZE',
+    'GL_FEEDBACK_BUFFER_TYPE',
+    'GL_SELECTION_BUFFER_POINTER',
+    'GL_SELECTION_BUFFER_SIZE',
+    'GL_CONVOLUTION_1D',
+    'GL_CONVOLUTION_2D',
+    'GL_SEPARABLE_2D',
+    'GL_POST_CONVOLUTION_RED_SCALE',
+    'GL_POST_CONVOLUTION_GREEN_SCALE',
+    'GL_POST_CONVOLUTION_BLUE_SCALE',
+    'GL_POST_CONVOLUTION_ALPHA_SCALE',
+    'GL_POST_CONVOLUTION_RED_BIAS',
+    'GL_POST_CONVOLUTION_GREEN_BIAS',
+    'GL_POST_CONVOLUTION_BLUE_BIAS',
+    'GL_POST_CONVOLUTION_ALPHA_BIAS',
+    'GL_HISTOGRAM',
+    'GL_MINMAX',
+    'GL_RESCALE_NORMAL',
+    'GL_NORMAL_ARRAY',
+    'GL_COLOR_ARRAY',
+    'GL_INDEX_ARRAY',
+    'GL_TEXTURE_COORD_ARRAY',
+    'GL_EDGE_FLAG_ARRAY',
+    'GL_NORMAL_ARRAY_TYPE',
+    'GL_NORMAL_ARRAY_STRIDE',
+    'GL_NORMAL_ARRAY_COUNT_EXT',
+    'GL_COLOR_ARRAY_SIZE',
+    'GL_COLOR_ARRAY_TYPE',
+    'GL_COLOR_ARRAY_STRIDE',
+    'GL_COLOR_ARRAY_COUNT_EXT',
+    'GL_INDEX_ARRAY_TYPE',
+    'GL_INDEX_ARRAY_STRIDE',
+    'GL_INDEX_ARRAY_COUNT_EXT',
+    'GL_TEXTURE_COORD_ARRAY_SIZE',
+    'GL_TEXTURE_COORD_ARRAY_TYPE',
+    'GL_TEXTURE_COORD_ARRAY_STRIDE',
+    'GL_TEXTURE_COORD_ARRAY_COUNT_EXT',
+    'GL_EDGE_FLAG_ARRAY_STRIDE',
+    'GL_EDGE_FLAG_ARRAY_COUNT_EXT',
+    'GL_NORMAL_ARRAY_POINTER',
+    'GL_COLOR_ARRAY_POINTER',
+    'GL_INDEX_ARRAY_POINTER',
+    'GL_TEXTURE_COORD_ARRAY_POINTER',
+    'GL_EDGE_FLAG_ARRAY_POINTER',
+    'GL_COLOR_MATRIX',
+    'GL_COLOR_MATRIX_STACK_DEPTH',
+    'GL_POST_COLOR_MATRIX_RED_SCALE',
+    'GL_POST_COLOR_MATRIX_GREEN_SCALE',
+    'GL_POST_COLOR_MATRIX_BLUE_SCALE',
+    'GL_POST_COLOR_MATRIX_ALPHA_SCALE',
+    'GL_POST_COLOR_MATRIX_RED_BIAS',
+    'GL_POST_COLOR_MATRIX_GREEN_BIAS',
+    'GL_POST_COLOR_MATRIX_BLUE_BIAS',
+    'GL_POST_COLOR_MATRIX_ALPHA_BIAS',
+    'GL_TEXTURE_COLOR_TABLE_SGI',
+    'GL_COLOR_TABLE',
+    'GL_POST_CONVOLUTION_COLOR_TABLE',
+    'GL_POST_COLOR_MATRIX_COLOR_TABLE',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+)
+
+## some enable_disable items are also listed under state_deprecated_before_gl33
+## this way if we decide to allow capturing of older state, they should still
+## get handled by enable_disable
+state_enable_disable = (
     'GL_POINT_SMOOTH',
     'GL_LINE_SMOOTH',
     'GL_LINE_STIPPLE',
@@ -81,7 +435,6 @@ state_enable_disable = [
     'GL_INDEX_LOGIC_OP',
     'GL_COLOR_LOGIC_OP',
     'GL_SCISSOR_TEST',
-#    'GL_COLOR_WRITEMASK',          ## this needs a different setter
     'GL_INDEX_MODE',
     'GL_RGBA_MODE',
     'GL_DOUBLEBUFFER',
@@ -115,8 +468,9 @@ state_enable_disable = [
     'GL_MAP2_TEXTURE_COORD_4',
     'GL_MAP2_VERTEX_3',
     'GL_MAP2_VERTEX_4',
-    #'GL_TEXTURE_1D',                   ## for some reason these are commented out of the code that feeds this script
+    #'GL_TEXTURE_1D',                   ## handled as part of texture state
     #'GL_TEXTURE_2D',
+    #'GL_TEXTURE_3D',
     #'GL_RASTER_POSITION_UNCLIPPED_IBM',
     'GL_POLYGON_OFFSET_POINT',
     'GL_POLYGON_OFFSET_LINE',
@@ -128,7 +482,7 @@ state_enable_disable = [
     'GL_CLIP_DISTANCE5',
     'GL_CLIP_DISTANCE6',
     'GL_CLIP_DISTANCE7',
-    #'GL_LIGHT0',           ## for some reason these are commented out of the code that feeds this script
+    #'GL_LIGHT0',           ## handled as part of light state
     #'GL_LIGHT1',
     #'GL_LIGHT2',
     #'GL_LIGHT3',
@@ -143,7 +497,6 @@ state_enable_disable = [
     'GL_MINMAX',
     'GL_POLYGON_OFFSET_FILL',
     'GL_RESCALE_NORMAL',
-    'GL_TEXTURE_3D',            # not sure why this isn't ignored like 1D, 2D, CubeMap, and Cube Map array?
     'GL_VERTEX_ARRAY',
     'GL_NORMAL_ARRAY',
     'GL_COLOR_ARRAY',
@@ -215,11 +568,157 @@ state_enable_disable = [
     #'GL_TEXTURE_CUBE_MAP_ARRAY',
     'GL_TEXTURE_BINDING_2D_MULTISAMPLE',
     'GL_DEBUG_OUTPUT',
-]
+)
 
-state_replay = [
-    ('GL_BLEND', 'glBlend')
-]
+## this is a collection of simple state that can easily be set.
+## Currently some are commented out because they require two or more gets
+## to obtain all of the parameters to call the setter. Those special cases
+## will be handled in another manner in the future.
+## Some states do not have a setter because we are not interested in them
+## right now (or I have not gotten around to implementing them).
+state_setters = (
+    ('GL_CURRENT_COLOR', 'glColor4fv(current_color)'),
+    ('GL_CURRENT_INDEX', 'glIndexf(current_index)'),
+    ('GL_CURRENT_NORMAL', 'glNormal3fv(current_normal)'),
+    ('GL_CURRENT_TEXTURE_COORDS', 'glTexCoord4fv(current_texture_coords)'),
+    ('GL_CURRENT_RASTER_COLOR', ''),
+    ('GL_CURRENT_RASTER_INDEX', ''),
+    ('GL_CURRENT_RASTER_TEXTURE_COORDS', ''),
+    ('GL_CURRENT_RASTER_POSITION', ''),
+    ('GL_CURRENT_RASTER_POSITION_VALID', ''),
+    ('GL_CURRENT_RASTER_DISTANCE', ''),
+    ('GL_POINT_SIZE', 'glPointSize(point_size)'),
+    ('GL_LINE_WIDTH', 'glLineWidth(line_width)'),
+    ('GL_LINE_STIPPLE_PATTERN', ''),
+    ('GL_LINE_STIPPLE_REPEAT', ''),
+    ('GL_LIST_MODE', ''),
+    ('GL_LIST_BASE', ''),
+    ('GL_LIST_INDEX', ''),
+#    ('GL_POLYGON_MODE', 'glPolygonMode(GL_FRONT /* TODO: GL_BACK */, polygon_mode[0])'),
+    ('GL_CULL_FACE_MODE', 'glCullFace(cull_face_mode)'),
+    ('GL_FRONT_FACE', 'glFrontFace(front_face)'),
+    ('GL_LIGHT_MODEL_AMBIENT', ''),
+    ('GL_SHADE_MODEL', ''),
+    ('GL_COLOR_MATERIAL_FACE', ''),
+    ('GL_COLOR_MATERIAL_PARAMETER', ''),
+    ('GL_FOG_INDEX', ''),
+    ('GL_FOG_DENSITY', ''),
+    ('GL_FOG_START', ''),
+    ('GL_FOG_END', ''),
+    ('GL_FOG_MODE', ''),
+    ('GL_FOG_COLOR', ''),
+    ('GL_DEPTH_RANGE', 'glDepthRangef(depth_range[0], depth_range[1])'),
+    ('GL_DEPTH_CLEAR_VALUE', 'glClearDepthf(depth_clear_value)'),
+    ('GL_DEPTH_FUNC', 'glDepthFunc(depth_func)'),
+    ('GL_ACCUM_CLEAR_VALUE', 'glClearAccum(accum_clear_value[0], accum_clear_value[1], accum_clear_value[2], accum_clear_value[3])'),
+    ('GL_STENCIL_CLEAR_VALUE', 'glClearStencil(stencil_clear_value)'),
+#    ('GL_STENCIL_FUNC', 'glStencilFunc(stencil_func)'), ## needs ref and mask as well
+    ('GL_STENCIL_VALUE_MASK', 'glStencilMask(stencil_value_mask)'),
+    ('GL_MATRIX_MODE', 'glMatrixMode(matrix_mode)'),
+    ('GL_VIEWPORT', 'glViewport(viewport[0], viewport[1], viewport[2], viewport[3])'),
+
+
+    ('GL_ALPHA_TEST_FUNC', ''),
+    ('GL_ALPHA_TEST_REF', ''),
+    ('GL_BLEND_DST', ''),
+    ('GL_BLEND_SRC', ''),
+    ('GL_LOGIC_OP_MODE', 'glLogicOp(logic_op_mode)'),
+    ('GL_DRAW_BUFFER', 'glDrawBuffer(draw_buffer)'),
+    ('GL_READ_BUFFER', 'glReadBuffer(read_buffer)'),
+    ('GL_SCISSOR_BOX', 'glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])'),
+    ('GL_INDEX_CLEAR_VALUE', 'glClearIndex(index_clear_value)'),
+    ('GL_INDEX_WRITEMASK', 'glIndexMask(index_writemask)'),
+    ('GL_COLOR_CLEAR_VALUE', 'glClearColor(color_clear_value[0], color_clear_value[1], color_clear_value[2], color_clear_value[3])'),
+    ('GL_COLOR_WRITEMASK', 'glColorMask(color_writemask[0], color_writemask[1], color_writemask[2], color_writemask[3])'),
+#    ('GL_RENDER_MODE', 'glRenderMode(render_mode)'), ## needs a result..
+    ('GL_PERSPECTIVE_CORRECTION_HINT', 'glHint(GL_PERSPECTIVE_CORRECTION_HINT, perspective_correction_hint)'),
+    ('GL_POINT_SMOOTH_HINT', 'glHint(GL_POINT_SMOOTH_HINT, point_smooth_hint)'),
+    ('GL_LINE_SMOOTH_HINT', 'glHint(GL_LINE_SMOOTH_HINT, line_smooth_hint)'),
+    ('GL_POLYGON_SMOOTH_HINT', 'glHint(GL_POLYGON_SMOOTH_HINT, polygon_smooth_hint)'),
+    ('GL_FOG_HINT', 'glHint(GL_FOG_HINT, fog_hint)'),
+    ('GL_BLEND_COLOR', 'glBlendColor(blend_color[0], blend_color[1], blend_color[2], blend_color[3])'),
+    ('GL_BLEND_EQUATION', 'glBlendEquation(blend_equation)'),
+
+    ## texture-related state that is queried using glGetTexParameter,
+    ('GL_TEXTURE_BORDER_COLOR', 'glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, texture_border_color)'),
+    ('GL_TEXTURE_MAG_FILTER', 'glTexParameteri(target, GL_TEXTURE_MAG_FILTER, texture_mag_filter)'),
+    ('GL_TEXTURE_MIN_FILTER', 'glTexParameteri(target, GL_TEXTURE_MIN_FILTER, texture_min_filter)'),
+    ('GL_TEXTURE_WRAP_S', 'glTexParameteri(target, GL_TEXTURE_WRAP_S, texture_wrap_s)'),
+    ('GL_TEXTURE_WRAP_T', 'glTexParameteri(target, GL_TEXTURE_WRAP_T, texture_wrap_t)'),
+    ('GL_TEXTURE_WRAP_R', 'glTexParameteri(target, GL_TEXTURE_WRAP_R, texture_wrap_r)'),
+    ('GL_TEXTURE_PRIORITY', 'glTexParameterf(target, GL_TEXTURE_PRIORITY, texture_priority)'),
+    ('GL_TEXTURE_RESIDENT', 'glTexParameteri(target, GL_TEXTURE_RESIDENT, texture_resident)'),
+    ('GL_TEXTURE_COMPARE_FAIL_VALUE_ARB', 'glTexParameterf(target, GL_TEXTURE_COMPARE_FAIL_VALUE_ARB, texture_compare_fail_value_arb)'),
+    ('GL_TEXTURE_MIN_LOD', 'glTexParameterf(target, GL_TEXTURE_MIN_LOD, texture_min_lod)'),
+    ('GL_TEXTURE_MAX_LOD', 'glTexParameterf(target, GL_TEXTURE_MAX_LOD, texture_max_lod)'),
+    ('GL_TEXTURE_BASE_LEVEL', 'glTexParameterf(target, GL_TEXTURE_BASE_LEVEL, texture_base_level)'),
+    ('GL_TEXTURE_MAX_LEVEL', 'glTexParameterf(target, GL_TEXTURE_MAX_LEVEL, texture_max_level)'),
+    ('GL_TEXTURE_CLIPMAP_CENTER_SGIX', 'glTexParameteriv(target, GL_TEXTURE_CLIPMAP_CENTER_SGIX, texture_clipmap_center_sgix)'),
+    ('GL_TEXTURE_CLIPMAP_FRAME_SGIX', 'glTexParameterf(target, GL_TEXTURE_CLIPMAP_FRAME_SGIX, texture_clipmap_frame_sgix)'),
+    ('GL_TEXTURE_CLIPMAP_OFFSET_SGIX', 'glTexParameteriv(target, GL_TEXTURE_CLIPMAP_OFFSET_SGIX, texture_clipmap_offset_sgix)'),
+    ('GL_TEXTURE_CLIPMAP_VIRTUAL_DEPTH_SGIX', 'glTexParameteriv(target, GL_TEXTURE_CLIPMAP_VIRTUAL_DEPTH_SGIX, texture_clipmap_virtual_depth_sgix)'),
+    ('GL_POST_TEXTURE_FILTER_BIAS_SGIX', 'glTexParameterf(target, GL_POST_TEXTURE_FILTER_BIAS_SGIX, post_texture_filter_bias_sgix)'),
+    ('GL_POST_TEXTURE_FILTER_SCALE_SGIX', 'glTexParameterf(target, GL_POST_TEXTURE_FILTER_SCALE_SGIX, post_texture_filter_scale_sgix)'),
+    ('GL_TEXTURE_LOD_BIAS_S_SGIX', 'glTexParameterf(target, GL_TEXTURE_LOD_BIAS_S_SGIX, texture_lod_bias_s_sgix)'),
+    ('GL_TEXTURE_LOD_BIAS_T_SGIX', 'glTexParameterf(target, GL_TEXTURE_LOD_BIAS_T_SGIX, texture_lod_bias_t_sgix)'),
+    ('GL_TEXTURE_LOD_BIAS_R_SGIX', 'glTexParameterf(target, GL_TEXTURE_LOD_BIAS_R_SGIX, texture_lod_bias_r_sgix)'),
+    ('GL_GENERATE_MIPMAP', 'glTexParameteri(target, GL_GENERATE_MIPMAP, generate_mipmap)'),
+    ('GL_TEXTURE_COMPARE_SGIX', 'glTexParameteri(target, GL_TEXTURE_COMPARE_SGIX, texture_compare_sgix)'),
+    ('GL_TEXTURE_COMPARE_OPERATOR_SGIX', 'glTexParameteri(target, GL_TEXTURE_COMPARE_OPERATOR_SGIX, texture_compare_operator_sgix)'),
+    ('GL_TEXTURE_VIEW_MIN_LEVEL', 'glTexParameteri(target, GL_TEXTURE_VIEW_MIN_LEVEL, texture_view_min_level)'),
+    ('GL_TEXTURE_VIEW_NUM_LEVELS', 'glTexParameteri(target, GL_TEXTURE_VIEW_NUM_LEVELS, texture_view_num_levels)'),
+    ('GL_TEXTURE_VIEW_MIN_LAYER', 'glTexParameteri(target, GL_TEXTURE_VIEW_MIN_LAYER, texture_view_min_layer)'),
+    ('GL_TEXTURE_VIEW_NUM_LAYERS', 'glTexParameteri(target, GL_TEXTURE_VIEW_NUM_LAYERS, texture_view_num_layers)'),
+    ('GL_TEXTURE_IMMUTABLE_LEVELS', 'glTexParameteri(target, GL_TEXTURE_IMMUTABLE_LEVELS, texture_immutable_levels)'),
+    ('GL_TEXTURE_MAX_CLAMP_S_SGIX', 'glTexParameteri(target, GL_TEXTURE_MAX_CLAMP_S_SGIX, texture_max_clamp_s_sgix)'),
+    ('GL_TEXTURE_MAX_CLAMP_T_SGIX', 'glTexParameteri(target, GL_TEXTURE_MAX_CLAMP_T_SGIX, texture_max_clamp_t_sgix)'),
+    ('GL_TEXTURE_MAX_CLAMP_R_SGIX', 'glTexParameteri(target, GL_TEXTURE_MAX_CLAMP_R_SGIX, texture_max_clamp_r_sgix)'),
+    ('GL_TEXTURE_MAX_ANISOTROPY_EXT', 'glTexParameteri(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, texture_max_anisotropy_ext)'),
+    ('GL_TEXTURE_LOD_BIAS', 'glTexParameteri(target, GL_TEXTURE_LOD_BIAS, texture_lod_bias)'),
+    ('GL_TEXTURE_STORAGE_HINT_APPLE', 'glTexParameteri(target, GL_TEXTURE_STORAGE_HINT_APPLE, texture_storage_hint_apple)'),
+    ('GL_DEPTH_TEXTURE_MODE', 'glTexParameteri(target, GL_DEPTH_TEXTURE_MODE, depth_texture_mode)'),
+    ('GL_TEXTURE_COMPARE_MODE', 'glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, texture_compare_mode)'),
+    ('GL_TEXTURE_COMPARE_FUNC', 'glTexParameteri(target, GL_TEXTURE_COMPARE_FUNC, texture_compare_func)'),
+    ('GL_TEXTURE_UNSIGNED_REMAP_MODE_NV', 'glTexParameteri(target, GL_TEXTURE_UNSIGNED_REMAP_MODE_NV, texture_unsigned_remap_mode_nv)'),
+    ('GL_TEXTURE_SRGB_DECODE_EXT', 'glTexParameteri(target, GL_TEXTURE_SRGB_DECODE_EXT, texture_srgb_decode_ext)'),
+    ('GL_TEXTURE_CROP_RECT_OES', 'glTexParameteriv(target, GL_TEXTURE_CROP_RECT_OES, texture_crop_rect_oes)'),
+    ('GL_TEXTURE_SWIZZLE_R', 'glTexParameteri(target, GL_TEXTURE_SWIZZLE_R, texture_swizzle_r)'),
+    ('GL_TEXTURE_SWIZZLE_G', 'glTexParameteri(target, GL_TEXTURE_SWIZZLE_G, texture_swizzle_g)'),
+    ('GL_TEXTURE_SWIZZLE_B', 'glTexParameteri(target, GL_TEXTURE_SWIZZLE_B, texture_swizzle_b)'),
+    ('GL_TEXTURE_SWIZZLE_A', 'glTexParameteri(target, GL_TEXTURE_SWIZZLE_A, texture_swizzle_a)'),
+    ('GL_TEXTURE_SWIZZLE_RGBA', 'glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, texture_swizzle_rgba)'),
+    ('GL_DEPTH_STENCIL_TEXTURE_MODE', 'glTexParameteri(target, GL_DEPTH_STENCIL_TEXTURE_MODE, depth_stencil_texture_mode)'),
+
+    ## queried using glGetTexLevelParameter
+    ## These are all queried and set using special-cased functions (see dump_texture_parameters)
+    ('GL_TEXTURE_WIDTH', ''),
+    ('GL_TEXTURE_HEIGHT', ''),
+    ('GL_TEXTURE_INTERNAL_FORMAT', ''),
+    ('GL_TEXTURE_BORDER', ''),
+    ('GL_TEXTURE_RED_SIZE', ''),
+    ('GL_TEXTURE_GREEN_SIZE', ''),
+    ('GL_TEXTURE_BLUE_SIZE', ''),
+    ('GL_TEXTURE_ALPHA_SIZE', ''),
+    ('GL_TEXTURE_LUMINANCE_SIZE', ''),
+    ('GL_TEXTURE_INTENSITY_SIZE', ''),
+    ('GL_TEXTURE_DEPTH', ''),
+    ('GL_TEXTURE_COMPRESSED_IMAGE_SIZE', ''),
+    ('GL_TEXTURE_COMPRESSED', ''),
+    ('GL_TEXTURE_DEPTH_SIZE', ''),
+    ('GL_TEXTURE_STENCIL_SIZE', ''),
+    ('GL_TEXTURE_RED_TYPE', ''),
+    ('GL_TEXTURE_GREEN_TYPE', ''),
+    ('GL_TEXTURE_BLUE_TYPE', ''),
+    ('GL_TEXTURE_ALPHA_TYPE', ''),
+    ('GL_TEXTURE_LUMINANCE_TYPE', ''),
+    ('GL_TEXTURE_INTENSITY_TYPE', ''),
+    ('GL_TEXTURE_DEPTH_TYPE', ''),
+    ('GL_TEXTURE_SAMPLES', ''),
+    ('GL_TEXTURE_FIXED_SAMPLE_LOCATIONS', ''),
+    ('GL_TEXTURE_BUFFER_OFFSET', ''),
+    ('GL_TEXTURE_BUFFER_SIZE', ''),
+
+)
 
 class GetInflector:
     '''Objects that describes how to inflect.'''
@@ -300,17 +799,17 @@ class StateGetter(Visitor):
         elem_type = self.inflector.reduced_type(type)
         inflection = self.inflector.inflect(type)
         if inflection.endswith('v'):
-            print '        %s %s = 0;' % (elem_type, temp_name)
-            print '        _%s(%s, &%s);' % (inflection + self.suffix, ', '.join(args), temp_name)
+            print '            %s %s = 0;' % (elem_type, temp_name)
+            print '            _%s(%s, &%s);' % (inflection + self.suffix, ', '.join(args), temp_name)
         else:
-            print '        %s %s = _%s(%s);' % (elem_type, temp_name, inflection + self.suffix, ', '.join(args))
+            print '            %s %s = _%s(%s);' % (elem_type, temp_name, inflection + self.suffix, ', '.join(args))
         return temp_name
 
     def visitString(self, string, args):
         temp_name = self.temp_name(args)
         inflection = self.inflector.inflect(string)
         assert not inflection.endswith('v')
-        print '        %s %s = (%s)_%s(%s);' % (string, temp_name, string, inflection + self.suffix, ', '.join(args))
+        print '            %s %s = (%s)_%s(%s);' % (string, temp_name, string, inflection + self.suffix, ', '.join(args))
         return temp_name
 
     def visitAlias(self, alias, args):
@@ -332,33 +831,44 @@ class StateGetter(Visitor):
         array_length = array.length
         if array_length.isdigit():
             # Static integer length
-            print '        %s %s[%s + 1];' % (elem_type, temp_name, array_length)
+            print '            %s %s[%s + 1];' % (elem_type, temp_name, array_length)
         else:
             # Put the length in a variable to avoid recomputing it every time
-            print '        size_t _%s_length = %s;' % (temp_name, array_length)
+            print '            size_t _%s_length = %s;' % (temp_name, array_length)
             array_length = '_%s_length' % temp_name
             # Allocate a dynamic sized array
-            print '        %s *%s = _allocator.alloc<%s>(%s + 1);' % (elem_type, temp_name, elem_type, array_length)
-        print '        memset(%s, 0, %s * sizeof(*%s));' % (temp_name, array_length, temp_name)
-        print '        %s[%s] = (%s)0xdeadc0de;' % (temp_name, array_length, elem_type)
-        print '        _%s(%s, %s);' % (inflection + self.suffix, ', '.join(args), temp_name)
+            print '            %s *%s = _allocator.alloc<%s>(%s + 1);' % (elem_type, temp_name, elem_type, array_length)
+        print '            memset(%s, 0, %s * sizeof(*%s));' % (temp_name, array_length, temp_name)
+        print '            %s[%s] = (%s)0xdeadc0de;' % (temp_name, array_length, elem_type)
+        print '            _%s(%s, %s);' % (inflection + self.suffix, ', '.join(args), temp_name)
         # Simple buffer overflow detection
-        print '        assert(%s[%s] == (%s)0xdeadc0de);' % (temp_name, array_length, elem_type)
+        print '            assert(%s[%s] == (%s)0xdeadc0de);' % (temp_name, array_length, elem_type)
         return temp_name
 
     def visitOpaque(self, pointer, args):
         temp_name = self.temp_name(args)
         inflection = self.inflector.inflect(pointer)
         assert inflection.endswith('v')
-        print '        GLvoid *%s;' % temp_name
-        print '        _%s(%s, &%s);' % (inflection + self.suffix, ', '.join(args), temp_name)
+        print '            GLvoid *%s;' % temp_name
+        print '            _%s(%s, &%s);' % (inflection + self.suffix, ', '.join(args), temp_name)
         return temp_name
 
     def emitSetter(self, *args):
-#        for arg in args:
-#            print '// args = %s' % arg
-        if not self.emit_enable_disable(args):
+        if self.emit_enable_disable(args):
+           pass
+        elif not self.emit_setter(args): 
             print '// need the setter here     _trace_func(arg0, arg1, _result, false);'
+
+    def emit_setter(self, args):
+        name = args[-1]
+        for stateName, setter in state_setters:
+            if stateName == name:
+                if (len(setter) == 0):
+                    print '            // We dont want to replay this state'
+                else:
+                    print '            _trace_%s, false);' % setter[:-1]
+                return 1
+        return 0
 
     def emit_enable_disable(self, args):
         name = args[-1]
@@ -394,61 +904,8 @@ glGetProgram = StateGetter('glGetProgram', {I: 'iv'})
 glGetProgramARB = StateGetter('glGetProgram', {I: 'iv', F: 'fv', S: 'Stringv'}, 'ARB')
 glGetFramebufferAttachmentParameter = StateGetter('glGetFramebufferAttachmentParameter', {I: 'iv'})
 
-
-class JsonWriter(Visitor):
-    '''Type visitor that will dump a value of the specified type through the
-    JSON writer.
-    
-    It expects a previously declared JSONWriter instance named "json".'''
-
-    def visitLiteral(self, literal, instance):
-        if literal.kind == 'Bool':
-            print '//    json.writeBool(%s);' % instance
-        elif literal.kind in ('SInt', 'Uint'):
-            print '//    json.writeInt(%s);' % instance
-        elif literal.kind in ('Float', 'Double'):
-            print '//    json.writeFloat(%s);' % instance
-        else:
-            raise NotImplementedError
-
-    def visitString(self, string, instance):
-        assert string.length is None
-        print '    json.writeString((const char *)%s);' % instance
-
-    def visitEnum(self, enum, instance):
-        if enum is GLboolean:
-            print '    dumpBoolean(%s);' % instance
-        elif enum is GLenum:
-            print '    dumpEnum(/*json,*/ %s);' % instance
-        else:
-            assert False
-            print '    json.writeInt(%s);' % instance
-
-    def visitBitmask(self, bitmask, instance):
-        raise NotImplementedError
-
-    def visitAlias(self, alias, instance):
-        self.visit(alias.type, instance)
-
-    def visitOpaque(self, opaque, instance):
-        print '//    json.writeInt((size_t)%s);' % instance
-
-    __index = 0
-
-    def visitArray(self, array, instance):
-        index = '_i%u' % JsonWriter.__index
-        JsonWriter.__index += 1
-        print '//    json.beginArray();'
-        print '    for (unsigned %s = 0; %s < %s; ++%s) {' % (index, index, array.length, index)
-        self.visit(array.type, '%s[%s]' % (instance, index))
-        print '    }'
-        print '//    json.endArray();'
-
-
-
 class StateDumper:
-    '''Class to generate code to dump all GL state in JSON format via
-    stdout.'''
+    '''Class to generate code to dump all GL state into a trace file.'''
 
     def __init__(self):
         pass
@@ -457,7 +914,6 @@ class StateDumper:
         print '#include <assert.h>'
         print '#include <string.h>'
         print
-        print '//#include "json.hpp"'
         print '#include "scoped_allocator.hpp"'
         print '#include "glproc.hpp"'
         print '#include "glsize.hpp"'
@@ -468,62 +924,20 @@ class StateDumper:
         print 'namespace glstate {'
         print
 
-        print 'void'
-        print 'dumpBoolean(/*JSONWriter &json,*/ GLboolean value)'
-        print '{'
-        print '    switch (value) {'
-        print '    case GL_FALSE:'
-        print '//        json.writeString("GL_FALSE");'
-        print '        break;'
-        print '    case GL_TRUE:'
-        print '//        json.writeString("GL_TRUE");'
-        print '        break;'
-        print '    default:'
-        print '//        json.writeInt(static_cast<GLint>(value));'
-        print '        break;'
-        print '    }'
-        print '}'
-        print
-
-        print 'const char *'
-        print 'enumToString(GLenum pname)'
-        print '{'
-        print '    switch (pname) {'
-        for name in GLenum.values:
-            print '    case %s:' % name
-            print '        return "%s";' % name
-        print '    default:'
-        print '        return NULL;'
-        print '    }'
-        print '}'
-        print
-
-        print 'void'
-        print 'dumpEnum(/*JSONWriter &json,*/ GLenum pname)'
-        print '{'
-        print '    const char *s = enumToString(pname);'
-        print '    if (s) {'
-        print '//        json.writeString(s);'
-        print '    } else {'
-        print '//        json.writeInt(pname);'
-        print '    }'
-        print '}'
-        print
-
         print 'static void'
-        print 'dumpFramebufferAttachementParameters(/*JSONWriter &json,*/ GLenum target, GLenum attachment)'
+        print 'dumpFramebufferAttachmentParameters(GLenum target, GLenum attachment)'
         print '{'
         self.dump_attachment_parameters('target', 'attachment')
         print '}'
         print
 
-        print 'void snapshotParameters(/*JSONWriter &json, Context &context*/)'
+        print 'void snapshotParameters(/*Context &context*/)'
         print '{'
         print '    ScopedAllocator _allocator;'
         print '    (void)_allocator;'
         print
 
-        self.dump_atoms(glGet)
+        self.dump_atoms(glGet, '    ')
 
         self.dump_material_params()
         self.dump_light_params()
@@ -538,30 +952,46 @@ class StateDumper:
         print '} /*namespace glstate */'
 
     def dump_material_params(self):
+        print '// MATERIALS (Deprecated as of GL 3.3)'
+        print '#if 0'
         print '//    if (!context.ES) {'
         for face in ['GL_FRONT', 'GL_BACK']:
-            print '//    json.beginMember("%s");' % face
-            print '//    json.beginObject();'
-            self.dump_atoms(glGetMaterial, face)
-            print '//    json.endObject();'
+            print '        {'
+            print '        GLenum face = %s;' % face
+            getter = glGetMaterial
+            for _, numValues, name in getter.iter():
+                args = (face, name)
+                if name not in state_that_cannot_replay and name not in state_deprecated_before_gl33:
+                    type, value = getter(*args)
+                    funcName = "glMaterialf"
+                    if (numValues > 1):
+                        funcName = "glMaterialfv"
+                    print '            _trace_%s(face, %s, %s, false);' % (funcName, name, getter.temp_name(args))
+            print '        }'
         print '//    }'
+        print '#endif'
         print
 
     def dump_light_params(self):
+        print '// LIGHTS (Deprecated as of GL 3.3)'
+        print '#if 0'
         print '    GLint max_lights = 0;'
         print '    _glGetIntegerv(GL_MAX_LIGHTS, &max_lights);'
         print '    for (GLint index = 0; index < max_lights; ++index) {'
         print '        GLenum light = GL_LIGHT0 + index;'
-        print '        if (glIsEnabled(light)) {'
-        print '//            char name[32];'
-        print '//            snprintf(name, sizeof name, "GL_LIGHT%i", index);'
-        print '//            json.beginMember(name);'
-        print '//            json.beginObject();'
-        self.dump_atoms(glGetLight, '    GL_LIGHT0 + index')
-        print '//            json.endObject();'
-        print '//            json.endMember(); // GL_LIGHTi'
+        print '        if (_glIsEnabled(light)) {'
+        getter = glGetLight
+        for _, numValues, name in getter.iter():
+            args = ('GL_LIGHT0 + index', name)
+            if name not in state_that_cannot_replay and name not in state_deprecated_before_gl33:
+                type, value = getter(*args)
+                funcName = "glLightf"
+                if (numValues > 1):
+                    funcName = "glLightfv"
+                print '            _trace_%s(GL_LIGHT0 + index, %s, %s, false);' % (funcName, name, getter.temp_name(args))
         print '        }'
         print '    }'
+        print '#endif'
         print
 
     def texenv_param_target(self, name):
@@ -573,27 +1003,20 @@ class StateDumper:
            return 'GL_TEXTURE_ENV'
 
     def dump_texenv_params(self):
+        print '// TEX ENV'
+        print
         for target in ['GL_TEXTURE_ENV', 'GL_TEXTURE_FILTER_CONTROL', 'GL_POINT_SPRITE']:
             print '//    if (!context.ES) {'
-            print '//        json.beginMember("%s");' % target
-            print '//        json.beginObject();'
             for _, _, name in glGetTexEnv.iter():
                 if self.texenv_param_target(name) == target:
-                    self.dump_atom(glGetTexEnv, target, name) 
-            print '//        json.endObject();'
+                    self.dump_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
 
     def dump_vertex_attribs(self):
         print '    GLint max_vertex_attribs = 0;'
         print '    _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
         print '    for (GLint index = 0; index < max_vertex_attribs; ++index) {'
-        print '//        char name[32];'
-        print '//        snprintf(name, sizeof name, "GL_VERTEX_ATTRIB_ARRAY%i", index);'
-        print '//        json.beginMember(name);'
-        print '//        json.beginObject();'
-        self.dump_atoms(glGetVertexAttrib, 'index')
-        print '//        json.endObject();'
-        print '//        json.endMember(); // GL_VERTEX_ATTRIB_ARRAYi'
+        self.dump_atoms(glGetVertexAttrib, '    ', 'index')
         print '    }'
         print
 
@@ -605,10 +1028,7 @@ class StateDumper:
     def dump_program_params(self):
         for target in self.program_targets:
             print '    if (glIsEnabled(%s)) {' % target
-            print '//        json.beginMember("%s");' % target
-            print '//        json.beginObject();'
-            self.dump_atoms(glGetProgramARB, target)
-            print '//        json.endObject();'
+            self.dump_atoms(glGetProgramARB, '    ', target)
             print '    }'
 
     def dump_texture_parameters(self):
@@ -621,45 +1041,91 @@ class StateDumper:
         print '        _glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_combined_texture_image_units);'
         print '        GLint max_units = std::max(std::max(max_combined_texture_image_units, max_texture_coords), 2);'
         print '        for (GLint unit = 0; unit < max_units; ++unit) {'
-        print '//            char name[32];'
-        print '//            snprintf(name, sizeof name, "GL_TEXTURE%i", unit);'
-        print '//            json.beginMember(name);'
-        print '            _glActiveTexture(GL_TEXTURE0 + unit);'
-        print '//            json.beginObject();'
+        print '            _trace_glActiveTexture(GL_TEXTURE0 + unit, true);'
         print '            GLboolean enabled;'
         print '            GLint binding;'
+        print '            GLenum target;'
         print
         for target, binding in texture_targets:
             print '            // %s' % target
+            print '            target = %s;' % target
             print '            enabled = GL_FALSE;'
             print '            _glGetBooleanv(%s, &enabled);' % target
-            print '//            json.beginMember("%s");' % target
-            print '            dumpBoolean(/*json,*/ enabled);'
-            print '//            json.endMember();'
+            print '            if ( enabled ) {'
+            print '                _trace_glEnable(%s, false);' % target
+            print '            } else {'
+            print '                _trace_glDisable(%s, false);' % target
+            print '            }'
             print '            binding = 0;'
             print '            _glGetIntegerv(%s, &binding);' % binding
-            print '//            json.writeIntMember("%s", binding);' % binding
+            print '            _trace_glBindTexture(%s, binding, false);' % target
             print '            if (enabled || binding) {'
-            print '//                json.beginMember("%s");' % target
-            print '//                json.beginObject();'
-            self.dump_atoms(glGetTexParameter, target)
-            print '//    if (!context.ES) {'
+            self.dump_atoms(glGetTexParameter, '                ', target)
+            print '//                if (!context.ES) {'
             # We only dump the first level parameters
-            self.dump_atoms(glGetTexLevelParameter, target, "0")
-            print '//    }'
-            print '//                json.endObject();'
-            print '//                json.endMember(); // %s' % target
+            self.dump_tex_level_parameters('                ', target)
+            print '//                }'
             print '            }'
             print
         print '            if (unit < max_texture_coords) {'
         self.dump_texenv_params()
         print '            }'
-        print '//            json.endObject();'
-        print '//            json.endMember(); // GL_TEXTUREi'
         print '        }'
         print '        _glActiveTexture(active_texture);'
         print '    }'
         print
+
+    def dump_tex_level_parameters(self, indentation, target):
+        # get all state from level 0, then trace an upload of all levels
+        print '{'
+
+        getter = glGetTexLevelParameter
+        for _, _, name in getter.iter():
+            if name not in state_that_cannot_replay and name not in state_deprecated_before_gl33:
+                getter(target, "0", name)
+
+        texType = ''
+        texDims = ''
+        if target == 'GL_TEXTURE_1D':
+            texType = '1D'
+            texDims = 'texture_width'
+        elif target == 'GL_TEXTURE_2D' or target == 'GL_TEXTURE_RECTANGLE' or target == 'GL_TEXTURE_CUBE_MAP':
+            texType = '2D'
+            texDims = 'texture_width, texture_height'
+        elif target == 'GL_TEXTURE_3D':
+            texType = '3D'
+            texDims = 'texture_width, texture_height, texture_depth'
+        else:
+            texType = 'ERROR' ## this should result in a compilation error
+
+        print '    GLint texture_format = GL_RGBA; // TODO: this is a hack for now, need to query R, G, B, A, L, I, D, S, etc to determine the proper format'
+        print '    GLint texture_type = GL_FLOAT; // TODO: also a hack, similar to above'
+        print '    GLint texture_image_size = (GLint)_glTexImage%s_size(texture_format, texture_type, %s);' % (texType, texDims)
+        print '    GLvoid* texture_data = NULL;'
+
+        print '    // TODO: Pixel Pack buffer and pack alignment could affect this'
+        print '    unsigned int numTexLevels = (std::log((float)std::max(texture_width, std::max(texture_height, texture_depth)))/std::log((float)2)) + 1;'
+        print '    for ( unsigned int texLevel = 0; texLevel < numTexLevels; ++texLevel ) {'
+        print '        texture_data = malloc(texture_image_size);'
+        print '        _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % target
+
+        print '        // TODO: Need to handle multisample textures as well'
+#        print '        //GLint texture_samples = 0;'
+#        print '        //GLint texture_fixed_sample_locations = 0;'
+
+        print '        // TODO: Need to handle buffers too'
+#        print '        //GLint texture_buffer_offset = 0;'
+#        print '        //GLint texture_buffer_size = 0;'
+
+        print '        if ( texture_compressed ) {'
+        print '            _trace_glCompressedTexImage%s(%s, texLevel, texture_internal_format, %s, texture_border, texture_image_size, texture_data, false);' % (texType, target, texDims)
+        print '        } else {'
+        print '            _trace_glTexImage%s(%s, texLevel, texture_internal_format, %s, texture_border, texture_format, texture_type, texture_data, false);' % (texType, target, texDims)
+        print '        }'
+        print '        free(texture_data);'
+        print '        texture_data = NULL;'
+        print '    }'
+        print '}'
 
     def dump_framebuffer_parameters(self):
         print '    {'
@@ -671,16 +1137,12 @@ class StateDumper:
             print '            framebuffer = 0;'
             print '            _glGetIntegerv(%s, &framebuffer);' % binding
             print '            if (framebuffer) {'
-            print '//                json.beginMember("%s");' % target
-            print '//                json.beginObject();'
             print '                for (GLint i = 0; i < max_color_attachments; ++i) {'
             print '                    GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
-            print '                    dumpFramebufferAttachementParameters(/*json,*/ %s, color_attachment);' % target
+            print '                    dumpFramebufferAttachmentParameters(%s, color_attachment);' % target
             print '                }'
-            print '                dumpFramebufferAttachementParameters(/*json,*/ %s, GL_DEPTH_ATTACHMENT);' % target
-            print '                dumpFramebufferAttachementParameters(/*json,*/ %s, GL_STENCIL_ATTACHMENT);' % target
-            print '//                json.endObject();'
-            print '//                json.endMember(); // %s' % target
+            print '                dumpFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
+            print '                dumpFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
             print '            }'
             print
         print '    }'
@@ -691,16 +1153,16 @@ class StateDumper:
         print '        GLint object_type = GL_NONE;'
         print '        _glGetFramebufferAttachmentParameteriv(%s, %s, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &object_type);' % (target, attachment)
         print '        if (object_type != GL_NONE) {'
-        self.dump_atoms(glGetFramebufferAttachmentParameter, target, attachment)
+        self.dump_atoms(glGetFramebufferAttachmentParameter, '            ', target, attachment)
         print '        }'
         print '    }'
 
-    def dump_atoms(self, getter, *args):
+    def dump_atoms(self, getter, indentation, *args):
         for _, _, name in getter.iter():
-            if name not in state_that_cannot_replay:
-                self.dump_atom(getter, *(args + (name,)))
+            if name not in state_that_cannot_replay and name not in state_deprecated_before_gl33:
+                self.dump_atom(getter, indentation, *(args + (name,)))
                 
-    def dump_atom(self, getter, *args):
+    def dump_atom(self, getter, indentation, *args):
         name = args[-1]
 
         # Avoid crash on MacOSX
@@ -709,25 +1171,20 @@ class StateDumper:
         if name == 'GL_SAMPLER_BINDING' and platform.system() == 'Darwin':
             return
 
-        argParams = ''
-        if args:
-            argParams = ', '.join([str(arg) for arg in args]) + ', '
-
-        print '    // %s' % name
-        print '    {'
-        #print '        assert(_glGetError() == GL_NO_ERROR);'
+        print '%s// %s' % (indentation, name)
+        print '%s{' % indentation
+        #print '%s    assert(_glGetError() == GL_NO_ERROR);' % indentation
         type, value = getter(*args)
-        print '        if (_glGetError() != GL_NO_ERROR) {'
-        #print '             std::cerr << "warning: %s(%s) failed\\n";' % (inflection, name)
-        print '            while (_glGetError() != GL_NO_ERROR) {}'
-        print '        } else {'
+        print '%s    if (_glGetError() != GL_NO_ERROR) {' % indentation
+        #print '%s       std::cerr << "warning: %s(%s) failed\\n";' % (indentation, inflection, name)
+        print '%s        while (_glGetError() != GL_NO_ERROR) {}' % indentation
+        print '%s    } else {' % indentation
 
         getter.emitSetter(*args)
 
-        print '        }'
-        print '    }'
+        print '%s    }' % indentation
+        print '%s}' % indentation
         print
-
 
 if __name__ == '__main__':
     StateDumper().dump()

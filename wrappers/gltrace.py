@@ -307,7 +307,7 @@ class GlTracer(Tracer):
         print
 
         # states such as GL_UNPACK_ROW_LENGTH are not available in GLES
-        print 'static inline bool'
+        print 'bool'
         print 'can_unpack_subimage(void) {'
         print '    gltrace::Context *ctx = gltrace::getContext();'
         print '    return (ctx->profile == gltrace::PROFILE_COMPAT);'
@@ -577,6 +577,8 @@ class GlTracer(Tracer):
 
     def generateTraceCallDecls(self, api):
         self.generateTraceCallHeader(api)
+
+        print 'bool can_unpack_subimage(void);'
 
         # declare a function to wrap proc addresses
         getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
