@@ -223,6 +223,7 @@ public:
     std::map <GLuint, Buffer> buffers;
 
     std::map <GLuint, Texture> textures;
+    std::list<GLuint> framebuffers;
 
     Context(void) :
         profile(PROFILE_COMPAT),

@@ -843,6 +843,21 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
+        if function.name == 'glGenFramebuffers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->framebuffers.push_back(framebuffers[i]);'
+            print '        }'
+            print '    }'
+        if function.name == 'glDeleteFramebuffers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->framebuffers.remove(framebuffers[i]);'
+            print '        }'
+            print '    }'
+
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
         print '        GLint boundTexture = 0;'
