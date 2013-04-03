@@ -966,6 +966,7 @@ class StateDumper:
         print '#include "../../retrace/glstate.hpp"'
         print '#include "../../retrace/glstate_internal.hpp"'
         print '#include "wgltrace_tracefuncs.h"'
+        print '#include "gltrace.hpp"'
         print
         print 'namespace glstate {'
         print
@@ -1076,105 +1077,229 @@ class StateDumper:
             print '    if (glIsEnabled(%s)) {' % target
             self.dump_atoms(glGetProgramARB, '    ', target)
             print '    }'
+            print
 
     def dump_texture_parameters(self):
+        print '    // TEXTURES'
         print '    {'
-        print '        GLint active_texture = GL_TEXTURE0;'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        // get the current active texture unit'
+        print '        GLint active_texture = 0;'
         print '        _glGetIntegerv(GL_ACTIVE_TEXTURE, &active_texture);'
-        print '        GLint max_texture_coords = 0;'
-        print '        _glGetIntegerv(GL_MAX_TEXTURE_COORDS, &max_texture_coords);'
+        print 
+        print '        // capture all current bindings'
         print '        GLint max_combined_texture_image_units = 0;'
         print '        _glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_combined_texture_image_units);'
-        print '        GLint max_units = std::max(std::max(max_combined_texture_image_units, max_texture_coords), 2);'
-        print '        for (GLint unit = 0; unit < max_units; ++unit) {'
-        print '            _trace_glActiveTexture(GL_TEXTURE0 + unit, true);'
-        print '            GLboolean enabled;'
-        print '            GLint binding;'
+        print '        GLint* pBindings1D = new GLint[max_combined_texture_image_units];'
+        print '        GLint* pBindings2D = new GLint[max_combined_texture_image_units];'
+        print '        GLint* pBindings3D = new GLint[max_combined_texture_image_units];'
+        print '        GLint* pBindingsRect = new GLint[max_combined_texture_image_units];'
+        print '        GLint* pBindingsCubeMap = new GLint[max_combined_texture_image_units];'
+        print '        memset(pBindings1D, 0, sizeof(pBindings1D));'
+        print '        memset(pBindings2D, 0, sizeof(pBindings2D));'
+        print '        memset(pBindings3D, 0, sizeof(pBindings3D));'
+        print '        memset(pBindingsRect, 0, sizeof(pBindingsRect));'
+        print '        memset(pBindingsCubeMap, 0, sizeof(pBindingsCubeMap));'
+        print '        GLboolean* pEnabled1D = new GLboolean[max_combined_texture_image_units];'
+        print '        GLboolean* pEnabled2D = new GLboolean[max_combined_texture_image_units];'
+        print '        GLboolean* pEnabled3D = new GLboolean[max_combined_texture_image_units];'
+        print '        GLboolean* pEnabledRect = new GLboolean[max_combined_texture_image_units];'
+        print '        GLboolean* pEnabledCubeMap = new GLboolean[max_combined_texture_image_units];'
+        print '        memset(pEnabled1D, GL_FALSE, sizeof(pEnabled1D));'
+        print '        memset(pEnabled2D, GL_FALSE, sizeof(pEnabled2D));'
+        print '        memset(pEnabled3D, GL_FALSE, sizeof(pEnabled3D));'
+        print '        memset(pEnabledRect, GL_FALSE, sizeof(pEnabledRect));'
+        print '        memset(pEnabledCubeMap, GL_FALSE, sizeof(pEnabledCubeMap));'
+        print
+        print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
+        print '            _glActiveTexture(GL_TEXTURE0 + unit);'
         print '            GLenum target;'
         print
         for target, binding in texture_targets:
-            print '            // %s' % target
+            bindingArray = 'NONE';
+            enabledArray = 'NONE';
+            if target == 'GL_TEXTURE_1D':
+                bindingArray = 'pBindings1D'
+                enabledArray = 'pEnabled1D'
+            elif target == 'GL_TEXTURE_2D':
+                bindingArray = 'pBindings2D'
+                enabledArray = 'pEnabled2D'
+            elif target == 'GL_TEXTURE_3D':
+                bindingArray = 'pBindings3D'
+                enabledArray = 'pEnabled3D'
+            elif target == 'GL_TEXTURE_RECTANGLE':
+                bindingArray = 'pBindingsRect'
+                enabledArray = 'pEnabledRect'
+            elif target == 'GL_TEXTURE_CUBE_MAP':
+                bindingArray = 'pBindingsCubeMap'
+                enabledArray = 'pEnabledCubeMap'
             print '            target = %s;' % target
-            print '            enabled = GL_FALSE;'
-            print '            _glGetBooleanv(%s, &enabled);' % target
-            print '            if ( enabled ) {'
+            print '            _glGetBooleanv(%s, &(%s[unit]));' % (target, enabledArray)
+            print '            _glGetIntegerv(%s, &(%s[unit]));' % (binding, bindingArray)
+            print
+        print '        }'
+
+        print '        // switch to tex unit 0 to recreate all the textures'
+        print '        _trace_glActiveTexture(GL_TEXTURE0, false);'
+        print '        // back up current bindings on tex unit 0'
+        print '        GLint texture_binding_1d = 0;'
+        print '        _glGetIntegerv(GL_TEXTURE_BINDING_1D, &texture_binding_1d);'
+        print '        GLint texture_binding_2d = 0;'
+        print '        _glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture_binding_2d);'
+        print '        GLint texture_binding_3d = 0;'
+        print '        _glGetIntegerv(GL_TEXTURE_BINDING_3D, &texture_binding_3d);'
+        print '        GLint texture_binding_rectangle = 0;'
+        print '        _glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &texture_binding_rectangle);'
+        print '        GLint texture_binding_cube_map = 0;'
+        print '        _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &texture_binding_cube_map);'
+
+        print '        // recreate all the textures that previously existed'
+        print '        GLenum texTargets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP};'
+        print '        unsigned numTexTargets = sizeof(texTargets) / sizeof(GLenum);'
+        print '        for (std::map<GLuint, gltrace::Texture>::iterator iter = pContext->textures.begin(); iter != pContext->textures.end(); ++iter) {'
+        print '            GLuint texName = iter->first;'
+        print '            gltrace::Texture& texture = iter->second;'
+        print '            // bind a texture to the appropriate binding'
+        print '            // unfortunately I think the only way to do this is to attempt to bind'
+        print '            // and if it generates an error, then it was the wrong target'
+        print '            GLenum target = GL_NONE;'
+        print '            for (unsigned int targetIndex = 0; targetIndex < numTexTargets; ++targetIndex) {'
+        print '                GLenum tmpTarget = texTargets[targetIndex];'
+        print '                _glBindTexture(tmpTarget, texName);'
+        print '                if (_glGetError() == GL_NO_ERROR) { target = tmpTarget; break; }'
+        print '            }'
+        print '            if (target == GL_NONE) {'
+        print '                // this is an error, Im not sure how to report it, but for now, skip the texture'
+        print '                assert(!"apitrace could not identify the correct target for a texture.");'
+        print '                continue;'
+        print '            }'
+        print '            // emit a call to bind the texture'
+        print '            _trace_glBindTexture(target, texName, false);'
+        print '            // get & set all the state'
+        self.dump_atoms(glGetTexParameter, '            ', 'target')
+        self.dump_tex_level_parameters('            ', 'target')
+        print '        }'
+        print
+        print '        // emit calls into the trace to set the proper bindings'
+        print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
+        print '            _trace_glActiveTexture(GL_TEXTURE0 + unit, false);'
+        print '            GLenum target;'
+        for target, binding in texture_targets:
+            bindingArray = 'NONE';
+            enabledArray = 'NONE';
+            if target == 'GL_TEXTURE_1D':
+                bindingArray = 'pBindings1D'
+                enabledArray = 'pEnabled1D'
+            elif target == 'GL_TEXTURE_2D':
+                bindingArray = 'pBindings2D'
+                enabledArray = 'pEnabled2D'
+            elif target == 'GL_TEXTURE_3D':
+                bindingArray = 'pBindings3D'
+                enabledArray = 'pEnabled3D'
+            elif target == 'GL_TEXTURE_RECTANGLE':
+                bindingArray = 'pBindingsRect'
+                enabledArray = 'pEnabledRect'
+            elif target == 'GL_TEXTURE_CUBE_MAP':
+                bindingArray = 'pBindingsCubeMap'
+                enabledArray = 'pEnabledCubeMap'
+            print '            target = %s;' % target
+            print '            if ( %s[unit] ) {' % enabledArray
             print '                _trace_glEnable(%s, false);' % target
             print '            } else {'
             print '                _trace_glDisable(%s, false);' % target
             print '            }'
-            print '            binding = 0;'
-            print '            _glGetIntegerv(%s, &binding);' % binding
-            print '            _trace_glBindTexture(%s, binding, false);' % target
-            print '            if (enabled || binding) {'
-            self.dump_atoms(glGetTexParameter, '                ', target)
-            print '//                if (!context.ES) {'
-            # We only dump the first level parameters
-            self.dump_tex_level_parameters('                ', target)
-            print '//                }'
-            print '            }'
+            print '            _trace_glBindTexture(%s, %s[unit], true);' % (target, bindingArray)
             print
-        print '            if (unit < max_texture_coords) {'
-        self.dump_texenv_params()
-        print '            }'
         print '        }'
+        print
+        print '        delete [] pBindings1D; pBindings1D = NULL;'
+        print '        delete [] pBindings2D; pBindings2D = NULL;'
+        print '        delete [] pBindings3D; pBindings3D = NULL;'
+        print '        delete [] pBindingsRect; pBindingsRect = NULL;'
+        print '        delete [] pBindingsCubeMap; pBindingsCubeMap = NULL;'
+        print
+        print '        delete [] pEnabled1D; pEnabled1D = NULL;'
+        print '        delete [] pEnabled2D; pEnabled1D = NULL;'
+        print '        delete [] pEnabled3D; pEnabled1D = NULL;'
+        print '        delete [] pEnabledRect; pEnabledRect = NULL;'
+        print '        delete [] pEnabledCubeMap; pEnabled1D = NULL;'
+        print
+        print '        // switch back to the previously active texture unit'
         print '        _glActiveTexture(active_texture);'
+        print '        // restore texture bindings'
+        print '        _glBindTexture(GL_TEXTURE_1D, texture_binding_1d);'
+        print '        _glBindTexture(GL_TEXTURE_2D, texture_binding_2d);'
+        print '        _glBindTexture(GL_TEXTURE_3D, texture_binding_3d);'
+        print '        _glBindTexture(GL_TEXTURE_RECTANGLE, texture_binding_rectangle);'
+        print '        _glBindTexture(GL_TEXTURE_CUBE_MAP, texture_binding_cube_map);'
         print '    }'
         print
 
+    ## assumes a gltrace::Texture named texture, and a GLenum named target
     def dump_tex_level_parameters(self, indentation, target):
         # get all state from level 0, then trace an upload of all levels
-        print '{'
+        print '%s{ // Capture state from level 0, then upload all other levels' % indentation
+        print '%sGLint texture_format = texture.format;' % indentation
+        print '%sGLint texture_type = texture.type;' % indentation
+        print '%sGLvoid* texture_data = NULL;' % indentation
 
-        getter = glGetTexLevelParameter
-        for _, _, name in getter.iter():
-            if name not in state_that_cannot_replay and name not in state_deprecated_before_gl33:
-                getter(target, "0", name)
+        print '%s// TODO: Pixel Pack buffer and pack alignment could affect this' % indentation
+        print '%sfor ( std::list<gltrace::TextureLevel>::iterator levelIter = texture.levels.begin(); levelIter != texture.levels.end(); ++levelIter) {' % indentation
+        print '%s    GLuint texLevel = levelIter->level;' % indentation
+        print '%s    GLsizei texture_image_size = levelIter->imageSize;' % indentation
+        print '%s    GLint texture_width = levelIter->width;' % indentation
+        print '%s    GLint texture_height = levelIter->height;' % indentation
+        print '%s    GLint texture_depth = levelIter->depth;' % indentation
+        print '%s    texture_data = malloc(texture_image_size);' % indentation
+        print '%s    if ( target == GL_TEXTURE_CUBE_MAP ) {' % indentation
+        for face in ('GL_TEXTURE_CUBE_MAP_POSITIVE_X', 'GL_TEXTURE_CUBE_MAP_NEGATIVE_X',
+                     'GL_TEXTURE_CUBE_MAP_POSITIVE_Y', 'GL_TEXTURE_CUBE_MAP_NEGATIVE_Y',
+                     'GL_TEXTURE_CUBE_MAP_POSITIVE_Z', 'GL_TEXTURE_CUBE_MAP_NEGATIVE_Z' ):
+            print '%s        { // %s' % (indentation, face)
+            glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
+            glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_COMPRESSED")
+            glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_BORDER")
+            print '%s        _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % (indentation, face)
+            print '%s        if ( texture_compressed ) {' % indentation
+            print '%s            _trace_glCompressedTexImage2D(%s, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_image_size, texture_data, false);' % (indentation, face)
+            print '%s        } else {' % indentation
+            print '%s            _trace_glTexImage2D(%s, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_format, texture_type, texture_data, false);' % (indentation, face)
+            print '%s        }' % indentation
+            print '%s        } // end %s' % (indentation, face)
+        print '%s    } else {' % indentation
+        glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
+        glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_COMPRESSED")
+        glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_BORDER")
+        print '%s        _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % (indentation, target)
+        print '%s        // Now emit a call to recreate the texture' % indentation
+        print '%s        if (target == GL_TEXTURE_1D) {' % indentation
+        print '%s            if ( texture_compressed ) {' % indentation
+        print '%s                _trace_glCompressedTexImage1D(GL_TEXTURE_1D, texLevel, texture_internal_format, texture_width, texture_border, texture_image_size, texture_data, false);' % indentation
+        print '%s            } else {' % indentation
+        print '%s                _trace_glTexImage1D(GL_TEXTURE_1D, texLevel, texture_internal_format, texture_width, texture_border, texture_format, texture_type, texture_data, false);' % indentation
+        print '%s            }' % indentation
+        print '%s        } else if (target == GL_TEXTURE_2D || target == GL_TEXTURE_RECTANGLE ) {' % indentation
+        print '%s            if ( texture_compressed ) {' % indentation
+        print '%s                _trace_glCompressedTexImage2D(GL_TEXTURE_2D, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_image_size, texture_data, false);' % indentation
+        print '%s            } else {' % indentation
+        print '%s                _trace_glTexImage2D(GL_TEXTURE_2D, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_format, texture_type, texture_data, false);' % indentation
+        print '%s            }' % indentation
+        print '%s        } else if (target == GL_TEXTURE_3D ) {' % indentation
+        print '%s            if ( texture_compressed ) {' % indentation
+        print '%s                _trace_glCompressedTexImage3D(GL_TEXTURE_3D, texLevel, texture_internal_format, texture_width, texture_height, texture_depth, texture_border, texture_image_size, texture_data, false);' % indentation
+        print '%s            } else {' % indentation
+        print '%s                _trace_glTexImage3D(GL_TEXTURE_3D, texLevel, texture_internal_format, texture_width, texture_height, texture_depth, texture_border, texture_format, texture_type, texture_data, false);' % indentation
+        print '%s            }' % indentation
+        print '%s        }' % indentation
+        print '%s    }' % indentation
 
-        texType = ''
-        texDims = ''
-        if target == 'GL_TEXTURE_1D':
-            texType = '1D'
-            texDims = 'texture_width'
-        elif target == 'GL_TEXTURE_2D' or target == 'GL_TEXTURE_RECTANGLE' or target == 'GL_TEXTURE_CUBE_MAP':
-            texType = '2D'
-            texDims = 'texture_width, texture_height'
-        elif target == 'GL_TEXTURE_3D':
-            texType = '3D'
-            texDims = 'texture_width, texture_height, texture_depth'
-        else:
-            texType = 'ERROR' ## this should result in a compilation error
-
-        print '    GLint texture_format = GL_RGBA; // TODO: this is a hack for now, need to query R, G, B, A, L, I, D, S, etc to determine the proper format'
-        print '    GLint texture_type = GL_FLOAT; // TODO: also a hack, similar to above'
-        print '    GLint texture_image_size = (GLint)_glTexImage%s_size(texture_format, texture_type, %s);' % (texType, texDims)
-        print '    GLvoid* texture_data = NULL;'
-
-        print '    // TODO: Pixel Pack buffer and pack alignment could affect this'
-        print '    unsigned int numTexLevels = (std::log((float)std::max(texture_width, std::max(texture_height, texture_depth)))/std::log((float)2)) + 1;'
-        print '    for ( unsigned int texLevel = 0; texLevel < numTexLevels; ++texLevel ) {'
-        print '        texture_data = malloc(texture_image_size);'
-        print '        _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % target
-
-        print '        // TODO: Need to handle multisample textures as well'
-#        print '        //GLint texture_samples = 0;'
-#        print '        //GLint texture_fixed_sample_locations = 0;'
-
-        print '        // TODO: Need to handle buffers too'
-#        print '        //GLint texture_buffer_offset = 0;'
-#        print '        //GLint texture_buffer_size = 0;'
-
-        print '        if ( texture_compressed ) {'
-        print '            _trace_glCompressedTexImage%s(%s, texLevel, texture_internal_format, %s, texture_border, texture_image_size, texture_data, false);' % (texType, target, texDims)
-        print '        } else {'
-        print '            _trace_glTexImage%s(%s, texLevel, texture_internal_format, %s, texture_border, texture_format, texture_type, texture_data, false);' % (texType, target, texDims)
-        print '        }'
-        print '        free(texture_data);'
-        print '        texture_data = NULL;'
-        print '    }'
-        print '}'
+        print '%s    free(texture_data);' % indentation
+        print '%s    texture_data = NULL;' % indentation
+        print '%s}' % indentation
+        print '%s}' % indentation
 
     def dump_framebuffer_parameters(self):
-        print '    {'
+        print '    { // FRAMEBUFFERS'
         print '        GLint max_color_attachments = 0;'
         print '        _glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);'
         print '        GLint framebuffer;'
