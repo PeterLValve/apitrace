@@ -1300,23 +1300,30 @@ class StateDumper:
 
     def dump_framebuffer_parameters(self):
         print '    { // FRAMEBUFFERS'
+        print '        // backup current bindings'
+        print '        GLint draw_framebuffer_binding = 0;'
+        print '        _glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_framebuffer_binding);'
+        print '        GLint read_framebuffer_binding = 0;'
+        print '        _glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_framebuffer_binding);'
+        print
         print '        GLint max_color_attachments = 0;'
         print '        _glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);'
-        print '        GLint framebuffer;'
-        for target, binding in framebuffer_targets:
-            print '            // %s' % target
-            print '            framebuffer = 0;'
-            print '            _glGetIntegerv(%s, &framebuffer);' % binding
-            print '            if (framebuffer) {'
-            print '                for (GLint i = 0; i < max_color_attachments; ++i) {'
-            print '                    GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
-            print '                    dumpFramebufferAttachmentParameters(%s, color_attachment);' % target
-            print '                }'
-            print '                dumpFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
-            print '                dumpFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
-            print '            }'
-            print
-        print '    }'
+        print
+        print '        gltrace::Context *ctx = gltrace::getContext();'
+        target = 'GL_FRAMEBUFFER'
+        print '        // %s' % target
+        print '        for (std::list<GLuint>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
+        print '            _trace_glBindFramebuffer(%s, *iter, true);' % target
+        print '            for (GLint i = 0; i < max_color_attachments; ++i) {'
+        print '                GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
+        print '                dumpFramebufferAttachmentParameters(%s, color_attachment);' % target
+        print '            }'
+        print '            dumpFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
+        print '            dumpFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
+        print '        }'
+        print '        _trace_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding, true);'
+        print '        _trace_glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding, true);'
+        print '    } // end FRAMEBUFFERS'
         print
 
     def dump_attachment_parameters(self, target, attachment):
@@ -1324,7 +1331,24 @@ class StateDumper:
         print '        GLint object_type = GL_NONE;'
         print '        _glGetFramebufferAttachmentParameteriv(%s, %s, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &object_type);' % (target, attachment)
         print '        if (object_type != GL_NONE) {'
-        self.dump_atoms(glGetFramebufferAttachmentParameter, '            ', target, attachment)
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME")
+        print '            if (framebuffer_attachment_object_name != 0) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL")
+        print '                GLenum texTarget = GL_NONE;'
+        print '                gltrace::Context *ctx = gltrace::getContext();'
+        print '                texTarget = ctx->textures[framebuffer_attachment_object_name].target;'
+        print '                if (texTarget == GL_TEXTURE_1D) {'
+        print '                    _trace_glFramebufferTexture1D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
+        print '                } else if (texTarget == GL_TEXTURE_2D) {'
+        print '                    _trace_glFramebufferTexture2D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
+        print '                } else if (texTarget == GL_TEXTURE_3D) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER")
+        print '                    _trace_glFramebufferTexture3D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, framebuffer_attachment_texture_layer, false);' % (target, attachment)
+        print '                } else if (texTarget == GL_TEXTURE_CUBE_MAP) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE")
+        print '                    _trace_glFramebufferTexture2D(%s, %s, framebuffer_attachment_texture_cube_map_face, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
+        print '                }'
+        print '            }'
         print '        }'
         print '    }'
 
