@@ -59,7 +59,7 @@ void incrementFrameNumber(void) {
 
 bool isTracingStateSetupFunctions(void)
 {
-    return s_singleFrameTraceEnabled && (s_currentFrameNum <= s_frameNumToTrace);
+    return s_singleFrameTraceEnabled && (s_currentFrameNum < s_frameNumToTrace);
 }
 
 bool isFrameToTrace(void) {

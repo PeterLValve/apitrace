@@ -371,6 +371,7 @@ if (WIN32)
         glcaps.cpp
         gltrace_state.cpp
         glstate_snapshot.cpp
+        gltrace.hpp
         gltrace_state_snapshot.hpp
         wgltrace.py
         wgltrace_tracefuncs.py
