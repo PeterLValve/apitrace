@@ -3,7 +3,7 @@
 # Copyright 2011 Valve Corporation
 # All Rights Reserved.
 #
-# Originally based on glparams.py by Jose Fonseca
+# Originally based on glstate_params.py by Jose Fonseca
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +50,18 @@ framebuffer_targets = [
     ('GL_DRAW_FRAMEBUFFER', 'GL_DRAW_FRAMEBUFFER_BINDING'),
     ('GL_READ_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER_BINDING'),
 ]
+
+buffer_targets = (
+    ('GL_ARRAY_BUFFER', 'GL_ARRAY_BUFFER_BINDING'),
+    ('GL_COPY_READ_BUFFER', 'GL_COPY_READ_BUFFER'),
+    ('GL_COPY_WRITE_BUFFER', 'GL_COPY_WRITE_BUFFER'),
+    ('GL_ELEMENT_ARRAY_BUFFER', 'GL_ELEMENT_ARRAY_BUFFER_BINDING'),
+    ('GL_PIXEL_PACK_BUFFER', 'GL_PIXEL_PACK_BUFFER_BINDING'),
+    ('GL_PIXEL_UNPACK_BUFFER', 'GL_PIXEL_UNPACK_BUFFER_BINDING'),
+    ('GL_TEXTURE_BUFFER', 'GL_TEXTURE_BUFFER'),
+    ('GL_TRANSFORM_FEEDBACK_BUFFER', 'GL_TRANSFORM_FEEDBACK_BUFFER_BINDING'),
+    ('GL_UNIFORM_BUFFER', 'GL_UNIFORM_BUFFER_BINDING'),
+)
 
 state_that_cannot_replay = (
     'GL_VENDOR',
@@ -952,6 +964,7 @@ glGetShader = StateGetter('glGetShaderiv', {I: 'iv'})
 glGetProgram = StateGetter('glGetProgram', {I: 'iv'})
 glGetProgramARB = StateGetter('glGetProgram', {I: 'iv', F: 'fv', S: 'Stringv'}, 'ARB')
 glGetFramebufferAttachmentParameter = StateGetter('glGetFramebufferAttachmentParameter', {I: 'iv'})
+glGetBufferParameter = StateGetter('glGetBufferParameter', {I: 'iv', I64: 'i64v', B: 'iv', P: 'v'})
 
 class StateSnapshot:
     '''Class to generate code to snapshot all GL state and recreate it in the trace file.'''
@@ -992,6 +1005,7 @@ class StateSnapshot:
 
         self.snapshot_material_params()
         self.snapshot_light_params()
+        self.snapshot_buffers()
         self.snapshot_vertex_attribs()
         self.snapshot_program_params()
         self.snapshot_texture_parameters()
@@ -1063,10 +1077,42 @@ class StateSnapshot:
                     self.dump_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
 
+    def snapshot_buffers(self):
+        print '    { // BUFFERS'
+        print '        // capture current active buffers'
+        for target, binding in buffer_targets:
+            glGet(binding)
+        print
+        print '        // recreate all buffer objects'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::list<GLuint>::iterator iter = pContext->bufferObjects.begin(); iter != pContext->bufferObjects.end(); ++iter) {'
+        print '             _trace_glBindBuffer(GL_ARRAY_BUFFER, *iter, true);'
+        print '              GLint64 buffer_size = 0;'
+        print '             _glGetBufferParameteri64v(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);'
+        print '              GLint buffer_usage = 0;'
+        print '             _glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_USAGE, &buffer_usage);'
+        print '             _glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);'
+        print '              GLint buffer_mapped = 0;'
+        print '             _glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_MAPPED, &buffer_mapped);'
+        print '              GLvoid *buffer_map_pointer;'
+        print '             _glGetBufferPointerv(GL_ARRAY_BUFFER, GL_BUFFER_MAP_POINTER, &buffer_map_pointer);'
+        print '             _glUnmapBuffer(GL_ARRAY_BUFFER);'
+        print '             _trace_glBufferData(GL_ARRAY_BUFFER, buffer_size, buffer_map_pointer, buffer_usage, false);'
+        print '        }'
+        print
+        print '        // rebind the previously active buffers'
+        for target, binding in buffer_targets:
+            print '        _trace_glBindBuffer(%s, %s, true);' % (target, binding[3:].lower())
+        print ''
+        print '    } // end BUFFERS'
+        print
+
     def snapshot_vertex_attribs(self):
         print '    { // VERTEX ARRAYS'
         print '        GLint vertex_array_binding = 0;'
         print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
+        print '        GLint array_buffer = 0;'
+        print '        _glGetIntegerv(GL_ARRAY_BUFFER, &array_buffer);'
         print '        GLint max_vertex_attribs = 0;'
         print '        _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
@@ -1106,6 +1152,7 @@ class StateSnapshot:
         print '                }'
         print '            }'
         print '        }'
+        print '        _trace_glBindBuffer(GL_ARRAY_BUFFER, array_buffer, true);'
         print '        _trace_glBindVertexArray(vertex_array_binding, true);'
         print '    } // end VERTEX ARRAYS'
         print
