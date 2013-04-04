@@ -1310,10 +1310,10 @@ class StateSnapshot:
             print '%s        }' % indentation
             print '%s        } // end %s' % (indentation, face)
         print '%s    } else {' % indentation
-        glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
-        glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_COMPRESSED")
-        glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_BORDER")
-        print '%s        _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % (indentation, target)
+        glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
+        glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_COMPRESSED")
+        glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_BORDER")
+        print '%s        _glGetTexImage(target, texLevel, texture_format, texture_type, texture_data);' % indentation
         print '%s        // Now emit a call to recreate the texture' % indentation
         print '%s        if (target == GL_TEXTURE_1D) {' % indentation
         print '%s            if ( texture_compressed ) {' % indentation
