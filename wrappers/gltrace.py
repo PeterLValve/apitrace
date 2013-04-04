@@ -872,7 +872,22 @@ class GlTracer(Tracer):
             print '            ctx->vertexArrays.remove(arrays[i]);'
             print '        }'
             print '    }'
-            
+
+        if function.name == 'glGenBuffers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->bufferObjects.push_back(buffer[i]);'
+            print '        }'
+            print '    }'
+        if function.name == 'glDeleteBuffers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->bufferObjects.remove(buffer[i]);'
+            print '        }'
+            print '    }'
+
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
         print '        GLint boundTexture = 0;'
