@@ -1,7 +1,9 @@
 ##########################################################################
 #
-# Copyright 2011 Jose Fonseca
+# Copyright 2011 Valve Corporation
 # All Rights Reserved.
+#
+# Originally based on glparams.py by Jose Fonseca
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +26,8 @@
 ##########################################################################/
 
 
-'''Generate code to dump most GL state into a trace file.'''
+'''Generate code to snapshot the GL state and recreate in a trace file.'''
+'''Primary focus is on supporting OpenGL 3.3'''
 
 # Adjust path
 import os.path
@@ -950,13 +953,14 @@ glGetProgram = StateGetter('glGetProgram', {I: 'iv'})
 glGetProgramARB = StateGetter('glGetProgram', {I: 'iv', F: 'fv', S: 'Stringv'}, 'ARB')
 glGetFramebufferAttachmentParameter = StateGetter('glGetFramebufferAttachmentParameter', {I: 'iv'})
 
-class StateDumper:
-    '''Class to generate code to dump all GL state into a trace file.'''
+class StateSnapshot:
+    '''Class to generate code to snapshot all GL state and recreate it in the trace file.'''
+    '''Assumes that all the created objects are known by the gltrace::Context class.'''
 
     def __init__(self):
         pass
 
-    def dump(self):
+    def generateFile(self):
         print '#include <assert.h>'
         print '#include <string.h>'
         print
@@ -972,9 +976,9 @@ class StateDumper:
         print
 
         print 'static void'
-        print 'dumpFramebufferAttachmentParameters(GLenum target, GLenum attachment)'
+        print 'snapshotFramebufferAttachmentParameters(GLenum target, GLenum attachment)'
         print '{'
-        self.dump_attachment_parameters('target', 'attachment')
+        self.snapshot_attachment_parameters('target', 'attachment')
         print '}'
         print
 
@@ -986,19 +990,19 @@ class StateDumper:
 
         self.dump_atoms(glGet, '    ')
 
-        self.dump_material_params()
-        self.dump_light_params()
-        self.dump_vertex_attribs()
-        self.dump_program_params()
-        self.dump_texture_parameters()
-        self.dump_framebuffer_parameters()
+        self.snapshot_material_params()
+        self.snapshot_light_params()
+        self.snapshot_vertex_attribs()
+        self.snapshot_program_params()
+        self.snapshot_texture_parameters()
+        self.snapshot_framebuffer_parameters()
 
         print '}'
         print
         
         print '} /*namespace glstate */'
 
-    def dump_material_params(self):
+    def snapshot_material_params(self):
         print '// MATERIALS (Deprecated as of GL 3.3)'
         print '#if 0'
         print '//    if (!context.ES) {'
@@ -1019,7 +1023,7 @@ class StateDumper:
         print '#endif'
         print
 
-    def dump_light_params(self):
+    def snapshot_light_params(self):
         print '// LIGHTS (Deprecated as of GL 3.3)'
         print '#if 0'
         print '    GLint max_lights = 0;'
@@ -1049,7 +1053,7 @@ class StateDumper:
         else:
            return 'GL_TEXTURE_ENV'
 
-    def dump_texenv_params(self):
+    def snapshot_texenv_params(self):
         print '// TEX ENV'
         print
         for target in ['GL_TEXTURE_ENV', 'GL_TEXTURE_FILTER_CONTROL', 'GL_POINT_SPRITE']:
@@ -1059,7 +1063,7 @@ class StateDumper:
                     self.dump_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
 
-    def dump_vertex_attribs(self):
+    def snapshot_vertex_attribs(self):
         print '    { // VERTEX ARRAYS'
         print '        GLint vertex_array_binding = 0;'
         print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
@@ -1111,14 +1115,14 @@ class StateDumper:
         'GL_VERTEX_PROGRAM_ARB',
     ]
 
-    def dump_program_params(self):
+    def snapshot_program_params(self):
         for target in self.program_targets:
             print '    if (glIsEnabled(%s)) {' % target
             self.dump_atoms(glGetProgramARB, '    ', target)
             print '    }'
             print
 
-    def dump_texture_parameters(self):
+    def snapshot_texture_parameters(self):
         print '    // TEXTURES'
         print '    {'
         print '        gltrace::Context* pContext = gltrace::getContext();'
@@ -1216,7 +1220,7 @@ class StateDumper:
         print '            _trace_glBindTexture(target, texName, false);'
         print '            // get & set all the state'
         self.dump_atoms(glGetTexParameter, '            ', 'target')
-        self.dump_tex_level_parameters('            ', 'target')
+        self.snapshot_tex_level_parameters('            ', 'target')
         print '        }'
         print
         print '        // emit calls into the trace to set the proper bindings'
@@ -1275,7 +1279,7 @@ class StateDumper:
         print
 
     ## assumes a gltrace::Texture named texture, and a GLenum named target
-    def dump_tex_level_parameters(self, indentation, target):
+    def snapshot_tex_level_parameters(self, indentation, target):
         # get all state from level 0, then trace an upload of all levels
         print '%s{ // Capture state from level 0, then upload all other levels' % indentation
         print '%sGLint texture_format = texture.format;' % indentation
@@ -1337,7 +1341,7 @@ class StateDumper:
         print '%s}' % indentation
         print '%s}' % indentation
 
-    def dump_framebuffer_parameters(self):
+    def snapshot_framebuffer_parameters(self):
         print '    { // FRAMEBUFFERS'
         print '        // backup current bindings'
         print '        GLint draw_framebuffer_binding = 0;'
@@ -1355,17 +1359,17 @@ class StateDumper:
         print '            _trace_glBindFramebuffer(%s, *iter, true);' % target
         print '            for (GLint i = 0; i < max_color_attachments; ++i) {'
         print '                GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
-        print '                dumpFramebufferAttachmentParameters(%s, color_attachment);' % target
+        print '                snapshotFramebufferAttachmentParameters(%s, color_attachment);' % target
         print '            }'
-        print '            dumpFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
-        print '            dumpFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
+        print '            snapshotFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
+        print '            snapshotFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
         print '        }'
         print '        _trace_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding, true);'
         print '        _trace_glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding, true);'
         print '    } // end FRAMEBUFFERS'
         print
 
-    def dump_attachment_parameters(self, target, attachment):
+    def snapshot_attachment_parameters(self, target, attachment):
         print '    {'
         print '        GLint object_type = GL_NONE;'
         print '        _glGetFramebufferAttachmentParameteriv(%s, %s, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &object_type);' % (target, attachment)
@@ -1421,4 +1425,4 @@ class StateDumper:
         print
 
 if __name__ == '__main__':
-    StateDumper().dump()
+    StateSnapshot().generateFile()
