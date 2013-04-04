@@ -888,6 +888,21 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
+        if function.name == 'glGenSamplers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < count; ++i){'
+            print '            ctx->samplers.push_back(samplers[i]);'
+            print '        }'
+            print '    }'
+        if function.name == 'glDeleteSamplers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < count; ++i){'
+            print '            ctx->samplers.remove(samplers[i]);'
+            print '        }'
+            print '    }'
+
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
         print '        GLint boundTexture = 0;'

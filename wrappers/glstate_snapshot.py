@@ -1005,6 +1005,7 @@ class StateSnapshot:
 
         self.snapshot_material_params()
         self.snapshot_light_params()
+        self.snapshot_samplers()
         self.snapshot_buffers()
         self.snapshot_vertex_attribs()
         self.snapshot_program_params()
@@ -1076,6 +1077,70 @@ class StateSnapshot:
                 if self.texenv_param_target(name) == target:
                     self.dump_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
+
+    def snapshot_samplers(self):
+        print '    { // SAMPLERS'
+        print '        // TODO: instead of iterating over all the created samplers, it would be more efficient'
+        print '        // to flag the samplers that have changed and only update those. Or, always trace the '
+        print '        // glSamplerParameter* calls to trace what the app calls.'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::list<GLuint>::iterator iter = pContext->samplers.begin(); iter != pContext->samplers.end(); ++iter) {'
+        print '            GLint sampler = *iter;'
+        print '            GLint texture_wrap_s = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_S, &texture_wrap_s);'
+        print '            GLint texture_wrap_t = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_T, &texture_wrap_t);'
+        print '            GLint texture_wrap_r = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_R, &texture_wrap_r);'
+        print '            GLint texture_min_filter = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MIN_FILTER, &texture_min_filter);'
+        print '            GLint texture_mag_filter = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MAG_FILTER, &texture_mag_filter);'
+        print '            GLint texture_min_lod = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MIN_LOD, &texture_min_lod);'
+        print '            GLint texture_max_lod = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MAX_LOD, &texture_max_lod);'
+        print '            GLint texture_lod_bias = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_LOD_BIAS, &texture_lod_bias);'
+        print '            GLfloat texture_border_color[4];'
+        print '            memset(texture_border_color, 0, sizeof(GLfloat) * 4);'
+        print '            _glGetSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, texture_border_color);'
+        print '            GLint texture_compare_mode = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_COMPARE_MODE, &texture_compare_mode);'
+        print '            GLint texture_compare_func = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_COMPARE_FUNC, &texture_compare_func);'
+        print '            GLint texture_srgb_decode_ext = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_SRGB_DECODE_EXT, &texture_srgb_decode_ext);'
+        print
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, texture_wrap_s, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, texture_wrap_t, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_WRAP_R, texture_wrap_r, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, texture_min_filter, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, texture_mag_filter, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MIN_LOD, texture_min_lod, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MAX_LOD, texture_max_lod, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_LOD_BIAS, texture_lod_bias, false);'
+        print '            _trace_glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, texture_border_color, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_MODE, texture_compare_mode, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_FUNC, texture_compare_func, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_SRGB_DECODE_EXT, texture_srgb_decode_ext, false);'
+        print '        }'
+        print
+        print '        // bind samplers to the appropriate texture units'
+        glGet("GL_ACTIVE_TEXTURE")
+        glGet("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS")
+        print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
+        print '            _glActiveTexture(GL_TEXTURE0 + unit);'
+        print '            GLint sampler_binding = 0;'
+        print '            _glGetIntegerv(GL_SAMPLER_BINDING, &sampler_binding);'
+        print '            if (sampler_binding != 0) {'
+        print '                _trace_glBindSampler(unit, sampler_binding, false);'
+        print '            }'
+        print '        }'
+        print
+        print '        _glActiveTexture(active_texture);'
+        print '    } // end SAMPLERS'
+
 
     def snapshot_buffers(self):
         print '    { // BUFFERS'
