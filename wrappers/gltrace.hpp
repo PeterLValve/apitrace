@@ -224,6 +224,7 @@ public:
 
     std::map <GLuint, Texture> textures;
     std::list<GLuint> framebuffers;
+    std::list<GLuint> vertexArrays;
 
     Context(void) :
         profile(PROFILE_COMPAT),

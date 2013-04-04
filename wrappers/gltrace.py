@@ -858,6 +858,21 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
+        if function.name == 'glGenVertexArrays':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->vertexArrays.push_back(arrays[i]);'
+            print '        }'
+            print '    }'
+        if function.name == 'glDeleteVertexArrays':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->vertexArrays.remove(arrays[i]);'
+            print '        }'
+            print '    }'
+            
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
         print '        GLint boundTexture = 0;'

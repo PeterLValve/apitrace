@@ -821,7 +821,6 @@ class StateGetter(Visitor):
 
     def __call__(self, *args):
         pname = args[-1]
-
         for type, count, name in self.iter():
             if name == pname:
                 if count != 1:
@@ -829,6 +828,7 @@ class StateGetter(Visitor):
 
                 return type, self.visit(type, args)
 
+        print '// *** "%s" was not implemented' % pname
         raise NotImplementedError
 
     def temp_name(self, args):
@@ -1060,11 +1060,50 @@ class StateDumper:
             print '//    }'
 
     def dump_vertex_attribs(self):
-        print '    GLint max_vertex_attribs = 0;'
-        print '    _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
-        print '    for (GLint index = 0; index < max_vertex_attribs; ++index) {'
-        self.dump_atoms(glGetVertexAttrib, '    ', 'index')
-        print '    }'
+        print '    { // VERTEX ARRAYS'
+        print '        GLint vertex_array_binding = 0;'
+        print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
+        print '        GLint max_vertex_attribs = 0;'
+        print '        _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::list<GLuint>::iterator iter = pContext->vertexArrays.begin(); iter != pContext->vertexArrays.end(); ++iter) {'
+        print '            _trace_glBindVertexArray(*iter, true);'
+        print '            for (GLint index = 0; index < max_vertex_attribs; ++index) {'
+
+        print '                // TODO: this could cause undefined behavior since we currently dont know'
+        print '                // what format the data was originally specified in, but we are reading it back as a double.'
+        print '                // We might have to track this state from the beginning of the trace.'
+        glGetVertexAttrib('index', "GL_CURRENT_VERTEX_ATTRIB")
+        print '                _trace_glVertexAttrib4dv(index, current_vertex_attrib, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING")
+        print '                _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
+        print '                _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
+        print '                if (vertex_attrib_array_integer == GL_TRUE) {'
+        print '                    _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                } else {'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
+        print '                    _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                }'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
+        print '                if (vertex_attrib_array_enabled == GL_TRUE) {'
+        print '                    _trace_glEnableVertexAttribArray(index, false);'
+        print '                } else {'
+        print '                    _trace_glDisableVertexAttribArray(index, false);'
+        print '                }'
+        print '            }'
+        print '        }'
+        print '        _trace_glBindVertexArray(vertex_array_binding, true);'
+        print '    } // end VERTEX ARRAYS'
         print
 
     program_targets = [
