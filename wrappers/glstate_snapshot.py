@@ -1414,7 +1414,12 @@ class StateSnapshot:
             glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
             glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_COMPRESSED")
             glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_BORDER")
-            print '%s        _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % (indentation, face)
+            print '%s        if ( texture_compressed ) {' % indentation
+            print '%s            _glGetCompressedTexImage(%s, texLevel, texture_data);' % (indentation, face)
+            print '%s        } else {' % indentation
+            print '%s            _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % (indentation, face)
+            print '%s        }' % indentation
+            print
             print '%s        if ( texture_compressed ) {' % indentation
             print '%s            _trace_glCompressedTexImage2D(%s, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_image_size, texture_data, false);' % (indentation, face)
             print '%s        } else {' % indentation
@@ -1425,7 +1430,11 @@ class StateSnapshot:
         glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
         glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_COMPRESSED")
         glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_BORDER")
-        print '%s        _glGetTexImage(target, texLevel, texture_format, texture_type, texture_data);' % indentation
+        print '%s        if ( texture_compressed ) {' % indentation
+        print '%s            _glGetCompressedTexImage(target, texLevel, texture_data);' % indentation
+        print '%s        } else {' % indentation
+        print '%s            _glGetTexImage(target, texLevel, texture_format, texture_type, texture_data);' % indentation
+        print '%s        }' % indentation
         print '%s        // Now emit a call to recreate the texture' % indentation
         print '%s        if (target == GL_TEXTURE_1D) {' % indentation
         print '%s            if ( texture_compressed ) {' % indentation
