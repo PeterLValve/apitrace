@@ -263,6 +263,24 @@ state_that_cannot_replay = (
     'GL_MAX_PROGRAM_IF_DEPTH_NV',
     'GL_MAX_PROGRAM_LOOP_DEPTH_NV',
     'GL_MAX_PROGRAM_LOOP_COUNT_NV',
+    'GL_PROGRAM_LENGTH_ARB',
+    'GL_PROGRAM_ALU_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_TEX_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_TEX_INDIRECTIONS_ARB',
+    'GL_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB',
+    'GL_PROGRAM_FORMAT_ARB',
+    'GL_PROGRAM_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_NATIVE_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_TEMPORARIES_ARB',
+    'GL_PROGRAM_NATIVE_TEMPORARIES_ARB',
+    'GL_PROGRAM_PARAMETERS_ARB',
+    'GL_PROGRAM_NATIVE_PARAMETERS_ARB',
+    'GL_PROGRAM_NATIVE_ATTRIBS_ARB',
+    'GL_PROGRAM_ADDRESS_REGISTERS_ARB',
+    'GL_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB',
+    'GL_PROGRAM_UNDER_NATIVE_LIMITS_ARB',
 )
 
 state_deprecated_before_gl33 = (
@@ -468,6 +486,7 @@ state_deprecated_before_gl33 = (
     'GL_TRANSPOSE_COLOR_MATRIX',
     'GL_CURRENT_MATRIX_ARB',
     'GL_VERTEX_PROGRAM_TWO_SIDE',
+    'GL_TEXTURE_RESIDENT'
 )
 
 ## some enable_disable items are also listed under state_deprecated_before_gl33
@@ -1222,17 +1241,12 @@ class StateSnapshot:
         print '    } // end VERTEX ARRAYS'
         print
 
-    program_targets = [
-        'GL_FRAGMENT_PROGRAM_ARB',
-        'GL_VERTEX_PROGRAM_ARB',
-    ]
-
     def snapshot_program_params(self):
-        for target in self.program_targets:
-            print '    if (glIsEnabled(%s)) {' % target
-            self.dump_atoms(glGetProgramARB, '    ', target)
-            print '    }'
-            print
+        print '   { // PROGRAMS'
+        glGet("GL_ACTIVE_PROGRAM")
+        print '       _trace_glUseProgram(active_program, true);'
+        print '   } // end PROGRAMS'
+        print
 
     def snapshot_texture_parameters(self):
         print '    // TEXTURES'
