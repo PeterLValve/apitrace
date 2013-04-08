@@ -46,8 +46,10 @@ namespace trace {
 
 static bool s_checkedEnv = false;
 static bool s_singleFrameTraceEnabled = false;
-static unsigned long s_frameNumToTrace = 0;
+static unsigned long s_frameNumToTrace = 0xFFFFFFFF;
 static unsigned long s_currentFrameNum = 0;
+
+static bool s_checkForKeyPress = false;
 
 void incrementFrameNumber(void) {
     ++s_currentFrameNum;
@@ -69,7 +71,25 @@ bool isFrameToTrace(void) {
         os::unsetEnvironment("TRACE_FRAME");
         s_singleFrameTraceEnabled = ( strFrame != NULL );
         if ( s_singleFrameTraceEnabled ) {
-            s_frameNumToTrace = strtoul( strFrame, NULL, 10 );
+            if (isdigit(strFrame[0]))
+            {
+                s_frameNumToTrace = strtoul( strFrame, NULL, 10 );
+            }
+            else
+            {
+                s_checkForKeyPress = true;
+            }
+        }
+    }
+
+    if (s_checkForKeyPress)
+    {
+        FILE* f = fopen("snap", "r");
+        if (f != NULL)
+        {
+            fclose(f);
+            remove("snap");
+            s_frameNumToTrace = s_currentFrameNum + 1;
         }
     }
 
