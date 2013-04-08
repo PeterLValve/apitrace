@@ -123,21 +123,21 @@ public:
     void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLenum format, GLenum type)
     {
         SetTextureInfo(name, target, internalFormat, format, type);
-        GLint imageSize = _gl_image_size(format, type, width, 1, 1, true); //_glTexImage1D_size(format, type, width);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, 1, 1, true); //_glTexImage1D_size(format, type, width);
         AddTextureLevel(level, width, 1, 1, imageSize);
     }
 
     void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type)
     {
         SetTextureInfo(name, target, internalFormat, format, type);
-        GLint imageSize = _gl_image_size(format, type, width, height, 1, true); //_glTexImage2D_size(format, type, width, height);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, 1, true); //_glTexImage2D_size(format, type, width, height);
         AddTextureLevel(level, width, height, 1, imageSize);
     }
 
     void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type)
     {
         SetTextureInfo(name, target, internalFormat, format, type);
-        GLint imageSize = _gl_image_size(format, type, width, height, depth, true); //_glTexImage3D_size(format, type, width, height, depth);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, depth, true); //_glTexImage3D_size(format, type, width, height, depth);
         AddTextureLevel(level, width, height, depth, imageSize);
     }
 

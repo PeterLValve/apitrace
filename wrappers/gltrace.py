@@ -470,7 +470,6 @@ class GlTracer(Tracer):
     ]
 
     frame_terminator_functions = set((
-        "glFrameTerminatorGREMEDY",
         "wglSwapBuffers",
     ))
 
