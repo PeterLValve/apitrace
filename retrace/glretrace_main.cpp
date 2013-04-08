@@ -81,7 +81,11 @@ debugOutputCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 
 void
 checkGlError(trace::Call &call) {
+#ifdef NDEBUG
+    GLenum error = GL_NO_ERROR;
+#else
     GLenum error = glGetError();
+#endif
     while (error != GL_NO_ERROR) {
         std::ostream & os = retrace::warning(call);
 
