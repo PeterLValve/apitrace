@@ -2508,9 +2508,9 @@ parameters = [
     ("glGet",	E,	1,	"GL_POINT_SPRITE_COORD_ORIGIN"),	# 0x8CA0
     ("",	X,	1,	"GL_LOWER_LEFT"),	# 0x8CA1
     ("",	X,	1,	"GL_UPPER_LEFT"),	# 0x8CA2
-    ("",	X,	1,	"GL_STENCIL_BACK_REF"),	# 0x8CA3
-    ("",	X,	1,	"GL_STENCIL_BACK_VALUE_MASK"),	# 0x8CA4
-    ("",	X,	1,	"GL_STENCIL_BACK_WRITEMASK"),	# 0x8CA5
+    ("glGet",	E,	1,	"GL_STENCIL_BACK_REF"),	# 0x8CA3
+    ("glGet",	E,	1,	"GL_STENCIL_BACK_VALUE_MASK"),	# 0x8CA4
+    ("glGet",	X,	1,	"GL_STENCIL_BACK_WRITEMASK"),	# 0x8CA5
     ("glGet",	I,	1,	"GL_DRAW_FRAMEBUFFER_BINDING"),	# 0x8CA6
     ("glGet",	I,	1,	"GL_RENDERBUFFER_BINDING"),	# 0x8CA7
     ("",	I,	1,	"GL_READ_FRAMEBUFFER"),	# 0x8CA8

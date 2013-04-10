@@ -289,6 +289,9 @@ state_that_cannot_replay = (
     'GL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE',
     'GL_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION',
     'GL_TEXTURE_RENDERBUFFER_DATA_STORE_BINDING_NV',
+    'GL_SUBPIXEL_BITS',
+    'GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH',
+    'GL_COMPRESSED_TEXTURE_FORMATS',
 )
 
 state_deprecated_before_gl33 = (
@@ -303,6 +306,8 @@ state_deprecated_before_gl33 = (
     'GL_CURRENT_RASTER_POSITION_VALID',
     'GL_CURRENT_RASTER_DISTANCE',
     'GL_POINT_SMOOTH',
+    'GL_POINT_SIZE_MIN',
+    'GL_POINT_SIZE_MAX',
     'GL_LINE_STIPPLE',
     'GL_LINE_STIPPLE_PATTERN',
     'GL_LINE_STIPPLE_REPEAT',
@@ -410,11 +415,17 @@ state_deprecated_before_gl33 = (
     'GL_HISTOGRAM',
     'GL_MINMAX',
     'GL_RESCALE_NORMAL',
+    'GL_VERTEX_ARRAY_BUFFER_BINDING',
     'GL_VERTEX_ARRAY',
+    'GL_NORMAL_ARRAY_BUFFER_BINDING',
     'GL_NORMAL_ARRAY',
+    'GL_COLOR_ARRAY_BUFFER_BINDING',
     'GL_COLOR_ARRAY',
+    'GL_INDEX_ARRAY_BUFFER_BINDING',
     'GL_INDEX_ARRAY',
+    'GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING',
     'GL_TEXTURE_COORD_ARRAY',
+    'GL_EDGE_FLAG_ARRAY_BUFFER_BINDING',
     'GL_EDGE_FLAG_ARRAY',
     'GL_VERTEX_ARRAY_SIZE',
     'GL_VERTEX_ARRAY_TYPE',
@@ -477,6 +488,7 @@ state_deprecated_before_gl33 = (
     'GL_BINORMAL_ARRAY_POINTER_EXT',
     'GL_FOG_COORD_SRC',
     'GL_CURRENT_FOG_COORD',
+    'GL_FOG_COORD_ARRAY_BUFFER_BINDING',
     'GL_FOG_COORD_ARRAY_TYPE',
     'GL_FOG_COORD_ARRAY_STRIDE',
     'GL_FOG_COORD_ARRAY',
@@ -485,6 +497,7 @@ state_deprecated_before_gl33 = (
     'GL_CLAMP_VERTEX_COLOR',
     'GL_CLAMP_FRAGMENT_COLOR',
     'GL_CURRENT_SECONDARY_COLOR',
+    'GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING',
     'GL_SECONDARY_COLOR_ARRAY_SIZE',
     'GL_SECONDARY_COLOR_ARRAY_TYPE',
     'GL_SECONDARY_COLOR_ARRAY_STRIDE',
@@ -497,7 +510,16 @@ state_deprecated_before_gl33 = (
     'GL_TRANSPOSE_COLOR_MATRIX',
     'GL_CURRENT_MATRIX_ARB',
     'GL_VERTEX_PROGRAM_TWO_SIDE',
-    'GL_TEXTURE_RESIDENT'
+    'GL_TEXTURE_RESIDENT',
+    'GL_WEIGHT_ARRAY_BUFFER_BINDING',
+    'GL_CURRENT_WEIGHT_ARB',
+    'GL_WEIGHT_ARRAY_ARB',
+    'GL_WEIGHT_ARRAY_TYPE_ARB',
+    'GL_WEIGHT_ARRAY_STRIDE_ARB',
+    'GL_WEIGHT_ARRAY_SIZE_ARB',
+    'GL_WEIGHT_ARRAY_POINTER_ARB',
+    'GL_RGB_SCALE',
+    'GL_ALPHA_SCALE',
 )
 
 ## some enable_disable items are also listed under state_deprecated_before_gl33
@@ -667,45 +689,54 @@ state_setters = (
     ('GL_CURRENT_RASTER_POSITION_VALID', ''),
     ('GL_CURRENT_RASTER_DISTANCE', ''),
     ('GL_POINT_SIZE', 'glPointSize(point_size)'),
+    ('GL_POINT_SIZE_MIN', 'glPointParameterf(GL_POINT_SIZE_MIN, point_size_min)'),
+    ('GL_POINT_SIZE_MAX', 'glPointParameterf(GL_POINT_SIZE_MAX, point_size_max)'),
+    ('GL_POINT_DISTANCE_ATTENUATION', 'glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION, point_distance_attenuation)'),
+    ('GL_POINT_FADE_THRESHOLD_SIZE', 'glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE, point_fade_threshold_size)'),
     ('GL_LINE_WIDTH', 'glLineWidth(line_width)'),
-    ('GL_LINE_STIPPLE_PATTERN', ''),
-    ('GL_LINE_STIPPLE_REPEAT', ''),
+    ('GL_LINE_STIPPLE_REPEAT,GL_LINE_STIPPLE_PATTERN', 'glLineStipple(line_stipple_repeat, line_stipple_pattern)'),
+    ('GL_LIST_BASE', 'glListBase(list_base)'),
     ('GL_LIST_MODE', ''),
-    ('GL_LIST_BASE', ''),
     ('GL_LIST_INDEX', ''),
-#    ('GL_POLYGON_MODE', 'glPolygonMode(GL_FRONT /* TODO: GL_BACK */, polygon_mode[0])'),
+    ('GL_POLYGON_MODE', 'glPolygonMode(GL_FRONT, polygon_mode[0]);glPolygonMode(GL_BACK, polygon_mode[1])'),
     ('GL_CULL_FACE_MODE', 'glCullFace(cull_face_mode)'),
     ('GL_FRONT_FACE', 'glFrontFace(front_face)'),
-    ('GL_LIGHT_MODEL_AMBIENT', ''),
-    ('GL_SHADE_MODEL', ''),
+    ('GL_LIGHT_MODEL_AMBIENT', 'glLightModelfv(GL_LIGHT_MODEL_AMBIENT, light_model_ambient)'),
+    ('GL_SHADE_MODEL', 'glShadeModel(shade_model)'),
     ('GL_COLOR_MATERIAL_FACE', ''),
     ('GL_COLOR_MATERIAL_PARAMETER', ''),
-    ('GL_FOG_INDEX', ''),
-    ('GL_FOG_DENSITY', ''),
-    ('GL_FOG_START', ''),
-    ('GL_FOG_END', ''),
-    ('GL_FOG_MODE', ''),
-    ('GL_FOG_COLOR', ''),
+    ('GL_FOG_INDEX', 'glFogi(GL_FOG_INDEX, fog_index)'),
+    ('GL_FOG_DENSITY', 'glFogf(GL_FOG_DENSITY, fog_density)'),
+    ('GL_FOG_START', 'glFogf(GL_FOG_START, fog_start)'),
+    ('GL_FOG_END', 'glFogf(GL_FOG_END, fog_end)'),
+    ('GL_FOG_MODE', 'glFogi(GL_FOG_MODE, fog_mode)'),
+    ('GL_FOG_COLOR', 'glFogfv(GL_FOG_COLOR, fog_color)'),
     ('GL_DEPTH_WRITEMASK', 'glDepthMask(depth_writemask)'),
     ('GL_DEPTH_RANGE', 'glDepthRangef(depth_range[0], depth_range[1])'),
     ('GL_DEPTH_CLEAR_VALUE', 'glClearDepthf(depth_clear_value)'),
     ('GL_DEPTH_FUNC', 'glDepthFunc(depth_func)'),
     ('GL_ACCUM_CLEAR_VALUE', 'glClearAccum(accum_clear_value[0], accum_clear_value[1], accum_clear_value[2], accum_clear_value[3])'),
+    ('GL_STENCIL_WRITEMASK', 'glStencilMaskSeparate(GL_FRONT, stencil_writemask)'),
+    ('GL_STENCIL_BACK_WRITEMASK', 'glStencilMaskSeparate(GL_BACK, stencil_back_writemask)'),
     ('GL_STENCIL_CLEAR_VALUE', 'glClearStencil(stencil_clear_value)'),
-#    ('GL_STENCIL_FUNC', 'glStencilFunc(stencil_func)'), ## needs ref and mask as well
-    ('GL_STENCIL_VALUE_MASK', 'glStencilMask(stencil_value_mask)'),
+    ('GL_STENCIL_FUNC,GL_STENCIL_REF,GL_STENCIL_VALUE_MASK', 'glStencilFuncSeparate(GL_FRONT, stencil_func, stencil_ref, stencil_value_mask)'),
+    ('GL_STENCIL_BACK_FUNC,GL_STENCIL_BACK_REF,GL_STENCIL_BACK_VALUE_MASK', 'glStencilFuncSeparate(GL_BACK, stencil_back_func, stencil_back_ref, stencil_back_value_mask)'),
+    ('GL_STENCIL_FAIL,GL_STENCIL_PASS_DEPTH_FAIL,GL_STENCIL_PASS_DEPTH_PASS', 'glStencilOpSeparate(GL_FRONT, stencil_fail, stencil_pass_depth_fail, stencil_pass_depth_pass)'),
+    ('GL_STENCIL_BACK_FAIL,GL_STENCIL_BACK_PASS_DEPTH_FAIL,GL_STENCIL_BACK_PASS_DEPTH_PASS', 'glStencilOpSeparate(GL_BACK, stencil_back_fail, stencil_back_pass_depth_fail, stencil_back_pass_depth_pass)'),
     ('GL_MATRIX_MODE', 'glMatrixMode(matrix_mode)'),
     ('GL_VIEWPORT', 'glViewport(viewport[0], viewport[1], viewport[2], viewport[3])'),
+    ('GL_PIXEL_UNPACK_BUFFER_BINDING', 'glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixel_unpack_buffer_binding)'),
     ('GL_UNPACK_SWAP_BYTES', 'glPixelStorei(GL_UNPACK_SWAP_BYTES, unpack_swap_bytes)'),
     ('GL_UNPACK_LSB_FIRST', 'glPixelStorei(GL_UNPACK_LSB_FIRST, unpack_lsb_first)'),
+    ('GL_PIXEL_PACK_BUFFER_BINDING', 'glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_pack_buffer_binding)'),
     ('GL_PACK_SWAP_BYTES', 'glPixelStorei(GL_PACK_SWAP_BYTES, pack_swap_bytes)'),
     ('GL_PACK_LSB_FIRST', 'glPixelStorei(GL_PACK_LSB_FIRST, pack_lsb_first)'),
     ('GL_CLAMP_READ_COLOR', 'glClampColor(GL_CLAMP_READ_COLOR, clamp_read_color)'),
     ('GL_PROVOKING_VERTEX', 'glProvokingVertex(provoking_vertex)'),
-    ('GL_ALPHA_TEST_FUNC', ''),
-    ('GL_ALPHA_TEST_REF', ''),
-    ('GL_BLEND_DST', ''),
-    ('GL_BLEND_SRC', ''),
+    ('GL_ALPHA_TEST_FUNC,GL_ALPHA_TEST_REF', 'glAlphaFunc(alpha_test_func, alpha_test_ref)'),
+    ('GL_BLEND_SRC_RGB,GL_BLEND_DST_RGB,GL_BLEND_SRC_ALPHA,GL_BLEND_DST_ALPHA', 'glBlendFuncSeparate(blend_src_rgb, blend_dst_rgb, blend_src_alpha, blend_dst_alpha)'),
+    #('GL_BLEND_DST', ''), ## dont handle this since it could override glBlendFuncSeparate
+    #('GL_BLEND_SRC', ''), ## dont handle this since it could override glBlendFuncSeparate
     ('GL_LOGIC_OP_MODE', 'glLogicOp(logic_op_mode)'),
     ('GL_DRAW_BUFFER', 'glDrawBuffer(draw_buffer)'),
     ('GL_READ_BUFFER', 'glReadBuffer(read_buffer)'),
@@ -721,7 +752,36 @@ state_setters = (
     ('GL_POLYGON_SMOOTH_HINT', 'glHint(GL_POLYGON_SMOOTH_HINT, polygon_smooth_hint)'),
     ('GL_FOG_HINT', 'glHint(GL_FOG_HINT, fog_hint)'),
     ('GL_BLEND_COLOR', 'glBlendColor(blend_color[0], blend_color[1], blend_color[2], blend_color[3])'),
-    ('GL_BLEND_EQUATION', 'glBlendEquation(blend_equation)'),
+    ('GL_BLEND_EQUATION_RGB,GL_BLEND_EQUATION_ALPHA', 'glBlendEquationSeparate(blend_equation_rgb, blend_equation_alpha)'),
+    #('GL_BLEND_EQUATION', 'glBlendEquation(blend_equation)'), ## dont handle this since it could override glBlendEquationSeparate
+    ('GL_POLYGON_OFFSET_FACTOR,GL_POLYGON_OFFSET_UNITS', 'glPolygonOffset(polygon_offset_factor, polygon_offset_units)'),
+    ('GL_UNPACK_SWAP_BYTES', 'glPixelStorei(GL_UNPACK_SWAP_BYTES, unpack_swap_bytes)'),
+    ('GL_UNPACK_LSB_FIRST', 'glPixelStorei(GL_UNPACK_LSB_FIRST, unpack_lsb_first)'),
+    ('GL_UNPACK_ROW_LENGTH', 'glPixelStorei(GL_UNPACK_ROW_LENGTH, unpack_row_length)'),
+    ('GL_UNPACK_SKIP_ROWS','glPixelStorei(GL_UNPACK_SKIP_ROWS, unpack_skip_rows)'),
+    ('GL_UNPACK_SKIP_PIXELS','glPixelStorei(GL_UNPACK_SKIP_PIXELS, unpack_skip_pixels)'),
+    ('GL_UNPACK_ALIGNMENT','glPixelStorei(GL_UNPACK_ALIGNMENT, unpack_alignment)'),
+    ('GL_UNPACK_IMAGE_HEIGHT','glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, unpack_image_height)'),
+    ('GL_UNPACK_SKIP_IMAGES','glPixelStorei(GL_UNPACK_SKIP_IMAGES, unpack_skip_images)'),
+    ('GL_PACK_SWAP_BYTES', 'glPixelStorei(GL_PACK_SWAP_BYTES, pack_swap_bytes)'),
+    ('GL_PACK_LSB_FIRST', 'glPixelStorei(GL_PACK_LSB_FIRST, pack_lsb_first)'),
+    ('GL_PACK_ROW_LENGTH', 'glPixelStorei(GL_PACK_ROW_LENGTH, pack_row_length)'),
+    ('GL_PACK_SKIP_ROWS','glPixelStorei(GL_PACK_SKIP_ROWS, pack_skip_rows)'),
+    ('GL_PACK_SKIP_PIXELS','glPixelStorei(GL_PACK_SKIP_PIXELS, pack_skip_pixels)'),
+    ('GL_PACK_ALIGNMENT','glPixelStorei(GL_PACK_ALIGNMENT, pack_alignment)'),
+    ('GL_PACK_IMAGE_HEIGHT','glPixelStorei(GL_PACK_IMAGE_HEIGHT, pack_image_height)'),
+    ('GL_PACK_SKIP_IMAGES','glPixelStorei(GL_PACK_SKIP_IMAGES, pack_skip_images)'),
+    ('GL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ARRAY_BUFFER_BINDING, array_buffer_binding)'),
+    ('GL_ELEMENT_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_array_buffer_binding)'),
+    ('GL_VERTEX_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_VERTEX_ARRAY_BUFFER, vertex_array_buffer_binding)'),
+    ('GL_NORMAL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_NORMAL_ARRAY_BUFFER, normal_array_buffer_binding)'),
+    ('GL_COLOR_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_COLOR_ARRAY_BUFFER, color_array_buffer_binding)'),
+    ('GL_INDEX_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_INDEX_ARRAY_BUFFER, index_array_buffer_binding)'),
+    ('GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_TEXTURE_COORD_ARRAY_BUFFER, texture_coord_array_buffer_binding)'),
+    ('GL_EDGE_FLAG_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_EDGE_FLAG_ARRAY_BUFFER, edge_flag_array_buffer_binding)'),
+    ('GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_SECONDARY_COLOR_ARRAY_BUFFER, secondary_color_array_buffer_binding)'),
+    ('GL_FOG_COORD_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_FOG_COORD_ARRAY_BUFFER, fog_coord_array_buffer_binding)'),
+    ('GL_WEIGHT_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_WEIGHT_ARRAY_BUFFER, weight_array_buffer_binding)'),
 
     ## texture-related state that is queried using glGetTexParameter,
     ('GL_TEXTURE_BORDER_COLOR', 'glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, texture_border_color)'),
@@ -945,12 +1005,14 @@ class StateGetter(Visitor):
 
     def emit_setter(self, args):
         name = args[-1]
-        for stateName, setter in state_setters:
-            if stateName == name:
-                if (len(setter) == 0):
+        for stateNames, setters in state_setters:
+             if name in stateNames.split(','):
+                if (setters == ''):
                     print '            // We dont want to replay this state'
                 else:
-                    print '            _trace_%s, false);' % setter[:-1]
+                    for setter in setters.split(';'):
+                        if len(setter) > 0:
+                            print '            _trace_%s, false);' % setter[:-1]
                 return 1
         return 0
 
@@ -1548,10 +1610,43 @@ class StateSnapshot:
         if name == 'GL_SAMPLER_BINDING' and platform.system() == 'Darwin':
             return
 
-        print '%s// %s' % (indentation, name)
+        # only output state that we have a setter for
+        stateNames = ''
+        for names, _ in state_setters:
+            if name in names.split(','):
+                if (name == names.split(',')[0]):
+                    stateNames = names
+                    break
+                else:
+                    ## this state will be handled by a different one
+                    #print '// handled somewhere else: %s' % name
+                    #print
+                    return;
+        if stateNames == '':
+            for stateName in state_enable_disable:
+                if stateName == name:
+                    stateNames = name
+                    break
+        if stateNames == '':
+            if name in state_deprecated_before_gl33:
+                #print '// deprecated: %s' % name
+                pass
+            else:
+                #print '// unhandled state: %s' % name
+                pass
+            #print
+            return
+
+        print '%s// %s' % (indentation, stateNames)
         print '%s{' % indentation
         #print '%s    assert(_glGetError() == GL_NO_ERROR);' % indentation
-        type, value = getter(*args)
+
+        if stateNames in state_enable_disable:
+            type, value = getter(*args)
+        else:
+            for stateName in stateNames.split(','):
+                type, value = getter(*(args[:-1] + (stateName,)))
+
         print '%s    if (_glGetError() != GL_NO_ERROR) {' % indentation
         #print '%s       std::cerr << "warning: %s(%s) failed\\n";' % (indentation, inflection, name)
         print '%s        while (_glGetError() != GL_NO_ERROR) {}' % indentation
