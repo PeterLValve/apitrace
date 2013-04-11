@@ -372,17 +372,17 @@ class GlTracer(Tracer):
         print
 
     def shadowBufferProlog(self, function):
-        if function.name == 'glBufferData':
+        if function.name in ('glBufferData', 'glBufferDataARB'):
             self.shadowBufferMethod('bufferData(size, data)')
 
-        if function.name == 'glBufferSubData':
+        if function.name in ('glBufferSubData', 'glBufferSubDataARB'):
             self.shadowBufferMethod('bufferSubData(offset, size, data)')
 
-        if function.name == 'glDeleteBuffers':
+        if function.name in ('glDeleteBuffers', 'glDeleteBuffersARB'):
             print '    gltrace::Context *ctx = gltrace::getContext();'
             print '    if (ctx->needsShadowBuffers()) {'
             print '        for (GLsizei i = 0; i < n; i++) {'
-            print '            ctx->buffers.erase(buffer[i]);'
+            print '            ctx->buffers.erase(%s[i]);' % function.args[1].name
             print '        }'
             print '    }'
 
@@ -474,7 +474,7 @@ class GlTracer(Tracer):
     ))
 
     ## these are always traced
-    state_setup_entrypoints = [
+    state_setup_entrypoints = (
         'glGenLists',
         'glDeleteLists',
         'glGenTextures',
@@ -619,7 +619,48 @@ class GlTracer(Tracer):
         'glUniformMatrix3x4fv',
         'glUniformMatrix4x3fv',
         'glUniformBlockBinding',
-    ]
+
+        ## ARB shaders and programs
+        'glGenProgramsARB',
+        'glCreateShaderObjectARB',
+        'glBindProgramARB',
+        'glProgramStringARB',
+        'glShaderSourceARB',
+        'glCompileShaderARB',
+        'glAttachObjectARB',
+        'glLinkProgramARB',
+        'glBindAttribLocationARB',
+        'glGetUniformLocationARB',
+        'glUniform1fvARB',
+        'glUniform2fvARB',
+        'glUniform3fvARB',
+        'glUniform4fvARB',
+        'glUniform1ivARB',
+        'glUniform2ivARB',
+        'glUniform3ivARB',
+        'glUniform4ivARB',
+        'glUniform1iARB',
+        'glUniform2iARB',
+        'glUniform3iARB',
+        'glUniform4iARB',
+        'glUniform1fARB',
+        'glUniform2fARB',
+        'glUniform3fARB',
+        'glUniform4fARB',
+        'glUniform1uiARB',
+        'glUniform2uiARB',
+        'glUniform3uiARB',
+        'glUniform4uiARB',
+        'glUniformMatrix2fvARB',
+        'glUniformMatrix3fvARB',
+        'glUniformMatrix4fvARB',
+        'glUniformMatrix2x3fvARB',
+        'glUniformMatrix3x2fvARB',
+        'glUniformMatrix2x4fvARB',
+        'glUniformMatrix4x2fvARB',
+        'glUniformMatrix3x4fvARB',
+        'glUniformMatrix4x3fvARB',
+    )
 
     def generateTraceCallDecls(self, api):
         self.generateTraceCallHeader(api)
@@ -910,18 +951,18 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
-        if function.name == 'glGenBuffers':
+        if function.name in ('glGenBuffers', 'glGenBuffersARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->bufferObjects.push_back(buffer[i]);'
+            print '            ctx->bufferObjects.push_back(%s[i]);' % function.args[1].name
             print '        }'
             print '    }'
-        if function.name == 'glDeleteBuffers':
+        if function.name in ('glDeleteBuffers', 'glDeleteBuffersARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->bufferObjects.remove(buffer[i]);'
+            print '            ctx->bufferObjects.remove(%s[i]);' % function.args[1].name
             print '        }'
             print '    }'
 
@@ -937,6 +978,21 @@ class GlTracer(Tracer):
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < count; ++i){'
             print '            ctx->samplers.remove(samplers[i]);'
+            print '        }'
+            print '    }'
+
+        if function.name == 'glGenRenderbuffers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->samplers.push_back(renderbuffers[i]);'
+            print '        }'
+            print '    }'
+        if function.name == 'glDeleteRenderbuffers':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->samplers.remove(renderbuffers[i]);'
             print '        }'
             print '    }'
 
