@@ -2555,7 +2555,7 @@ parameters = [
     ("",	X,	1,	"GL_RENDERBUFFER"),	# 0x8D41
     ("glGetRenderbufferParameter",	I,	1,	"GL_RENDERBUFFER_WIDTH"),	# 0x8D42
     ("glGetRenderbufferParameter",	I,	1,	"GL_RENDERBUFFER_HEIGHT"),	# 0x8D43
-    ("glGetRenderbufferParameter",	E,	1,	"GL_RENDERBUFFER_INTERNAL_FORMAT"),	# 0x8D44
+    ("glGetRenderbufferParameter",	I,	1,	"GL_RENDERBUFFER_INTERNAL_FORMAT"),	# 0x8D44
     ("",	X,	1,	"GL_STENCIL_INDEX1"),	# 0x8D46
     ("",	X,	1,	"GL_STENCIL_INDEX4"),	# 0x8D47
     ("",	X,	1,	"GL_STENCIL_INDEX8"),	# 0x8D48

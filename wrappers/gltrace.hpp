@@ -225,6 +225,7 @@ public:
     std::list<GLuint> vertexArrays;
     std::list<GLuint> bufferObjects;
     std::list<GLuint> samplers;
+    std::list<GLuint> renderbuffers;
 
     Context(void) :
         profile(PROFILE_COMPAT),

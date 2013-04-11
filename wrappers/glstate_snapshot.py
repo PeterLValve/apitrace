@@ -669,6 +669,9 @@ state_enable_disable = (
     #'GL_TEXTURE_CUBE_MAP_ARRAY',
     'GL_TEXTURE_BINDING_2D_MULTISAMPLE',
     'GL_DEBUG_OUTPUT',
+    'GL_SAMPLE_ALPHA_TO_COVERAGE',
+    'GL_SAMPLE_ALPHA_TO_ONE',
+    'GL_SAMPLE_COVERAGE',
 )
 
 ## this is a collection of simple state that can easily be set.
@@ -782,6 +785,7 @@ state_setters = (
     ('GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_SECONDARY_COLOR_ARRAY_BUFFER, secondary_color_array_buffer_binding)'),
     ('GL_FOG_COORD_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_FOG_COORD_ARRAY_BUFFER, fog_coord_array_buffer_binding)'),
     ('GL_WEIGHT_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_WEIGHT_ARRAY_BUFFER, weight_array_buffer_binding)'),
+    ('GL_SAMPLE_COVERAGE_VALUE,GL_SAMPLE_COVERAGE_INVERT', 'glSampleCoverage(sample_coverage_value, sample_coverage_invert)'),
 
     ## texture-related state that is queried using glGetTexParameter,
     ('GL_TEXTURE_BORDER_COLOR', 'glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, texture_border_color)'),
@@ -1050,6 +1054,7 @@ glGetProgram = StateGetter('glGetProgram', {I: 'iv'})
 glGetProgramARB = StateGetter('glGetProgram', {I: 'iv', F: 'fv', S: 'Stringv'}, 'ARB')
 glGetFramebufferAttachmentParameter = StateGetter('glGetFramebufferAttachmentParameter', {I: 'iv'})
 glGetBufferParameter = StateGetter('glGetBufferParameter', {I: 'iv', I64: 'i64v', B: 'iv', P: 'v'})
+glGetRenderbufferParameter = StateGetter('glGetRenderbufferParameter', {I: 'iv'})
 
 class StateSnapshot:
     '''Class to generate code to snapshot all GL state and recreate it in the trace file.'''
@@ -1095,6 +1100,7 @@ class StateSnapshot:
         self.snapshot_vertex_attribs()
         self.snapshot_program_params()
         self.snapshot_texture_parameters()
+        self.snapshot_renderbuffer_parameters()
         self.snapshot_framebuffer_parameters()
 
         print '}'
@@ -1542,6 +1548,34 @@ class StateSnapshot:
         print '%s}' % indentation
         print '%s}' % indentation
 
+    def snapshot_renderbuffer_parameters(self):
+        print '    // RENDERBUFFERS'
+        print '    {'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        // get the current active renderbuffer'
+        print '        GLint renderbuffer_binding = 0;'
+        print '        _glGetIntegerv(GL_RENDERBUFFER_BINDING, &renderbuffer_binding);'
+        print 
+        print '        // recreate all the renderbuffers'
+        print '        for (std::list<GLuint>::iterator iter = pContext->renderbuffers.begin(); iter != pContext->renderbuffers.end(); ++iter) {'
+        print '            _glBindRenderbuffer(GL_RENDERBUFFER, *iter);'
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_SAMPLES")
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_INTERNAL_FORMAT")
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_WIDTH")
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_HEIGHT")
+        print '            _trace_glRenderbufferStorageMultisample(GL_RENDERBUFFER, renderbuffer_samples, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
+
+        print '            // TODO: Need to read from existing renderbuffers and write that data into the new Renderbuffers (to recreate their contents)'
+        print '            // This may or may not be required depending on how the renderbuffer is being used. If its drawn to and used every frame, then'
+        print '            // there is no need to restore its contents, but if it is rendered in one frame and used in subsequent frames, then restoring them is important.'
+
+        print '        }'
+        print
+        print '        // switch back to the previously active renderbuffer'
+        print '        _glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_binding);'
+        print '    }'
+        print
+
     def snapshot_framebuffer_parameters(self):
         print '    { // FRAMEBUFFERS'
         print '        // backup current bindings'
@@ -1550,21 +1584,29 @@ class StateSnapshot:
         print '        GLint read_framebuffer_binding = 0;'
         print '        _glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_framebuffer_binding);'
         print
+        print '        GLint max_draw_buffers = 0;'
+        print '        _glGetIntegerv(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);'
+        print '        for (GLint i = 0; i < max_draw_buffers; ++i) {';
+        print '            GLboolean color_writemask[4];'
+        print '            _glGetBooleanIndexedvEXT(GL_COLOR_WRITEMASK, i, color_writemask);'
+        print '            _trace_glColorMaskIndexedEXT(i, color_writemask[0], color_writemask[1], color_writemask[2], color_writemask[3], false);'
+        print '        }'
+        print
         print '        GLint max_color_attachments = 0;'
         print '        _glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);'
         print
         print '        gltrace::Context *ctx = gltrace::getContext();'
-        target = 'GL_FRAMEBUFFER'
-        print '        // %s' % target
-        print '        for (std::list<GLuint>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
-        print '            _trace_glBindFramebuffer(%s, *iter, true);' % target
-        print '            for (GLint i = 0; i < max_color_attachments; ++i) {'
-        print '                GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
-        print '                snapshotFramebufferAttachmentParameters(%s, color_attachment);' % target
-        print '            }'
-        print '            snapshotFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
-        print '            snapshotFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
-        print '        }'
+        for target in ('GL_DRAW_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER'):
+            print '        // %s' % target
+            print '        for (std::list<GLuint>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
+            print '            _trace_glBindFramebuffer(%s, *iter, true);' % target
+            print '            for (GLint i = 0; i < max_color_attachments; ++i) {'
+            print '                GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
+            print '                snapshotFramebufferAttachmentParameters(%s, color_attachment);' % target
+            print '            }'
+            print '            snapshotFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
+            print '            snapshotFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
+            print '        }'
         print '        _trace_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding, true);'
         print '        _trace_glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding, true);'
         print '    } // end FRAMEBUFFERS'
@@ -1574,7 +1616,7 @@ class StateSnapshot:
         print '    {'
         print '        GLint object_type = GL_NONE;'
         print '        _glGetFramebufferAttachmentParameteriv(%s, %s, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &object_type);' % (target, attachment)
-        print '        if (object_type != GL_NONE) {'
+        print '        if (object_type == GL_TEXTURE) {'
         glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME")
         print '            if (framebuffer_attachment_object_name != 0) {'
         glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL")
@@ -1593,8 +1635,14 @@ class StateSnapshot:
         print '                    _trace_glFramebufferTexture2D(%s, %s, framebuffer_attachment_texture_cube_map_face, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
         print '                }'
         print '            }'
+        print '        } else if (object_type == GL_RENDERBUFFER) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME")
+        print '            if (framebuffer_attachment_object_name != 0) {'
+        print '                _trace_glFramebufferRenderbuffer(%s, %s, GL_RENDERBUFFER, framebuffer_attachment_object_name, false);' % (target, attachment)
+        print '            }'
         print '        }'
         print '    }'
+        print
 
     def dump_atoms(self, getter, indentation, *args):
         for _, _, name in getter.iter():
