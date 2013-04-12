@@ -552,7 +552,7 @@ class Tracer:
         print '}'
         print
 
-    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+    def generateTraceFunctionImplBodyArgs(self, function):
         if not function.internal:
             print '    unsigned _call = trace::localWriter.beginEnter(&_%s_sig);' % (function.name,)
             for arg in function.args:
@@ -562,12 +562,16 @@ class Tracer:
                 if not arg.output:
                     self.serializeArg(function, arg)
             print '    trace::localWriter.endEnter();'
+
+    def generateTraceFunctionImplBodyRealCall(self, function, bInvoke):
         print '    if ( makeRealCall ) {'
         if bInvoke:
             self.invokeFunction(function, '        ')
         else:
             print '        // Intentionally not making the real call here'
         print '    }'
+
+    def generateTraceFunctionImplBodyReturn(self, function):
         if not function.internal:
             print '    trace::localWriter.beginLeave(_call);'
             print '    if (%s) {' % self.wasFunctionSuccessful(function)
@@ -581,6 +585,11 @@ class Tracer:
             if function.type is not stdapi.Void:
                 self.wrapRet(function, "_result")
             print '    trace::localWriter.endLeave();'
+
+    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+        self.generateTraceFunctionImplBodyArgs(function)
+        self.generateTraceFunctionImplBodyRealCall(function, bInvoke)
+        self.generateTraceFunctionImplBodyReturn(function)
 
     def invokeFunction(self, function, indentation, prefix='_', suffix=''):
         if function.type is stdapi.Void:
