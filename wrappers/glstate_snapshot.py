@@ -774,7 +774,7 @@ state_setters = (
     ('GL_PACK_ALIGNMENT','glPixelStorei(GL_PACK_ALIGNMENT, pack_alignment)'),
     ('GL_PACK_IMAGE_HEIGHT','glPixelStorei(GL_PACK_IMAGE_HEIGHT, pack_image_height)'),
     ('GL_PACK_SKIP_IMAGES','glPixelStorei(GL_PACK_SKIP_IMAGES, pack_skip_images)'),
-    ('GL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ARRAY_BUFFER_BINDING, array_buffer_binding)'),
+    ('GL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ARRAY_BUFFER, array_buffer_binding)'),
     ('GL_ELEMENT_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_array_buffer_binding)'),
     ('GL_VERTEX_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_VERTEX_ARRAY_BUFFER, vertex_array_buffer_binding)'),
     ('GL_NORMAL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_NORMAL_ARRAY_BUFFER, normal_array_buffer_binding)'),
@@ -1558,7 +1558,7 @@ class StateSnapshot:
         print 
         print '        // recreate all the renderbuffers'
         print '        for (std::list<GLuint>::iterator iter = pContext->renderbuffers.begin(); iter != pContext->renderbuffers.end(); ++iter) {'
-        print '            _glBindRenderbuffer(GL_RENDERBUFFER, *iter);'
+        print '            _trace_glBindRenderbuffer(GL_RENDERBUFFER, *iter, true);'
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_SAMPLES")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_INTERNAL_FORMAT")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_WIDTH")
