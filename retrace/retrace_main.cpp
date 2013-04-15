@@ -512,11 +512,48 @@ mainLoop() {
     startTime = os::getTime();
 
     if (singleThread) {
-        trace::Call *call;
-        while ((call = parser.parse_call())) {
+        trace::Call *call = NULL;
+        call = parser.parse_call();
+        if (!call) {
+            /* Nothing to do */
+            return;
+        }
+
+        /* If the user wants to loop we need to get a bookmark target. We
+         * usually get this after replaying a call that ends a frame, but
+         * for a trace that has only one frame we need to get it at the
+         * beginning. */
+        if (loopOnFinish) {
+            parser.getBookmark(lastFrameStart);
+        }
+
+        do {
+            bool callEndsFrame = false;
+
+            static trace::ParseBookmark frameStart;
+
+            assert(call);
+
+            if (loopOnFinish && call->flags & trace::CALL_FLAG_END_FRAME) {
+                callEndsFrame = true;
+                parser.getBookmark(frameStart);
+            }
+
             retraceCall(call);
             delete call;
-        };
+            call = parser.parse_call();
+
+            /* Restart last frame if looping is requested. */
+            if (loopOnFinish) {
+                if (!call) {
+                    parser.setBookmark(lastFrameStart);
+                    call = parser.parse_call();
+                } else if (callEndsFrame) {
+                    lastFrameStart = frameStart;
+                }
+            }
+        } while (call);
+
         flushRendering();
     } else {
         RelayRace race;
