@@ -207,6 +207,20 @@ private:
     }
 };
 
+class Program {
+public:
+    bool linked;
+
+    Program()
+        : linked(false)
+    {
+    }
+
+    ~Program()
+    {
+    }
+};
+
 class Context {
 public:
     enum Profile profile;
@@ -223,7 +237,8 @@ public:
     std::map <GLuint, Buffer> buffers;
 
     // Used by state snapshot
-    std::map <GLuint, Texture> textures;
+    std::map<GLuint, Texture> textures;
+    std::map<GLuint, Program> programs;
     std::list<GLuint> framebuffers;
     std::list<GLuint> vertexArrays;
     std::list<GLuint> bufferObjects;
