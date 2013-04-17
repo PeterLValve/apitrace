@@ -562,12 +562,9 @@ class Tracer:
                     self.serializeArg(function, arg)
             print '    trace::localWriter.endEnter();'
 
-    def generateTraceFunctionImplBodyRealCall(self, function, bInvoke):
+    def generateTraceFunctionImplBodyRealCall(self, function):
         print '    if ( makeRealCall ) {'
-        if bInvoke:
-            self.invokeFunction(function, '        ')
-        else:
-            print '        // Intentionally not making the real call here'
+        self.invokeFunction(function, '        ')
         print '    }'
 
     def generateTraceFunctionImplBodyReturn(self, function):
@@ -585,10 +582,9 @@ class Tracer:
                 self.wrapRet(function, "_result")
             print '    trace::localWriter.endLeave();'
 
-
-    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+    def generateTraceFunctionImplBody(self, function):
         self.generateTraceFunctionImplBodyArgs(function)
-        self.generateTraceFunctionImplBodyRealCall(function, bInvoke)
+        self.generateTraceFunctionImplBodyRealCall(function)
         self.generateTraceFunctionImplBodyReturn(function)
 
     def invokeFunction(self, function, indentation):

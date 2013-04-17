@@ -55,7 +55,7 @@ class WglTraceCallWriter(GlTracer):
         'wglMakeContextCurrentEXT',
     ]
 
-    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+    def generateTraceFunctionImplBody(self, function):
         if function.name in self.destroyContextFunctionNames:
             # Unlike other GL APIs like EGL or GLX, WGL will make the context
             # inactive if it's currently the active context.
@@ -66,7 +66,7 @@ class WglTraceCallWriter(GlTracer):
             print '        gltrace::releaseContext((uintptr_t)hglrc);'
             print '    }'
 
-        GlTracer.generateTraceFunctionImplBody(self, function, bInvoke)
+        GlTracer.generateTraceFunctionImplBody(self, function)
 
         if function.name in self.createContextFunctionNames:
             print '    if ( makeRealCall ) {'

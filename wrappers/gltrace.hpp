@@ -207,9 +207,60 @@ private:
     }
 };
 
+class Shader {
+public:
+    GLchar* source;
+    GLsizei length;
+
+    Shader()
+        : source(NULL),
+        length(0)
+    {
+    }
+
+    ~Shader()
+    {
+        Cleanup();
+    }
+
+    void SetSource(const GLchar* shaderSource, GLsizei shaderLength)
+    {
+        Cleanup();
+
+        source = new (std::nothrow) GLchar[shaderLength];
+        if (source != NULL)
+        {
+            memcpy(source, shaderSource, shaderLength*sizeof(GLchar));
+            length = shaderLength;
+        }
+        else
+        {
+            assert(!"Out of memory when attempting to allocate memory for shader source.");
+        }
+    }
+
+private:
+    void Cleanup()
+    {
+        if (source != NULL)
+        {
+            delete [] source;
+            source = NULL;
+            length = 0;
+        }
+    }
+};
+
 class Program {
 public:
     bool linked;
+
+    std::map<GLuint, Shader> shaders;
+
+    void AddShader(GLuint shaderName, const GLchar* shaderSource, GLsizei shaderLength)
+    {
+        shaders[shaderName].SetSource(shaderSource, shaderLength);
+    }
 
     Program()
         : linked(false)
@@ -218,6 +269,7 @@ public:
 
     ~Program()
     {
+        shaders.clear();
     }
 };
 
@@ -254,6 +306,17 @@ public:
         hdc(NULL),
         bound(false)
     { }
+
+    ~Context(void)
+    {
+        buffers.clear();
+        textures.clear();
+        framebuffers.clear();
+        vertexArrays.clear();
+        bufferObjects.clear();
+        samplers.clear();
+        renderbuffers.clear();
+    }
 
     inline bool
     needsShadowBuffers(void)
