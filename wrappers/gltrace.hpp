@@ -209,12 +209,16 @@ private:
 
 class Shader {
 public:
-    GLchar* source;
-    GLsizei length;
+    GLsizei count;
+    GLchar** sources;
+    GLsizei* lengths;
+    GLenum type;
 
     Shader()
-        : source(NULL),
-        length(0)
+        : sources(NULL),
+        lengths(NULL),
+        count(0),
+        type(GL_NONE)
     {
     }
 
@@ -223,31 +227,65 @@ public:
         Cleanup();
     }
 
-    void SetSource(const GLchar* shaderSource, GLsizei shaderLength)
+    void SetSources(GLenum type, GLsizei n, const GLchar* const * shaderSources, GLsizei* shaderLengths)
     {
         Cleanup();
 
-        source = new (std::nothrow) GLchar[shaderLength];
-        if (source != NULL)
-        {
-            memcpy(source, shaderSource, shaderLength*sizeof(GLchar));
-            length = shaderLength;
-        }
-        else
-        {
-            assert(!"Out of memory when attempting to allocate memory for shader source.");
+        this->type = type;
+        count = n;
+
+        if (count > 0) {
+            sources = new (std::nothrow) GLchar*[count];
+            lengths = new (std::nothrow) GLsizei[count];
+
+            if (sources != NULL && lengths != NULL) {
+                for (GLsizei i = 0; i < n; ++i) {
+                    GLsizei length = 0;
+                    if (shaderLengths != NULL) {
+                        length = shaderLengths[i];
+                    } else {
+                        length = (GLsizei)strlen(shaderSources[i]) + 1;
+                    }
+
+                    sources[i] = new (std::nothrow) GLchar[length];
+                    if (sources[i] != NULL)
+                    {
+                        memcpy(sources[i], shaderSources[i], length*sizeof(GLchar));
+                        sources[i][length-1] = '\0';
+                        lengths[i] = length;
+                    }
+                }
+            }
+            else
+            {
+                assert(!"Out of memory when attempting to allocate memory for shader sources.");
+                Cleanup();
+            }
         }
     }
 
 private:
     void Cleanup()
     {
-        if (source != NULL)
+        if (sources != NULL)
         {
-            delete [] source;
-            source = NULL;
-            length = 0;
+            for (GLsizei i = 0; i < count; ++i) {
+                delete [] sources[i];
+                sources[i] = NULL;
+            }
+
+            delete [] sources;
+            sources = NULL;
         }
+
+        if (lengths != NULL)
+        {
+            delete [] lengths;
+            lengths = NULL;
+        }
+
+        count = 0;
+        type = GL_NONE;
     }
 };
 
@@ -257,9 +295,11 @@ public:
 
     std::map<GLuint, Shader> shaders;
 
-    void AddShader(GLuint shaderName, const GLchar* shaderSource, GLsizei shaderLength)
+    void AddShader(GLuint shaderName, GLenum shaderType, const GLchar* shaderSource, GLsizei shaderLength)
     {
-        shaders[shaderName].SetSource(shaderSource, shaderLength);
+        if (shaderSource != NULL) {
+            shaders[shaderName].SetSources(shaderType, 1, &shaderSource, &shaderLength);
+        }
     }
 
     Program()
@@ -291,6 +331,8 @@ public:
     // Used by state snapshot
     std::map<GLuint, Texture> textures;
     std::map<GLuint, Program> programs;
+    std::list<GLuint> pipelines;
+    std::map<GLuint, Shader> separateShaders;
     std::list<GLuint> framebuffers;
     std::list<GLuint> vertexArrays;
     std::list<GLuint> bufferObjects;
@@ -311,6 +353,9 @@ public:
     {
         buffers.clear();
         textures.clear();
+        programs.clear();
+        pipelines.clear();
+        separateShaders.clear();
         framebuffers.clear();
         vertexArrays.clear();
         bufferObjects.clear();

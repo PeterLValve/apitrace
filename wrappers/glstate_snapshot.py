@@ -1063,6 +1063,115 @@ class StateSnapshot:
     def __init__(self):
         pass
 
+    def generateUniformCalls(self, funcPrefix, firstParam):
+        print '            GLchar uniformName[1024];'
+        print '            memset(uniformName, 0, 1024);'
+        print '            GLenum uniformType = GL_NONE;'
+        print '            GLint uniformSize = 0;'
+        print '            GLfloat fParams[16];'
+        print '            GLint iParams[16];'
+        print '            GLdouble dParams[16];'
+        print '            GLuint uParams[16];'
+        print '            memset(fParams, 0, 16*sizeof(GLfloat));'
+        print '            memset(iParams, 0, 16*sizeof(GLint));'
+        print '            memset(dParams, 0, 16*sizeof(GLdouble));'
+        print '            memset(uParams, 0, 16*sizeof(GLuint));'
+        print '            GLint active_uniforms = 0;'
+        print '            _glGetProgramiv(programName, GL_ACTIVE_UNIFORMS, &active_uniforms);'
+        print '            for (GLint index = 0; index < active_uniforms; ++index) {'
+        print '                _glGetActiveUniform(programName, index, 1024, NULL, &uniformSize, &uniformType, uniformName);'
+        print '                if (strncmp(uniformName, "gl_", 3) == 0 ) { continue; }'
+        print '                if (uniformSize > 1 && strncmp(&uniformName[strlen(uniformName)-3], "[0]", 3) == 0) { uniformName[strlen(uniformName)-3] = \'\\0\'; }'
+        print '                size_t nameLen = strlen(uniformName);'
+        print '                for (unsigned int i = 0; i < uniformSize; ++i) {'
+        print '                    if (uniformSize > 1) {'
+        print '                        std::string nameString(uniformName);'
+        print '                        sprintf(uniformName, "%s[%d]", nameString.substr(0, nameLen).c_str(), i);'
+        print '                    }'
+        print '                    GLint location = _glGetUniformLocation(programName, uniformName);'
+        print '                    if (location == -1) { continue; }'
+        print '                    if (uniformType == GL_INT || uniformType == GL_BOOL) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_INT_VEC2 || uniformType == GL_BOOL_VEC2) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform2iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_INT_VEC3 || uniformType == GL_BOOL_VEC3) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform3iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_INT_VEC4 || uniformType == GL_BOOL_VEC4) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform4iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_UNSIGNED_INT) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC2) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform2uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC3) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform3uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC4) {'
+        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform4uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform1fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_VEC2) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform2fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_VEC3) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform3fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_VEC4) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform4fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform1dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_VEC2) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform2dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_VEC3) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform3dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_VEC4) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform4dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT2) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix2fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT3) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix3fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT4) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix4fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT2x3) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix2x3fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT2x4) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix2x4fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT3x2) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix3x2fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT3x4) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix3x4fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT4x2) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix4x2fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_FLOAT_MAT4x3) {'
+        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix4x3fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT2) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix2dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT3) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix3dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT4) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix4dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT2x3) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix2x3dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT2x4) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix2x4dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT3x2) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix3x2dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT3x4) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix3x4dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT4x2) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix4x2dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else if (uniformType == GL_DOUBLE_MAT4x3) {'
+        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix4x3dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
+        print '                    } else {'
+        print '                        switch (uniformType) {'
+        print '                            case GL_SAMPLER_1D: case GL_SAMPLER_2D: case GL_SAMPLER_3D: case GL_SAMPLER_CUBE: case GL_SAMPLER_1D_SHADOW: case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE: case GL_SAMPLER_CUBE_SHADOW: case GL_SAMPLER_BUFFER: case GL_SAMPLER_2D_RECT: case GL_SAMPLER_2D_RECT_SHADOW:'
+        print '                            case GL_INT_SAMPLER_1D: case GL_INT_SAMPLER_2D: case GL_INT_SAMPLER_3D: case GL_INT_SAMPLER_CUBE: case GL_INT_SAMPLER_2D_MULTISAMPLE: case GL_INT_SAMPLER_BUFFER: case GL_INT_SAMPLER_2D_RECT:'
+        print '                            case GL_UNSIGNED_INT_SAMPLER_1D: case GL_UNSIGNED_INT_SAMPLER_2D: case GL_UNSIGNED_INT_SAMPLER_3D: case GL_UNSIGNED_INT_SAMPLER_CUBE: case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: case GL_UNSIGNED_INT_SAMPLER_BUFFER: case GL_UNSIGNED_INT_SAMPLER_2D_RECT:'
+        print '                            case GL_SAMPLER_1D_ARRAY: case GL_SAMPLER_2D_ARRAY: case GL_SAMPLER_1D_ARRAY_SHADOW: case GL_SAMPLER_2D_ARRAY_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:'
+        print '                            case GL_INT_SAMPLER_1D_ARRAY: case GL_INT_SAMPLER_2D_ARRAY: case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:'
+        print '                            case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:'
+        print '                                { _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1iv(%slocation, 1, iParams, false); }' % (funcPrefix, firstParam)
+        print '                        }'
+        print '                    }'
+        print '                }'
+        print '            }'
+
     def generateFile(self):
         print '#include <assert.h>'
         print '#include <string.h>'
@@ -1285,19 +1394,21 @@ class StateSnapshot:
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING")
         print '                _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
         print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
+        print '                _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
+        print
+        print '                if (vertex_attrib_array_buffer_binding != 0) {'
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
-        print '                _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
-        print
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
-        print '                if (vertex_attrib_array_integer == GL_TRUE) {'
-        print '                    _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
-        print '                } else {'
+        print '                    if (vertex_attrib_array_integer == GL_TRUE) {'
+        print '                        _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                    } else {'
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
-        print '                    _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                        _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                    }'
         print '                }'
         print
         glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
@@ -1314,138 +1425,76 @@ class StateSnapshot:
         print
 
     def snapshot_program_params(self):
+        print '    { // PROGRAM PIPELINES'
+        print '        GLint program_pipeline_binding = 0;'
+        print '        _glGetIntegerv(GL_PROGRAM_PIPELINE_BINDING, &program_pipeline_binding);'
+        print
+
+        print '        // recreate all the shader programs'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pContext->separateShaders.begin(); shaderIter != pContext->separateShaders.end(); ++shaderIter) {'
+        print '            GLuint programName = shaderIter->first;'
+        print '            gltrace::Shader* pShader = &(shaderIter->second);'
+        print '            _trace_glCreateShaderProgramv(pShader->type, pShader->count, pShader->sources, programName, false);'
+        self.generateUniformCalls("Program", 'programName, ');
+        print '        }'
+        print
+        print '        GLenum shaderTypes[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_GEOMETRY_SHADER, GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER };'
+        print '        GLenum shaderTypeBits[] = { GL_VERTEX_SHADER_BIT, GL_FRAGMENT_SHADER_BIT, GL_GEOMETRY_SHADER_BIT, GL_TESS_CONTROL_SHADER_BIT, GL_TESS_EVALUATION_SHADER_BIT };'
+        print '        GLint shaderNames[] = { 0, 0, 0, 0, 0 };'
+        print '        unsigned int count = sizeof(shaderTypes) / sizeof(GLenum);'
+        print
+        print '        // setup program pipelines with shaders and uniforms'
+        print '        for (std::list<GLuint>::iterator pipelineIter = pContext->pipelines.begin(); pipelineIter != pContext->pipelines.end(); ++pipelineIter) {'
+        print '            GLuint pipelineName = *pipelineIter;'
+        print '            GLint active_program = 0;'
+        print '            _glGetProgramPipelineiv(pipelineName, GL_ACTIVE_PROGRAM, &active_program);'
+        print
+        print '            for (unsigned int i = 0; i < count; ++i ) {'
+        print '                _glGetProgramPipelineiv(pipelineName, shaderTypes[i], &shaderNames[i]);'
+        print '                if (shaderNames[i] != 0) {'
+        print '                    _trace_glUseProgramStages(pipelineName, shaderTypeBits[i], shaderNames[i], false);'
+        print '                }'
+        print '            }'
+        print '            _trace_glActiveShaderProgram(pipelineName, active_program, false);'
+        print '        }'
+        print
+        print '        if (program_pipeline_binding != 0) {'
+        print '            _trace_glBindProgramPipeline(program_pipeline_binding, false);'
+        print '        }'
+        print '    }'
+        print
         print '    { // PROGRAMS'
         print '        // get the currently active program before recreating all program uniforms'
         glGet("GL_ACTIVE_PROGRAM")
-        print '        GLchar uniformName[1024];'
-        print '        GLenum uniformType = GL_NONE;'
-        print '        GLint uniformSize = 0;'
         print '        gltrace::Context* pContext = gltrace::getContext();'
-        print '        GLfloat fParams[16];'
-        print '        GLint iParams[16];'
-        print '        GLdouble dParams[16];'
-        print '        GLuint uParams[16];'
-        print '        memset(fParams, 0, 16*sizeof(GLfloat));'
-        print '        memset(iParams, 0, 16*sizeof(GLint));'
-        print '        memset(dParams, 0, 16*sizeof(GLdouble));'
-        print '        memset(uParams, 0, 16*sizeof(GLuint));'
         print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programs.begin(); iter != pContext->programs.end(); ++iter) {'
-        print '             GLuint programName = iter->first;'
-        print '             gltrace::Program* pProgram = &(iter->second);'
-        print '             if (pProgram->linked == false) { continue; }'
+        print '            GLuint programName = iter->first;'
+        print '            gltrace::Program* pProgram = &(iter->second);'
+        print '            if (pProgram->linked == false) { continue; }'
 
         print '            // set source, compile, and attach all shaders'
         print '            for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
         print '                GLuint shaderName = shaderIter->first;'
-        print '                _trace_glShaderSource(shaderName, 1, &(shaderIter->second.source), &(shaderIter->second.length), false);'
+        print '                _trace_glShaderSource(shaderName, 1, shaderIter->second.sources, shaderIter->second.lengths, false);'
         print '                _trace_glCompileShader(shaderName, false);'
         print '                _trace_glAttachShader(programName, shaderName, false);'
         print '            }'
         print '            _trace_glLinkProgram(programName, false);'
 
         print '            _trace_glUseProgram(programName, true);'
-        print '            GLint active_uniforms = 0;'
-        print '            memset(uniformName, 0, 1024);'
-        print '            _glGetProgramiv(programName, GL_ACTIVE_UNIFORMS, &active_uniforms);'
-        print '            for (GLint index = 0; index < active_uniforms; ++index) {'
-        print '                _glGetActiveUniform(programName, index, 1024, NULL, &uniformSize, &uniformType, uniformName);'
-        print '                if (strncmp(uniformName, "gl_", 3) == 0 ) { continue; }'
-        print '                if (uniformSize > 1 && strncmp(&uniformName[strlen(uniformName)-3], "[0]", 3) == 0) { uniformName[strlen(uniformName)-3] = \'\\0\'; }'
-        print '                size_t nameLen = strlen(uniformName);'
-        print '                for (unsigned int i = 0; i < uniformSize; ++i) {'
-        print '                    if (uniformSize > 1) {'
-        print '                        std::string nameString(uniformName);'
-        print '                        sprintf(uniformName, "%s[%d]", nameString.substr(0, nameLen).c_str(), i);'
-        print '                    }'
-        print '                    GLint location = _glGetUniformLocation(iter->first, uniformName);'
-        print '                    if (location == -1) { continue; }'
-        print '                    if (uniformType == GL_INT || uniformType == GL_BOOL) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform1iv(location, 1, iParams, false);'
-        print '                    } else if (uniformType == GL_INT_VEC2 || uniformType == GL_BOOL_VEC2) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform2iv(location, 1, iParams, false);'
-        print '                    } else if (uniformType == GL_INT_VEC3 || uniformType == GL_BOOL_VEC3) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform3iv(location, 1, iParams, false);'
-        print '                    } else if (uniformType == GL_INT_VEC4 || uniformType == GL_BOOL_VEC4) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform4iv(location, 1, iParams, false);'
-        print '                    } else if (uniformType == GL_UNSIGNED_INT) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform1uiv(location, 1, uParams, false);'
-        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC2) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform2uiv(location, 1, uParams, false);'
-        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC3) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform3uiv(location, 1, uParams, false);'
-        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC4) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_glUniform4uiv(location, 1, uParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniform1fv(location, 1, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_VEC2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniform2fv(location, 1, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_VEC3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniform3fv(location, 1, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_VEC4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniform4fv(location, 1, fParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniform1dv(location, 1, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_VEC2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniform2dv(location, 1, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_VEC3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniform3dv(location, 1, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_VEC4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniform4dv(location, 1, dParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix2fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix3fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix4fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT2x3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix2x3fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT2x4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix2x4fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT3x2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix3x2fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT3x4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix3x4fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT4x2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix4x2fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_FLOAT_MAT4x3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_glUniformMatrix4x3fv(location, 1, GL_FALSE, fParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix2dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix3dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix4dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT2x3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix2x3dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT2x4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix2x4dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT3x2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix3x2dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT3x4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix3x4dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT4x2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix4x2dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else if (uniformType == GL_DOUBLE_MAT4x3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_glUniformMatrix4x3dv(location, 1, GL_FALSE, dParams, false);'
-        print '                    } else {'
-        print '                        switch (uniformType) {'
-        print '                            case GL_SAMPLER_1D: case GL_SAMPLER_2D: case GL_SAMPLER_3D: case GL_SAMPLER_CUBE: case GL_SAMPLER_1D_SHADOW: case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE: case GL_SAMPLER_CUBE_SHADOW: case GL_SAMPLER_BUFFER: case GL_SAMPLER_2D_RECT: case GL_SAMPLER_2D_RECT_SHADOW:'
-        print '                            case GL_INT_SAMPLER_1D: case GL_INT_SAMPLER_2D: case GL_INT_SAMPLER_3D: case GL_INT_SAMPLER_CUBE: case GL_INT_SAMPLER_2D_MULTISAMPLE: case GL_INT_SAMPLER_BUFFER: case GL_INT_SAMPLER_2D_RECT:'
-        print '                            case GL_UNSIGNED_INT_SAMPLER_1D: case GL_UNSIGNED_INT_SAMPLER_2D: case GL_UNSIGNED_INT_SAMPLER_3D: case GL_UNSIGNED_INT_SAMPLER_CUBE: case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: case GL_UNSIGNED_INT_SAMPLER_BUFFER: case GL_UNSIGNED_INT_SAMPLER_2D_RECT:'
-        print '                            case GL_SAMPLER_1D_ARRAY: case GL_SAMPLER_2D_ARRAY: case GL_SAMPLER_1D_ARRAY_SHADOW: case GL_SAMPLER_2D_ARRAY_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:'
-        print '                            case GL_INT_SAMPLER_1D_ARRAY: case GL_INT_SAMPLER_2D_ARRAY: case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:'
-        print '                            case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:'
-        print '                                { _glGetUniformiv(programName, location, iParams); _trace_glUniform1iv(location, 1, iParams, false); }'
-        print '                        }'
-        print '                    }'
-        print '                }'
-        print '            }'
+
+        self.generateUniformCalls("", "");
+
         print '        }'
         print
-        print '        // restore previously active program;'
-        print '        _trace_glUseProgram(active_program, true);'
+        print '        if (pContext->programs.size() > 0) {'
+        print '            // restore previously active program;'
+        print '            _trace_glUseProgram(active_program, true);'
+        print '        }'
         print '    } // end PROGRAMS'
         print
+
 
     def snapshot_texture_parameters(self):
         print '    // TEXTURES'
