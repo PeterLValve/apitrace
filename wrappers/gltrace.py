@@ -483,8 +483,6 @@ class GlTracer(Tracer):
         'glDeleteBuffersARB',
         'glGenQueriesARB',
         'glDeleteQueriesARB',
-        'glCreateShaderProgramv',
-        'glCreateShaderProgramEXT',
         'glDeleteObjectARB',
         'glGenRenderbuffers',
         'glDeleteRenderbuffers',
@@ -499,8 +497,6 @@ class GlTracer(Tracer):
         'glDeleteSamplers',
         'glGenTransformFeedbacks',
         'glDeleteTransformFeedbacks',
-        'glGenProgramPipelines',
-        'glDeleteProgramPipelines',
         'glGenTexturesEXT',
         'glDeleteTexturesEXT',
         'glGenAsyncMarkersSGIX',
@@ -584,6 +580,12 @@ class GlTracer(Tracer):
         'glCreateProgramObjectARB',
         'glProgramStringARB',
         'glLinkProgramARB',
+
+        ## ARB separate shader objects
+        'glGenProgramPipelines',
+        'glDeleteProgramPipelines',
+        'glCreateShaderProgramv',
+        'glCreateShaderProgramEXT',
     )
 
     def generateTraceCallDecls(self, api):
@@ -766,7 +768,28 @@ class GlTracer(Tracer):
 
         self.shadowBufferProlog(function)
 
-        if function.name in ('glLinkProgram', 'glLinkProgramARB'):
+        if function.name in ('glCreateShaderProgramv', 'glCreateShaderProgramEXT'):
+            print '    // When tracing setup functions we do not want to trace the call.'
+            print '    // Instead will query some parameters and emit the trace call at a later time.'
+            print '    if (trace::isTracingStateSetupFunctions() == false)'
+            print '    {'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            if function.name == 'glCreateShaderProgramEXT':
+                print '        GLuint count = 1;'
+                print '        const GLchar * const * strings = &string;'
+            print '        if (count > 0 && strings != NULL) {'
+            print '            gltrace::Context *ctx = gltrace::getContext();'
+            print '            ctx->separateShaders[_result].SetSources(type, count, strings, NULL);'
+            print '        }'
+            print '        return _result;'
+            print '    }'
+            print
+
+        elif function.name in ('glLinkProgram', 'glLinkProgramARB'):
             Tracer.generateTraceFunctionImplBodyRealCall(self, function)
 
             print '    // When tracing setup functions we do not want to trace the call.'
@@ -825,12 +848,16 @@ class GlTracer(Tracer):
             print '        GLuint* shaders = new GLuint[numAttachedShaders];'
             print '        _glGetAttachedShaders(%s, numAttachedShaders, NULL, shaders);' % function.args[0].name
             print '        for (GLint shaderIndex = 0; shaderIndex < numAttachedShaders; ++shaderIndex) {'
+            print '            GLint shaderType = GL_NONE;'
+            print '            _glGetShaderiv(shaders[shaderIndex], GL_SHADER_TYPE, &shaderType);'
             print '            GLint shaderLength = 0;'
             print '            _glGetShaderiv(shaders[shaderIndex], GL_SHADER_SOURCE_LENGTH, &shaderLength);'
             print '            GLchar* shaderSource = new (std::nothrow) GLchar[shaderLength];'
             print '            if (shaderSource != NULL) {'
             print '                _glGetShaderSource(shaders[shaderIndex], shaderLength, NULL, shaderSource);'
-            print '                ctx->programs[%s].AddShader(shaders[shaderIndex], shaderSource, shaderLength);' % function.args[0].name
+            print '                ctx->programs[%s].AddShader(shaders[shaderIndex], shaderType, shaderSource, shaderLength);' % function.args[0].name
+            print '                delete [] shaderSource;'
+            print '                shaderSource = NULL;'
             print '            }'
             print '        }'
             print '        delete [] shaders;'
@@ -968,6 +995,20 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
+        if function.name  in ('glGenProgramPipelines',):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->pipelines.push_back(pipelines[i]);'
+            print '        }'
+            print '    }'
+        if function.name in ('glDeleteProgramPipelines',):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->pipelines.remove(pipelines[i]);'
+            print '        }'
+            print '    }'
 
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
