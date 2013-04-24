@@ -91,30 +91,31 @@ public:
 
 struct TextureLevel
 {
-    GLint level;
-    GLsizei width;
-    GLsizei height;
-    GLsizei depth;
-    GLsizei imageSize;
+    GLenum m_target;
+    GLint m_level;
+    GLsizei m_width;
+    GLsizei m_height;
+    GLsizei m_depth;
+    GLsizei m_imageSize;
 };
 
 // this helps track texture parameters that are needed to recreate a texture
 class Texture {
 public:
-    GLenum name;
-    GLenum target;
-    GLint internalFormat;
-    GLenum format;
-    GLenum type;
+    GLenum m_name;
+    GLenum m_target;
+    GLint m_internalFormat;
+    GLenum m_format;
+    GLenum m_type;
 
     // list of mipmap levels that had contents uploaded
-    std::list<TextureLevel> levels;
+    std::list<TextureLevel> m_levels;
 
     Texture() :
-       name(GL_NONE),
-       target(GL_NONE),
-       format(GL_NONE),
-       type(GL_NONE)
+       m_name(GL_NONE),
+       m_target(GL_NONE),
+       m_format(GL_NONE),
+       m_type(GL_NONE)
     {}
 
     ~Texture() {
@@ -124,85 +125,94 @@ public:
     {
         SetTextureInfo(name, target, internalFormat, format, type);
         GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, 1, 1, true); //_glTexImage1D_size(format, type, width);
-        AddTextureLevel(level, width, 1, 1, imageSize);
+        AddTextureLevel(target, level, width, 1, 1, imageSize);
     }
 
     void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type)
     {
         SetTextureInfo(name, target, internalFormat, format, type);
         GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, 1, true); //_glTexImage2D_size(format, type, width, height);
-        AddTextureLevel(level, width, height, 1, imageSize);
+        AddTextureLevel(target, level, width, height, 1, imageSize);
     }
 
     void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type)
     {
         SetTextureInfo(name, target, internalFormat, format, type);
         GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, depth, true); //_glTexImage3D_size(format, type, width, height, depth);
-        AddTextureLevel(level, width, height, depth, imageSize);
+        AddTextureLevel(target, level, width, height, depth, imageSize);
     }
 
     void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei imageSize)
     {
-        SetTextureInfo(name, target, internalFormat, format, GL_NONE);
-        AddTextureLevel(level, width, 1, 1, imageSize);
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, 1, 1, imageSize);
     }
 
     void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei imageSize)
     {
-        SetTextureInfo(name, target, internalFormat, format, GL_NONE);
-        AddTextureLevel(level, width, height, 1, imageSize);
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, height, 1, imageSize);
     }
 
     void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLsizei imageSize)
     {
-        SetTextureInfo(name, target, internalFormat, format, GL_NONE);
-        AddTextureLevel(level, width, height, depth, imageSize);
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, height, depth, imageSize);
     }
 
 private:
     void SetTextureInfo(GLuint name, GLenum target, GLint internalFormat, GLenum format, GLenum type)
     {
-        if (this->name == 0)
+        if (m_name == 0)
         {
             // we only want to populate this information the first time
-            this->name = name;
-            this->target = target;
-            this->internalFormat = internalFormat;
-            this->format = format;
-            this->type = type;
+            m_name = name;
+            if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X ||
+                target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y ||
+                target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z )
+            {
+                m_target = GL_TEXTURE_CUBE_MAP;
+            } else {
+                m_target = target;
+            }
+            m_internalFormat = internalFormat;
+            m_format = format;
+            m_type = type;
         }
     }
 
-    void AddTextureLevel(GLint level, GLsizei width, GLsizei height, GLsizei depth, GLsizei compressedImageSize)
+    void AddTextureLevel(GLenum target, GLint level, GLsizei width, GLsizei height, GLsizei depth, GLsizei compressedImageSize)
     {
-        // see if the layer is already in the list
-        std::list<gltrace::TextureLevel>::iterator iter = this->levels.begin();
-        for (; iter != this->levels.end(); ++iter)
+        // see if the level and target is already in the list
+        std::list<gltrace::TextureLevel>::iterator iter = m_levels.begin();
+        for (; iter != m_levels.end(); ++iter)
         {
-            if (iter->level == level)
+            if (iter->m_level == level && iter->m_target == target)
             {
                 // level already exists
                 break;
             }
         }
 
-        if (iter != this->levels.end())
+        if (iter != this->m_levels.end())
         {
             // update the level
-            iter->width = width;
-            iter->height = height;
-            iter->depth = depth;
-            iter->imageSize = compressedImageSize;
+            iter->m_target = target;
+            iter->m_width = width;
+            iter->m_height = height;
+            iter->m_depth = depth;
+            iter->m_imageSize = compressedImageSize;
         }
         else
         {
             TextureLevel texLevel;
-            texLevel.level = level;
-            texLevel.width = width;
-            texLevel.height = height;
-            texLevel.depth = depth;
-            texLevel.imageSize = compressedImageSize;
-            this->levels.push_back(texLevel);
+            texLevel.m_target = target;
+            texLevel.m_level = level;
+            texLevel.m_width = width;
+            texLevel.m_height = height;
+            texLevel.m_depth = depth;
+            texLevel.m_imageSize = compressedImageSize;
+            this->m_levels.push_back(texLevel);
         }
     }
 };

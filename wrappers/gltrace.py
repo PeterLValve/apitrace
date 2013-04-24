@@ -566,6 +566,14 @@ class GlTracer(Tracer):
         'glCompressedTexImage2D',
         'glCompressedTexImage3D',
 
+        ## texture EXT_direct_state_access
+        'glTextureImage1D',
+        'glTextureImage2D',
+        'glTextureImage3D',
+        'glCompressedTextureImage1D',
+        'glCompressedTextureImage2D',
+        'glCompressedTextureImage3D',
+
         ## shaders and programs
         'glCreateProgram',
         'glDeleteProgram',
@@ -864,8 +872,8 @@ class GlTracer(Tracer):
             print'         shaders = NULL;'
             print '    }'
 
-        elif function.name in ('glTexImage1D', 'glTexImage2D', 'glTexImage3D', 'glCompressedTexImage1D', 'glCompressedTexImage2D', 'glCompressedTexImage3D'):
-            print '    // glTexImage* calls are special cased'
+        elif function.name in ('glTexImage1D', 'glTexImage2D', 'glTexImage3D', 'glCompressedTexImage1D', 'glCompressedTexImage2D', 'glCompressedTexImage3D', 'glTextureImage1DEXT', 'glTextureImage2DEXT', 'glTextureImage3DEXT', 'glCompressedTextureImage1DEXT', 'glCompressedTextureImage2DEXT', 'glCompressedTextureImage3DEXT'):
+            print '    // glTex*Image* calls are special cased'
             print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
             print '    // The actual call will be added to the trace at a later time.'
             print '    unsigned _tmpCall = 0;'
@@ -1012,14 +1020,20 @@ class GlTracer(Tracer):
 
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
-        print '        GLint boundTexture = 0;'
-        if function.name == 'glTexImage1D':
+        if function.name in ('glTexImage1D',):
+            print '        GLint boundTexture = 0;'
             print '        _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
             print '        ctx->textures[boundTexture].texImage(boundTexture, GL_TEXTURE_1D, level, internalformat, width, format, type);'
-        if function.name == 'glCompressedTexImage1D':
+        if function.name in ('glTextureImage1DEXT',):
+            print '        ctx->textures[texture].texImage(texture, GL_TEXTURE_1D, level, internalformat, width, format, type);'
+        if function.name in ('glCompressedTexImage1D',):
+            print '        GLint boundTexture = 0;'
             print '        _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
             print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, GL_TEXTURE_1D, level, internalformat, width, imageSize);'
-        if function.name == 'glTexImage2D':
+        if function.name in ('glCompressedTextureImage1DEXT',):
+            print '        ctx->textures[texture].compressedTexImage(texture, GL_TEXTURE_1D, level, internalformat, width, imageSize);'
+        if function.name in ('glTexImage2D',):
+            print '        GLint boundTexture = 0;'
             print '        if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
             print '        else if (target == GL_TEXTURE_RECTANGLE) _glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &boundTexture);'
             print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
@@ -1029,7 +1043,10 @@ class GlTracer(Tracer):
             print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
             print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
             print '        ctx->textures[boundTexture].texImage(boundTexture, target, level, internalformat, width, height, format, type);'
-        if function.name == 'glCompressedTexImage2D':
+        if function.name in ('glTextureImage2DEXT',):
+            print '        ctx->textures[texture].texImage(texture, target, level, internalformat, width, height, format, type);'
+        if function.name in ('glCompressedTexImage2D',):
+            print '        GLint boundTexture = 0;'
             print '        if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
             print '        else if (target == GL_TEXTURE_RECTANGLE) _glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &boundTexture);'
             print '        else if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
@@ -1038,13 +1055,21 @@ class GlTracer(Tracer):
             print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
             print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
             print '        else if (target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
-            print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, GL_TEXTURE_2D, level, internalformat, width, height, imageSize);'
-        if function.name == 'glTexImage3D':
+            print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, target, level, internalformat, width, height, imageSize);'
+        if function.name in ('glCompressedTextureImage2DEXT',):
+            print '        ctx->textures[texture].compressedTexImage(texture, target, level, internalformat, width, height, imageSize);'
+        if function.name in ('glTexImage3D',):
+            print '        GLint boundTexture = 0;'
             print '        _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
             print '        ctx->textures[boundTexture].texImage(boundTexture, GL_TEXTURE_3D, level, internalformat, width, height, depth, format, type);'
-        if function.name == 'glCompressedTexImage3D':
+        if function.name in ('glTextureImage3DEXT',):
+            print '        ctx->textures[texture].texImage(texture, GL_TEXTURE_3D, level, internalformat, width, height, depth, format, type);'
+        if function.name in ('glCompressedTexImage3D',):
+            print '        GLint boundTexture = 0;'
             print '        _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
             print '        ctx->textures[boundTexture].compressedTexImage(boundTexture, GL_TEXTURE_3D, level, internalformat, width, height, depth, imageSize);'
+        if function.name in ('glCompressedTextureImage3DEXT',):
+            print '        ctx->textures[texture].compressedTexImage(texture, GL_TEXTURE_3D, level, internalformat, width, height, depth, imageSize);'
 
     marker_functions = [
         # GL_GREMEDY_string_marker

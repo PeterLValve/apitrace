@@ -1557,41 +1557,16 @@ class StateSnapshot:
         print '        }'
 
         print '        // switch to tex unit 0 to recreate all the textures'
-        print '        _trace_glActiveTexture(GL_TEXTURE0, false);'
-        print '        // back up current bindings on tex unit 0'
-        print '        GLint texture_binding_1d = 0;'
-        print '        _glGetIntegerv(GL_TEXTURE_BINDING_1D, &texture_binding_1d);'
-        print '        GLint texture_binding_2d = 0;'
-        print '        _glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture_binding_2d);'
-        print '        GLint texture_binding_3d = 0;'
-        print '        _glGetIntegerv(GL_TEXTURE_BINDING_3D, &texture_binding_3d);'
-        print '        GLint texture_binding_rectangle = 0;'
-        print '        _glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE, &texture_binding_rectangle);'
-        print '        GLint texture_binding_cube_map = 0;'
-        print '        _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &texture_binding_cube_map);'
+        print '        _trace_glActiveTexture(GL_TEXTURE0, true);'
 
         print '        // recreate all the textures that previously existed'
-        print '        GLenum texTargets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP};'
-        print '        unsigned numTexTargets = sizeof(texTargets) / sizeof(GLenum);'
         print '        for (std::map<GLuint, gltrace::Texture>::iterator iter = pContext->textures.begin(); iter != pContext->textures.end(); ++iter) {'
         print '            GLuint texName = iter->first;'
         print '            gltrace::Texture& texture = iter->second;'
-        print '            // bind a texture to the appropriate binding'
-        print '            // unfortunately I think the only way to do this is to attempt to bind'
-        print '            // and if it generates an error, then it was the wrong target'
-        print '            GLenum target = GL_NONE;'
-        print '            for (unsigned int targetIndex = 0; targetIndex < numTexTargets; ++targetIndex) {'
-        print '                GLenum tmpTarget = texTargets[targetIndex];'
-        print '                _glBindTexture(tmpTarget, texName);'
-        print '                if (_glGetError() == GL_NO_ERROR) { target = tmpTarget; break; }'
-        print '            }'
-        print '            if (target == GL_NONE) {'
-        print '                // this is an error, Im not sure how to report it, but for now, skip the texture'
-        print '                assert(!"apitrace could not identify the correct target for a texture.");'
-        print '                continue;'
-        print '            }'
+
+        print '            GLenum target = texture.m_target;'
         print '            // emit a call to bind the texture'
-        print '            _trace_glBindTexture(target, texName, false);'
+        print '            _trace_glBindTexture(target, texName, true);'
         print '            // get & set all the state'
         self.dump_atoms(glGetTexParameter, '            ', 'target')
         self.snapshot_tex_level_parameters('            ', 'target')
@@ -1600,7 +1575,6 @@ class StateSnapshot:
         print '        // emit calls into the trace to set the proper bindings'
         print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
         print '            _trace_glActiveTexture(GL_TEXTURE0 + unit, false);'
-        print '            GLenum target;'
         for target, binding in texture_targets:
             bindingArray = 'NONE';
             enabledArray = 'NONE';
@@ -1619,7 +1593,6 @@ class StateSnapshot:
             elif target == 'GL_TEXTURE_CUBE_MAP':
                 bindingArray = 'pBindingsCubeMap'
                 enabledArray = 'pEnabledCubeMap'
-            print '            target = %s;' % target
             print '            if ( %s[unit] ) {' % enabledArray
             print '                _trace_glEnable(%s, false);' % target
             print '            } else {'
@@ -1629,6 +1602,10 @@ class StateSnapshot:
             print
         print '        }'
         print
+
+        print '        // switch back to the previously active texture unit'
+        print '        _glActiveTexture(active_texture);'
+
         print '        delete [] pBindings1D; pBindings1D = NULL;'
         print '        delete [] pBindings2D; pBindings2D = NULL;'
         print '        delete [] pBindings3D; pBindings3D = NULL;'
@@ -1641,53 +1618,41 @@ class StateSnapshot:
         print '        delete [] pEnabledRect; pEnabledRect = NULL;'
         print '        delete [] pEnabledCubeMap; pEnabled1D = NULL;'
         print
-        print '        // switch back to the previously active texture unit'
-        print '        _glActiveTexture(active_texture);'
-        print '        // restore texture bindings'
-        print '        _glBindTexture(GL_TEXTURE_1D, texture_binding_1d);'
-        print '        _glBindTexture(GL_TEXTURE_2D, texture_binding_2d);'
-        print '        _glBindTexture(GL_TEXTURE_3D, texture_binding_3d);'
-        print '        _glBindTexture(GL_TEXTURE_RECTANGLE, texture_binding_rectangle);'
-        print '        _glBindTexture(GL_TEXTURE_CUBE_MAP, texture_binding_cube_map);'
         print '    }'
         print
 
     ## assumes a gltrace::Texture named texture, and a GLenum named target
     def snapshot_tex_level_parameters(self, indentation, target):
         # get all state from level 0, then trace an upload of all levels
-        print '%s{ // Capture state from level 0, then upload all other levels' % indentation
-        print '%sGLint texture_format = texture.format;' % indentation
-        print '%sGLint texture_type = texture.type;' % indentation
+        print '%s{ // upload levels' % indentation
+        print '%sGLint texture_format = texture.m_format;' % indentation
+        print '%sGLint texture_type = texture.m_type;' % indentation
         print '%sGLvoid* texture_data = NULL;' % indentation
 
         print '%s// TODO: Pixel Pack buffer and pack alignment could affect this' % indentation
-        print '%sfor ( std::list<gltrace::TextureLevel>::iterator levelIter = texture.levels.begin(); levelIter != texture.levels.end(); ++levelIter) {' % indentation
-        print '%s    GLuint texLevel = levelIter->level;' % indentation
-        print '%s    GLsizei texture_image_size = levelIter->imageSize;' % indentation
-        print '%s    GLint texture_width = levelIter->width;' % indentation
-        print '%s    GLint texture_height = levelIter->height;' % indentation
-        print '%s    GLint texture_depth = levelIter->depth;' % indentation
+        print '%sfor ( std::list<gltrace::TextureLevel>::iterator levelIter = texture.m_levels.begin(); levelIter != texture.m_levels.end(); ++levelIter) {' % indentation
+        print '%s    GLuint texLevel = levelIter->m_level;' % indentation
+        print '%s    GLsizei texture_image_size = levelIter->m_imageSize;' % indentation
+        print '%s    GLint texture_width = levelIter->m_width;' % indentation
+        print '%s    GLint texture_height = levelIter->m_height;' % indentation
+        print '%s    GLint texture_depth = levelIter->m_depth;' % indentation
+        print '%s    GLenum texture_target = levelIter->m_target;' % indentation
         print '%s    texture_data = malloc(texture_image_size);' % indentation
         print '%s    if ( target == GL_TEXTURE_CUBE_MAP ) {' % indentation
-        for face in ('GL_TEXTURE_CUBE_MAP_POSITIVE_X', 'GL_TEXTURE_CUBE_MAP_NEGATIVE_X',
-                     'GL_TEXTURE_CUBE_MAP_POSITIVE_Y', 'GL_TEXTURE_CUBE_MAP_NEGATIVE_Y',
-                     'GL_TEXTURE_CUBE_MAP_POSITIVE_Z', 'GL_TEXTURE_CUBE_MAP_NEGATIVE_Z' ):
-            print '%s        { // %s' % (indentation, face)
-            glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
-            glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_COMPRESSED")
-            glGetTexLevelParameter(face, "texLevel", "GL_TEXTURE_BORDER")
-            print '%s        if ( texture_compressed ) {' % indentation
-            print '%s            _glGetCompressedTexImage(%s, texLevel, texture_data);' % (indentation, face)
-            print '%s        } else {' % indentation
-            print '%s            _glGetTexImage(%s, texLevel, texture_format, texture_type, texture_data);' % (indentation, face)
-            print '%s        }' % indentation
-            print
-            print '%s        if ( texture_compressed ) {' % indentation
-            print '%s            _trace_glCompressedTexImage2D(%s, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_image_size, texture_data, false);' % (indentation, face)
-            print '%s        } else {' % indentation
-            print '%s            _trace_glTexImage2D(%s, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_format, texture_type, texture_data, false);' % (indentation, face)
-            print '%s        }' % indentation
-            print '%s        } // end %s' % (indentation, face)
+        glGetTexLevelParameter("texture_target", "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
+        glGetTexLevelParameter("texture_target", "texLevel", "GL_TEXTURE_COMPRESSED")
+        glGetTexLevelParameter("texture_target", "texLevel", "GL_TEXTURE_BORDER")
+        print '%s        if ( texture_compressed ) {' % indentation
+        print '%s            _glGetCompressedTexImage(texture_target, texLevel, texture_data);' % (indentation,)
+        print '%s        } else {' % indentation
+        print '%s            _glGetTexImage(texture_target, texLevel, texture_format, texture_type, texture_data);' % (indentation,)
+        print '%s        }' % indentation
+        print
+        print '%s        if ( texture_compressed ) {' % indentation
+        print '%s            _trace_glCompressedTexImage2D(texture_target, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_image_size, texture_data, false);' % (indentation,)
+        print '%s        } else {' % indentation
+        print '%s            _trace_glTexImage2D(texture_target, texLevel, texture_internal_format, texture_width, texture_height, texture_border, texture_format, texture_type, texture_data, false);' % (indentation,)
+        print '%s        }' % indentation
         print '%s    } else {' % indentation
         glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_INTERNAL_FORMAT")
         glGetTexLevelParameter("target", "texLevel", "GL_TEXTURE_COMPRESSED")
@@ -1798,7 +1763,7 @@ class StateSnapshot:
         glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL")
         print '                GLenum texTarget = GL_NONE;'
         print '                gltrace::Context *ctx = gltrace::getContext();'
-        print '                texTarget = ctx->textures[framebuffer_attachment_object_name].target;'
+        print '                texTarget = ctx->textures[framebuffer_attachment_object_name].m_target;'
         print '                if (texTarget == GL_TEXTURE_1D) {'
         print '                    _trace_glFramebufferTexture1D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
         print '                } else if (texTarget == GL_TEXTURE_2D) {'
