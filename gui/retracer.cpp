@@ -281,6 +281,8 @@ void Retracer::run()
         return;
     }
 
+    arguments << QLatin1String("--singlethread");
+
     if (m_captureState) {
         arguments << QLatin1String("-D");
         arguments << QString::number(m_captureCall);
