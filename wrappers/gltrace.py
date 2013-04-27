@@ -1098,6 +1098,7 @@ class GlTracer(Tracer):
         if function.name in ('glCompressedTextureImage3DEXT',):
             print '        ctx->textures[texture].compressedTexImage(texture, GL_TEXTURE_3D, level, internalformat, width, height, depth, imageSize);'
 
+    # functions only implemented in tools, and not drivers
     marker_functions = [
         # GL_GREMEDY_string_marker
         'glStringMarkerGREMEDY',
@@ -1108,6 +1109,32 @@ class GlTracer(Tracer):
         'glPushGroupMarkerEXT',
         'glPopGroupMarkerEXT',
     ]
+
+    # driver may implement these functions, but they are useful for tools
+    debug_functions = [
+        # GL_KHR_debug
+        'glDebugMessageControl',
+        'glDebugMessageInsert',
+        'glDebugMessageCallback',
+        'glGetDebugMessageLog',
+        'glPushDebugGroup',
+        'glPopDebugGroup',
+        'glObjectLabel',
+        'glGetObjectLabel',
+        'glObjectPtrLabel',
+        'glGetObjectPtrLabel'
+        # GL_ARB_debug_output
+        'glDebugMessageControlARB',
+        'glDebugMessageInsertARB',
+        'glDebugMessageCallbackARB',
+        'glGetDebugMessageLogARB',
+        # GL_AMD_debug_output
+        'glDebugMessageControlAMD',
+        'glDebugMessageInsertAMD',
+        'glDebugMessageCallbackAMD',
+        'glGetDebugMessageLogAMD',
+    ]
+
 
     def frameTerminationTraceFunction(self, function, indentation):
         if function.name in self.frame_terminator_functions:
@@ -1140,9 +1167,16 @@ class GlTracer(Tracer):
 
         if function.name in self.getProcAddressFunctionNames:
             else_ = ''
-            for marker_function in self.marker_functions:
-                if self.api.getFunctionByName(marker_function):
+            debug_marker_functions = self.marker_functions + self.debug_functions
+            for marker_function in debug_marker_functions:
+                markerFunc = self.api.getFunctionByName(marker_function)
+                if markerFunc:
                     print '%s%sif (strcmp("%s", (const char *)%s) == 0) {' % (indentation, else_, marker_function, function.args[0].name)
+                    if marker_function in self.debug_functions:
+                        ## handle debug functions that may or may not be implemented by the driver
+                        ptype = function_pointer_type(markerFunc)
+                        pvalue = function_pointer_value(markerFunc)
+                        print '            %s = (%s)_wglGetProcAddress("%s");' % (pvalue, ptype, markerFunc.name)
                     print '%s    _result = (%s)&%s;' % (indentation, function.type, marker_function)
                     print '%s}' % indentation
                 else_ = 'else '
