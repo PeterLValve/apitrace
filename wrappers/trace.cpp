@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #ifdef ANDROID
 #include <sys/types.h>
