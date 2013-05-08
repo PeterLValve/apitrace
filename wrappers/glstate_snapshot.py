@@ -1088,7 +1088,11 @@ class StateSnapshot:
         print '                        std::string nameString(uniformName);'
         print '                        sprintf(uniformName, "%s[%d]", nameString.substr(0, nameLen).c_str(), i);'
         print '                    }'
+        print '                    // Get the uniform location'
         print '                    GLint location = _glGetUniformLocation(programName, uniformName);'
+        print '                    // Now emit a trace call to get the uniform location, and supply the known result.'
+        print '                    // This will allow the replayer to use the correct uniform location.'
+        print '                    _trace_glGetUniformLocation(programName, uniformName, location, false);'
         print '                    if (location == -1) { continue; }'
         print '                    if (uniformType == GL_INT || uniformType == GL_BOOL) {'
         print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
