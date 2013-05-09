@@ -225,9 +225,9 @@ public:
     GLenum type;
 
     Shader()
-        : sources(NULL),
+        : count(0),
+        sources(NULL),
         lengths(NULL),
-        count(0),
         type(GL_NONE)
     {
     }

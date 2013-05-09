@@ -365,7 +365,7 @@ void MainWindow::replayTrace(bool dumpState, bool dumpThumbnails)
 void MainWindow::trimEvent()
 {
 
-    int trimIndex;
+    int trimIndex = 0;
     if (m_trimEvent->type() == ApiTraceEvent::Call) {
         ApiTraceCall *call = static_cast<ApiTraceCall*>(m_trimEvent);
         trimIndex = call->index();
