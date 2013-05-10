@@ -1160,7 +1160,7 @@ class GlTracer(Tracer):
                         ## handle debug functions that may or may not be implemented by the driver
                         ptype = function_pointer_type(markerFunc)
                         pvalue = function_pointer_value(markerFunc)
-                        print '            %s = (%s)_%s("%s");' % (pvalue, ptype, function.name, markerFunc.name)
+                        print '            %s = (%s)_%s((%s)"%s");' % (pvalue, ptype, function.name, function.args[0].type, markerFunc.name)
                     print '%s    _result = (%s)&%s;' % (indentation, function.type, marker_function)
                     print '%s}' % indentation
                 else_ = 'else '
