@@ -169,6 +169,16 @@ if __name__ == '__main__':
     print '#include "dlopen.hpp"'
     print '#include "glproc.hpp"'
     print '#include "glsize.hpp"'
+    print '#include "trace.hpp"'
+    print '#include "gltrace_state_snapshot.hpp"'
+    print
+    print 'namespace trace'
+    print '{'
+    print 'void snapshotState(void)'
+    print '{'
+    print '    gltrace::snapshotState();'
+    print '}'
+    print '}'
     print
 
     module = Module()
@@ -177,8 +187,6 @@ if __name__ == '__main__':
     api = API()
     api.addModule(module)
     tracer = GlxTracer()
-    tracer.generateTraceCallDecls(api)
-    tracer.generateTraceCalls(api)
     tracer.generateEntrypoints(api)
 
     print r'''

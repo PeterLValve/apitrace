@@ -245,8 +245,8 @@ public:
         count = n;
 
         if (count > 0) {
-            sources = new (std::nothrow) GLchar*[count];
-            lengths = new (std::nothrow) GLsizei[count];
+            sources = (GLchar**)malloc(sizeof(GLchar*) * count);
+            lengths = (GLsizei*)malloc(sizeof(GLsizei) * count);
 
             if (sources != NULL && lengths != NULL) {
                 for (GLsizei i = 0; i < n; ++i) {
@@ -257,7 +257,7 @@ public:
                         length = (GLsizei)strlen(shaderSources[i]) + 1;
                     }
 
-                    sources[i] = new (std::nothrow) GLchar[length];
+                    sources[i] = (GLchar*)malloc(sizeof(GLchar) * length);
                     if (sources[i] != NULL)
                     {
                         memcpy(sources[i], shaderSources[i], length*sizeof(GLchar));
@@ -280,17 +280,17 @@ private:
         if (sources != NULL)
         {
             for (GLsizei i = 0; i < count; ++i) {
-                delete [] sources[i];
+                free(sources[i]);
                 sources[i] = NULL;
             }
 
-            delete [] sources;
+            free(sources);
             sources = NULL;
         }
 
         if (lengths != NULL)
         {
-            delete [] lengths;
+            free(lengths);
             lengths = NULL;
         }
 
@@ -331,6 +331,10 @@ public:
     bool user_arrays_nv;
     unsigned retain_count;
     uintptr_t hdc;
+    uintptr_t dpy;
+#ifdef __linux
+    GLXDrawable m_drawable;
+#endif
 
     // Whether it has been bound before
     bool bound;
@@ -355,7 +359,7 @@ public:
         user_arrays_arb(false),
         user_arrays_nv(false),
         retain_count(0),
-        hdc(NULL),
+        hdc((uintptr_t)NULL),        dpy((uintptr_t)NULL),
         bound(false)
     { }
 
@@ -388,6 +392,11 @@ retainContext(uintptr_t context_id);
 
 bool
 releaseContext(uintptr_t context_id);
+
+#ifdef LINUX
+void
+setContext(uintptr_t dpy, GLXDrawable drawable);
+#endif
 
 void
 setContext(uintptr_t context_id);
