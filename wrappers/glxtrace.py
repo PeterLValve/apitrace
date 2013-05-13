@@ -62,25 +62,6 @@ class GlxTracer(GlTracer):
         'glXMakeCurrentReadSGI',
     ]
 
-    def traceFunctionImplBody(self, function):
-        if function.name in self.destroyContextFunctionNames:
-            print '    gltrace::releaseContext((uintptr_t)ctx);'
-
-        GlTracer.traceFunctionImplBody(self, function)
-
-        if function.name in self.createContextFunctionNames:
-            print '    if (_result != NULL)'
-            print '        gltrace::createContext((uintptr_t)_result);'
-
-        if function.name in self.makeCurrentFunctionNames:
-            print '    if (_result) {'
-            print '        if (ctx != NULL)'
-            print '            gltrace::setContext((uintptr_t)ctx);'
-            print '        else'
-            print '            gltrace::clearContext();'
-            print '    }'
-
-
 if __name__ == '__main__':
     print
     print '#include <stdlib.h>'
@@ -99,6 +80,16 @@ if __name__ == '__main__':
     print
     print '#include "glproc.hpp"'
     print '#include "glsize.hpp"'
+    print '#include "trace.hpp"'
+    print '#include "gltrace_state_snapshot.hpp"'
+    print
+    print 'namespace trace'
+    print '{'
+    print 'void snapshotState(void)'
+    print '{'
+    print '    gltrace::snapshotState();'
+    print '}'
+    print '}'
     print
 
     module = Module()
@@ -107,8 +98,6 @@ if __name__ == '__main__':
     api = API()
     api.addModule(module)
     tracer = GlxTracer()
-    tracer.generateTraceCallDecls(api)
-    tracer.generateTraceCalls(api)
     tracer.generateEntrypoints(api)
 
     print r'''

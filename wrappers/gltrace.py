@@ -467,6 +467,8 @@ class GlTracer(Tracer):
 
     frame_terminator_functions = set((
         "wglSwapBuffers",
+        "glXSwapBuffers",
+        "eglSwapBuffers"
     ))
 
     ## these are always traced
@@ -557,6 +559,26 @@ class GlTracer(Tracer):
         'wglSwapIntervalEXT',
         'wglAllocateMemoryNV',
         'wglFreeMemoryNV',
+        'glXCreateContext',
+        'glXCreateContextAttribsARB',
+        'glXCreateContextWithConfigSGIX',
+        'glXCreateNewContext',
+        'glXMakeCurrent',
+        'glXMakeContextCurrent',
+        'glXMakeCurrentReadSGI',
+        'glXDestroyContext',
+        'glXCopyContext',
+        'glXChooseVisual',
+        'glXCreateWindow',
+        'glXCreatePixmap',
+        'glXDestroyPixmap',
+        'glXCreaetPbuffer',
+        'glXDestroyPbuffer',
+        'glXSelectEvent',
+        'glXSwapIntervalSGI',
+        'glXSwapIntervalEXT',
+        'glXAllocateMemoryNV',
+        'glXFreeMemoryNV',
 
         ## texture state
         'glTexImage1D',
@@ -876,22 +898,22 @@ class GlTracer(Tracer):
             print '        ctx->programs[%s].linked = true;' % function.args[0].name
             print '        GLint numAttachedShaders = 0;'
             print '        _glGetProgramiv(%s, GL_ATTACHED_SHADERS, &numAttachedShaders);' % function.args[0].name
-            print '        GLuint* shaders = new GLuint[numAttachedShaders];'
+            print '        GLuint* shaders = (GLuint*)malloc(sizeof(GLuint) * numAttachedShaders);'
             print '        _glGetAttachedShaders(%s, numAttachedShaders, NULL, shaders);' % function.args[0].name
             print '        for (GLint shaderIndex = 0; shaderIndex < numAttachedShaders; ++shaderIndex) {'
             print '            GLint shaderType = GL_NONE;'
             print '            _glGetShaderiv(shaders[shaderIndex], GL_SHADER_TYPE, &shaderType);'
             print '            GLint shaderLength = 0;'
             print '            _glGetShaderiv(shaders[shaderIndex], GL_SHADER_SOURCE_LENGTH, &shaderLength);'
-            print '            GLchar* shaderSource = new (std::nothrow) GLchar[shaderLength];'
+            print '            GLchar* shaderSource = (GLchar*)malloc(sizeof(GLchar) * shaderLength);'
             print '            if (shaderSource != NULL) {'
             print '                _glGetShaderSource(shaders[shaderIndex], shaderLength, NULL, shaderSource);'
             print '                ctx->programs[%s].AddShader(shaders[shaderIndex], shaderType, shaderSource, shaderLength);' % function.args[0].name
-            print '                delete [] shaderSource;'
+            print '                free(shaderSource);'
             print '                shaderSource = NULL;'
             print '            }'
             print '        }'
-            print '        delete [] shaders;'
+            print '        free(shaders);'
             print'         shaders = NULL;'
             print '    }'
 
