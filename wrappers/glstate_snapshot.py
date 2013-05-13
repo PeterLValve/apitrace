@@ -1263,6 +1263,9 @@ class StateSnapshot:
         print '#ifdef WIN32'
         print '#include "wgltrace_tracefuncs.h"'
         print '#endif'
+        print '#ifdef __linux'
+        print '#include "glxtrace_tracefuncs.h"'
+        print '#endif'
         print
         print 'namespace glstate {'
         print
@@ -1677,21 +1680,21 @@ class StateSnapshot:
         print '        // capture all current bindings'
         print '        GLint max_combined_texture_image_units = 0;'
         print '        _glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_combined_texture_image_units);'
-        print '        GLint* pBindings1D = new GLint[max_combined_texture_image_units];'
-        print '        GLint* pBindings2D = new GLint[max_combined_texture_image_units];'
-        print '        GLint* pBindings3D = new GLint[max_combined_texture_image_units];'
-        print '        GLint* pBindingsRect = new GLint[max_combined_texture_image_units];'
-        print '        GLint* pBindingsCubeMap = new GLint[max_combined_texture_image_units];'
+        print '        GLint* pBindings1D = (GLint*)malloc(sizeof(GLint) * max_combined_texture_image_units);'
+        print '        GLint* pBindings2D = (GLint*)malloc(sizeof(GLint) * max_combined_texture_image_units);'
+        print '        GLint* pBindings3D = (GLint*)malloc(sizeof(GLint) * max_combined_texture_image_units);'
+        print '        GLint* pBindingsRect = (GLint*)malloc(sizeof(GLint) * max_combined_texture_image_units);'
+        print '        GLint* pBindingsCubeMap = (GLint*)malloc(sizeof(GLint) * max_combined_texture_image_units);'
         print '        memset(pBindings1D, 0, sizeof(pBindings1D));'
         print '        memset(pBindings2D, 0, sizeof(pBindings2D));'
         print '        memset(pBindings3D, 0, sizeof(pBindings3D));'
         print '        memset(pBindingsRect, 0, sizeof(pBindingsRect));'
         print '        memset(pBindingsCubeMap, 0, sizeof(pBindingsCubeMap));'
-        print '        GLboolean* pEnabled1D = new GLboolean[max_combined_texture_image_units];'
-        print '        GLboolean* pEnabled2D = new GLboolean[max_combined_texture_image_units];'
-        print '        GLboolean* pEnabled3D = new GLboolean[max_combined_texture_image_units];'
-        print '        GLboolean* pEnabledRect = new GLboolean[max_combined_texture_image_units];'
-        print '        GLboolean* pEnabledCubeMap = new GLboolean[max_combined_texture_image_units];'
+        print '        GLboolean* pEnabled1D = (GLboolean*)malloc(sizeof(GLboolean) * max_combined_texture_image_units);'
+        print '        GLboolean* pEnabled2D = (GLboolean*)malloc(sizeof(GLboolean) * max_combined_texture_image_units);'
+        print '        GLboolean* pEnabled3D = (GLboolean*)malloc(sizeof(GLboolean) * max_combined_texture_image_units);'
+        print '        GLboolean* pEnabledRect = (GLboolean*)malloc(sizeof(GLboolean) * max_combined_texture_image_units);'
+        print '        GLboolean* pEnabledCubeMap = (GLboolean*)malloc(sizeof(GLboolean) * max_combined_texture_image_units);'
         print '        memset(pEnabled1D, GL_FALSE, sizeof(pEnabled1D));'
         print '        memset(pEnabled2D, GL_FALSE, sizeof(pEnabled2D));'
         print '        memset(pEnabled3D, GL_FALSE, sizeof(pEnabled3D));'
@@ -1700,7 +1703,6 @@ class StateSnapshot:
         print
         print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
         print '            _glActiveTexture(GL_TEXTURE0 + unit);'
-        print '            GLenum target;'
         print
         for target, binding in texture_targets:
             bindingArray = 'NONE';
@@ -1720,7 +1722,6 @@ class StateSnapshot:
             elif target == 'GL_TEXTURE_CUBE_MAP':
                 bindingArray = 'pBindingsCubeMap'
                 enabledArray = 'pEnabledCubeMap'
-            print '            target = %s;' % target
             print '            _glGetBooleanv(%s, &(%s[unit]));' % (target, enabledArray)
             print '            _glGetIntegerv(%s, &(%s[unit]));' % (binding, bindingArray)
             print
@@ -1795,17 +1796,17 @@ class StateSnapshot:
         print '        // switch back to the previously active texture unit'
         print '        _trace_glActiveTexture(active_texture, true);'
 
-        print '        delete [] pBindings1D; pBindings1D = NULL;'
-        print '        delete [] pBindings2D; pBindings2D = NULL;'
-        print '        delete [] pBindings3D; pBindings3D = NULL;'
-        print '        delete [] pBindingsRect; pBindingsRect = NULL;'
-        print '        delete [] pBindingsCubeMap; pBindingsCubeMap = NULL;'
+        print '        free(pBindings1D); pBindings1D = NULL;'
+        print '        free(pBindings2D); pBindings2D = NULL;'
+        print '        free(pBindings3D); pBindings3D = NULL;'
+        print '        free(pBindingsRect); pBindingsRect = NULL;'
+        print '        free(pBindingsCubeMap); pBindingsCubeMap = NULL;'
         print
-        print '        delete [] pEnabled1D; pEnabled1D = NULL;'
-        print '        delete [] pEnabled2D; pEnabled1D = NULL;'
-        print '        delete [] pEnabled3D; pEnabled1D = NULL;'
-        print '        delete [] pEnabledRect; pEnabledRect = NULL;'
-        print '        delete [] pEnabledCubeMap; pEnabled1D = NULL;'
+        print '        free(pEnabled1D); pEnabled1D = NULL;'
+        print '        free(pEnabled2D); pEnabled1D = NULL;'
+        print '        free(pEnabled3D); pEnabled1D = NULL;'
+        print '        free(pEnabledRect); pEnabledRect = NULL;'
+        print '        free(pEnabledCubeMap); pEnabled1D = NULL;'
         print
         print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating textures", false);'
         print '    }'

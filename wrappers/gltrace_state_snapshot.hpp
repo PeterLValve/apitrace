@@ -25,8 +25,14 @@
  *
  *********************************************************************/
 #include <gltrace.hpp>
-#include "wgltrace_tracefuncs.h"
 #include "../../retrace/glstate.hpp"
+
+#ifdef WIN32
+#include "wgltrace_tracefuncs.h"
+#endif
+#ifdef __linux
+#include "glxtrace_tracefuncs.h"
+#endif
 
 namespace gltrace {
 
@@ -37,8 +43,14 @@ void snapshotState()
     glstate::snapshotParameters();
 
     _trace_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, false);
+#ifdef WIN32
     BOOL bResult = TRUE;
     bResult = _trace_wglSwapBuffers((HDC)pCurrentContext->hdc, bResult, false);
+#endif
+
+#ifdef __linux
+    _trace_glXSwapBuffers((Display*)pCurrentContext->dpy, pCurrentContext->m_drawable, false);
+#endif
 }
 
 }

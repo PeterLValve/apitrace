@@ -471,6 +471,8 @@ class GlTracer(Tracer):
 
     frame_terminator_functions = set((
         "wglSwapBuffers",
+        "glXSwapBuffers",
+        "eglSwapBuffers"
     ))
 
     ## these are always traced
@@ -561,6 +563,26 @@ class GlTracer(Tracer):
         'wglSwapIntervalEXT',
         'wglAllocateMemoryNV',
         'wglFreeMemoryNV',
+        'glXCreateContext',
+        'glXCreateContextAttribsARB',
+        'glXCreateContextWithConfigSGIX',
+        'glXCreateNewContext',
+        'glXMakeCurrent',
+        'glXMakeContextCurrent',
+        'glXMakeCurrentReadSGI',
+        'glXDestroyContext',
+        'glXCopyContext',
+        'glXChooseVisual',
+        'glXCreateWindow',
+        'glXCreatePixmap',
+        'glXDestroyPixmap',
+        'glXCreaetPbuffer',
+        'glXDestroyPbuffer',
+        'glXSelectEvent',
+        'glXSwapIntervalSGI',
+        'glXSwapIntervalEXT',
+        'glXAllocateMemoryNV',
+        'glXFreeMemoryNV',
 
 
         ## texture state
@@ -902,34 +924,6 @@ class GlTracer(Tracer):
                 print '        } else {'
                 print '            ctx->programsARB[%s].m_linkedWithARB = true;' % function.args[0].name
                 print '        }'
-            print '    }'
-        elif function.name in ('glGenerateMipmap'):
-            print '    // glGenerateMipmap calls are special cased'
-            print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
-            print '    // The actual call will be added to the trace at a later time.'
-            print '    unsigned _tmpCall = 0;'
-            print '    if (trace::isTracingStateSetupFunctions()) {'
-            print '        gltrace::Context *ctx = gltrace::getContext();'
-            print '        GLint boundTexture = 0;'
-            print '        if (target == GL_TEXTURE_1D) _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
-            print '        else if (target == GL_TEXTURE_1D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_1D_ARRAY, &boundTexture);'
-            print '        else if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
-            print '        else if (target == GL_TEXTURE_2D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &boundTexture);'
-            print '        else if (target == GL_TEXTURE_3D) _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
-            print '        else if (target == GL_TEXTURE_CUBE_MAP) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
-            
-            print '        _glGetIntegerv(target, &boundTexture);'
-            print '        if (boundTexture > 0) {'
-            print '            ctx->textures[boundTexture].m_generateMipmap = true;'
-            print '        }'
-            print '    } else {'
-            Tracer.generateTraceFunctionImplBodyArgs(self, function)
-            print '    _tmpCall = _call;'
-            print '    }'
-            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
-            print '    if (trace::isTracingStateSetupFunctions() == false) {'
-            print '    unsigned _call = _tmpCall;'
-            Tracer.generateTraceFunctionImplBodyReturn(self, function)
             print '    }'
         elif function.name in ('glGenerateMipmap'):
             print '    // glGenerateMipmap calls are special cased'
