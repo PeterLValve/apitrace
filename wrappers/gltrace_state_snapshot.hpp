@@ -33,23 +33,31 @@
 #include "../build32/wrappers/glxtrace_tracefuncs.h"
 #include "../../retrace/glstate.hpp"
 #endif
+#ifdef __APPLE__
+#include "build/wrappers/cgltrace_tracefuncs.h"
+#include "../../retrace/glstate.hpp"
+#endif
 
 namespace gltrace {
 
 void snapshotState()
 {
-    gltrace::Context* pCurrentContext = gltrace::getContext();
-
     glstate::snapshotParameters();
 
     _trace_glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, false);
 #ifdef WIN32
+    gltrace::Context* pCurrentContext = gltrace::getContext();
     BOOL bResult = TRUE;
     bResult = _trace_wglSwapBuffers((HDC)pCurrentContext->hdc, bResult, false);
 #endif
 
 #ifdef __linux
+    gltrace::Context* pCurrentContext = gltrace::getContext();
     _trace_glXSwapBuffers((Display*)pCurrentContext->dpy, pCurrentContext->m_drawable, false);
+#endif
+
+#ifdef __APPLE__
+    _trace_glSwapAPPLE(false);
 #endif
 }
 

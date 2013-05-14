@@ -409,11 +409,61 @@ elseif (APPLE)
             ${CMAKE_SOURCE_DIR}/specs/gltypes.py
             ${CMAKE_SOURCE_DIR}/specs/stdapi.py
     )
+    add_custom_command (
+        OUTPUT cgltrace_tracefuncs.cpp
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cgltrace_tracefuncs.py > ${CMAKE_CURRENT_BINARY_DIR}/cgltrace_tracefuncs.cpp
+        DEPENDS
+                cgltrace_tracefuncs.py
+                gltrace.py
+                trace.py
+                ${CMAKE_SOURCE_DIR}/dispatch/dispatch.py
+                ${CMAKE_SOURCE_DIR}/specs/cglapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
+    add_custom_command (
+        OUTPUT cgltrace_tracefuncs.h
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cgltrace_tracefuncsDecl.py > ${CMAKE_CURRENT_BINARY_DIR}/cgltrace_tracefuncs.h
+        DEPENDS
+                cgltrace_tracefuncsDecl.py
+                gltrace.py
+                trace.py
+                ${CMAKE_SOURCE_DIR}/dispatch/dispatch.py
+                ${CMAKE_SOURCE_DIR}/specs/cglapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
+    add_custom_command (
+        OUTPUT glstate_snapshot.cpp
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/glstate_snapshot.py > ${CMAKE_CURRENT_BINARY_DIR}/glstate_snapshot.cpp
+        DEPENDS
+                glstate_snapshot.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
 
     add_library (cgltrace SHARED
         cgltrace.cpp
+        cgltrace_tracefuncs.cpp
+        cgltrace_tracefuncs.h
         glcaps.cpp
         gltrace_state.cpp
+        glstate_snapshot.cpp
+        gltrace.hpp
+        trace.cpp
+        trace.hpp
+        gltrace_state_snapshot.hpp
+        cgltrace.py
+        cgltrace_tracefuncs.py
+        cgltrace_tracefuncsDecl.py
+        gltrace.py
+        glstate_snapshot.py
+        trace.py
     )
 
     add_dependencies (cgltrace glproc)
