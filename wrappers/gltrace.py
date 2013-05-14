@@ -314,31 +314,30 @@ class GlTracer(Tracer):
         print '}'
         print
 
-    getProcAddressFunctionNames = ["glXGetProcAddress", "glXGetProcAddressARB", "wglGetProcAddress"]
-
     def generateEntrypoints(self, api):
         Tracer.generateEntrypoints(self, api)
 
         if self.getProcAddressFunctionNames:
             # Generate a function to wrap proc addresses
-            getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
-            argType = getProcAddressFunction.args[0].type
-            retType = getProcAddressFunction.type
-            print '%s _wrapProcAddress(%s procName, %s procPtr) {' % (retType, argType, retType)
-            print '    if (!procPtr) {'
-            print '        return procPtr;'
-            print '    }'
-            for function in api.getAllFunctions():
-                ptype = function_pointer_type(function)
-                pvalue = function_pointer_value(function)
-                print '    if (strcmp("%s", (const char *)procName) == 0) {' % function.name
-                print '        %s = (%s)procPtr;' % (pvalue, ptype)
-                print '        return (%s)&%s;' % (retType, function.name,)
+            if (len(self.getProcAddressFunctionNames) > 0):
+                getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
+                argType = getProcAddressFunction.args[0].type
+                retType = getProcAddressFunction.type
+                print '%s _wrapProcAddress(%s procName, %s procPtr) {' % (retType, argType, retType)
+                print '    if (!procPtr) {'
+                print '        return procPtr;'
                 print '    }'
-            print '    os::log("apitrace: warning: unknown function \\"%s\\"\\n", (const char *)procName);'
-            print '    return procPtr;'
-            print '}'
-            print
+                for function in api.getAllFunctions():
+                    ptype = function_pointer_type(function)
+                    pvalue = function_pointer_value(function)
+                    print '    if (strcmp("%s", (const char *)procName) == 0) {' % function.name
+                    print '        %s = (%s)procPtr;' % (pvalue, ptype)
+                    print '        return (%s)&%s;' % (retType, function.name,)
+                    print '    }'
+                print '    os::log("apitrace: warning: unknown function \\"%s\\"\\n", (const char *)procName);'
+                print '    return procPtr;'
+                print '}'
+                print
 
     def defineShadowBufferHelper(self):
         print 'void _shadow_glGetBufferSubData(GLenum target, GLintptr offset,'
@@ -576,13 +575,35 @@ class GlTracer(Tracer):
         'glXCreateWindow',
         'glXCreatePixmap',
         'glXDestroyPixmap',
-        'glXCreaetPbuffer',
+        'glXCreatePbuffer',
         'glXDestroyPbuffer',
         'glXSelectEvent',
         'glXSwapIntervalSGI',
         'glXSwapIntervalEXT',
         'glXAllocateMemoryNV',
         'glXFreeMemoryNV',
+        'CGLSetCurrentContext',
+        'CGLChoosePixelFormat',
+        'CGLDestroyPixelFormat',
+        'CGLReleasePixelFormat',
+        'CGLRetainPixelFormat',
+        'CGLCreateContext',
+        'CGLDestroyContext',
+        'CGLCopyContext',
+        'CGLCreatePBuffer',
+        'CGLDestroyPBuffer',
+        'CGLSetPBuffer',
+        'CGLClearDrawable',
+        'CGLSetPBuffer',
+        'CGLEnable',
+        'CGLDisable',
+        'CGLSetParameter',
+        'CGLSetVirtualScreen'
+        'CGLSetGlobalOption',
+        'CGLSetOption',
+        'CGLLockContext',
+        'CGLUnlockContext',
+        
 
         ## texture state
         'glTexImage1D',
@@ -628,11 +649,12 @@ class GlTracer(Tracer):
         print 'bool can_unpack_subimage(void);'
 
         # declare a function to wrap proc addresses
-        getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
-        argType = getProcAddressFunction.args[0].type
-        retType = getProcAddressFunction.type
-        print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
-        print
+        if (len(self.getProcAddressFunctionNames) > 0):
+            getProcAddressFunction = api.getFunctionByName(self.getProcAddressFunctionNames[0])
+            argType = getProcAddressFunction.args[0].type
+            retType = getProcAddressFunction.type
+            print 'extern %s _wrapProcAddress(%s procName, %s procPtr);' % (retType, argType, retType)
+            print
 
         for function in api.getAllFunctions():
             self.traceFunctionDecl(function)
