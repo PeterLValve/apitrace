@@ -1392,8 +1392,8 @@ class StateSnapshot:
         print '    { // VERTEX ARRAYS'
         print '        GLint vertex_array_binding = 0;'
         print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
-        print '        GLint array_buffer = 0;'
-        print '        _glGetIntegerv(GL_ARRAY_BUFFER, &array_buffer);'
+        print '        GLint array_buffer_binding = 0;'
+        print '        _glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &array_buffer_binding);'
         print '        GLint max_vertex_attribs = 0;'
         print '        _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
@@ -1435,7 +1435,7 @@ class StateSnapshot:
         print '                }'
         print '            }'
         print '        }'
-        print '        _trace_glBindBuffer(GL_ARRAY_BUFFER, array_buffer, true);'
+        print '        _trace_glBindBuffer(GL_ARRAY_BUFFER, array_buffer_binding, true);'
         print '        _trace_glBindVertexArray(vertex_array_binding, true);'
         print '    } // end VERTEX ARRAYS'
         print
@@ -1548,7 +1548,6 @@ class StateSnapshot:
         print
         print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
         print '            _glActiveTexture(GL_TEXTURE0 + unit);'
-        print '            GLenum target;'
         print
         for target, binding in texture_targets:
             bindingArray = 'NONE';
@@ -1568,7 +1567,6 @@ class StateSnapshot:
             elif target == 'GL_TEXTURE_CUBE_MAP':
                 bindingArray = 'pBindingsCubeMap'
                 enabledArray = 'pEnabledCubeMap'
-            print '            target = %s;' % target
             print '            _glGetBooleanv(%s, &(%s[unit]));' % (target, enabledArray)
             print '            _glGetIntegerv(%s, &(%s[unit]));' % (binding, bindingArray)
             print
