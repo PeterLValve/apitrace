@@ -985,7 +985,6 @@ class GlTracer(Tracer):
             print '    }'
         else:
             Tracer.generateTraceFunctionImplBody(self, function)
-        self.frameTerminationTraceFunction(function, '        ')
 
         if function.name  in ('glGenTextures', 'glGenTexturesEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
@@ -1203,13 +1202,6 @@ class GlTracer(Tracer):
         'glGetDebugMessageLogAMD',
     ]
 
-
-    def frameTerminationTraceFunction(self, function, indentation):
-        if function.name in self.frame_terminator_functions:
-            indentation = indentation + '    '
-            print '    if ( makeRealCall ) {'
-            self.frameTermination(function, indentation)
-            print '    }'
 
     def frameTermination(self, function, indentation):
         if function.name in self.frame_terminator_functions:
