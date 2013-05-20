@@ -222,7 +222,7 @@ static void retrace_CGLDestroyContext(trace::Call &call) {
 
     context_map.erase(it);
 }
-
+#ifdef __APPLE__
 static void retrace_CGLSetOption(trace::Call &call) {
     unsigned long long pname = call.arg(0).toUInt();
     long long param = call.arg(1).toSInt();
@@ -252,7 +252,7 @@ static void retrace_CGLUnlockContext(trace::Call & call) {
     Context* context = getContext(ctx);
     CGLUnlockContext((CGLContextObj)context);
 }
-
+#endif // __APPLE__
 
 static void retrace_CGLSetCurrentContext(trace::Call &call) {
     unsigned long long ctx = call.arg(0).toUIntPtr();
@@ -343,10 +343,12 @@ const retrace::Entry glretrace::cgl_callbacks[] = {
     {"CGLChoosePixelFormat", &retrace_CGLChoosePixelFormat},
     {"CGLCreateContext", &retrace_CGLCreateContext},
     {"CGLDestroyContext", &retrace_CGLDestroyContext},
+#ifdef __APPLE__
     {"CGLLockContext", &retrace_CGLLockContext},
     {"CGLUnlockContext", &retrace_CGLUnlockContext},
     {"CGLSetOption", &retrace_CGLSetOption},
     {"CGLSetSurface", &retrace_CGLSetSurface},
+#endif // __APPLE__
     {"CGLDestroyPixelFormat", &retrace::ignore},
     {"CGLDisable", &retrace::ignore},
     {"CGLEnable", &retrace::ignore},
