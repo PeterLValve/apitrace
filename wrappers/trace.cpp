@@ -47,58 +47,136 @@ namespace trace {
 
 static bool s_checkedEnv = false;
 static bool s_singleFrameTraceEnabled = false;
-static unsigned long s_frameNumToTrace = 0xFFFFFFFF;
+static unsigned long s_frameNumToStartTrace = 0xFFFFFFFF;
+static unsigned long s_frameNumToStopTrace = 0xFFFFFFFF;
 static unsigned long s_currentFrameNum = 0;
 
-static bool s_checkForKeyPress = false;
+static bool s_checkForSnap = false;
+static bool s_checkForStart = false;
+static bool s_checkForStop = false;
 
 void incrementFrameNumber(void) {
     ++s_currentFrameNum;
-    if (isFrameToTrace() && s_singleFrameTraceEnabled)
+    if (isFrameToTrace() && s_singleFrameTraceEnabled && s_currentFrameNum == s_frameNumToStartTrace)
     {
         snapshotState();
+    }
+    
+    if (s_singleFrameTraceEnabled && s_currentFrameNum == s_frameNumToStopTrace)
+    {
+        os::log("apitrace: Trace completed. Captured %ld frames.\n", s_frameNumToStopTrace - s_frameNumToStartTrace);
     }
 }
 
 bool isTracingStateSetupFunctions(void)
 {
-    return s_singleFrameTraceEnabled && (s_currentFrameNum < s_frameNumToTrace);
+    return s_singleFrameTraceEnabled && (s_currentFrameNum < s_frameNumToStartTrace);
 }
 
 bool isFrameToTrace(void) {
     if ( !s_checkedEnv ) {
         s_checkedEnv = true;
-        const char* strFrame = getenv( "TRACE_FRAME" );
+        char* strFrame = getenv( "TRACE_FRAME" );
         os::unsetEnvironment("TRACE_FRAME");
         s_singleFrameTraceEnabled = ( strFrame != NULL );
         if ( s_singleFrameTraceEnabled ) {
-            if (isdigit(strFrame[0]))
+            bool parsedFrameNumbers = false;
+            if (strstr(strFrame, "-"))
             {
-                s_frameNumToTrace = strtoul( strFrame, NULL, 10 );
+                const char* strStart = strtok(strFrame, "-");
+                const char* strStop = strtok(NULL, "-");
+                if (isdigit(strStart[0]) && isdigit(strStop[0]))
+                {
+                    s_frameNumToStartTrace = strtoul( strStart, NULL, 10 );
+                    s_frameNumToStopTrace = strtoul( strStop, NULL, 10 );
+                    
+                    // flip the numbers if stop is less than start
+                    if (s_frameNumToStopTrace < s_frameNumToStartTrace)
+                    {
+                        unsigned long tmp = s_frameNumToStopTrace;
+                        s_frameNumToStopTrace = s_frameNumToStartTrace;
+                        s_frameNumToStartTrace = tmp;
+                    }
+                    parsedFrameNumbers = true;
+                    os::log("apitrace: Tracing frame %ld - %ld.\n", s_frameNumToStartTrace, s_frameNumToStopTrace);
+                }
             }
-            else
+            else if (isdigit(strFrame[0]))
             {
-                s_checkForKeyPress = true;
+                s_frameNumToStartTrace = strtoul( strFrame, NULL, 10 );
+                s_frameNumToStopTrace = s_frameNumToStartTrace + 1;
+                parsedFrameNumbers = true;
+                os::log("apitrace: Tracing frame %ld.\n", s_frameNumToStartTrace);
+            }
+
+            // if start/stop frame numbers were not parsed from the env var,
+            // then check for existance of 'snap' or 'start' files throughout the trace
+            if (parsedFrameNumbers == false)
+            {
+                s_checkForSnap = true;
+                s_checkForStart = true;
             }
         }
     }
 
-    if (s_checkForKeyPress)
+    if (s_checkForSnap)
     {
-        FILE* f = fopen("snap", "r");
-        if (f != NULL)
+        FILE* fSnap = fopen("snap", "r");
+        if (fSnap != NULL)
         {
-            fclose(f);
+            char strFrameCount[12]; // NOTE: there are only 10 characters in an unsigned long
+            memset(strFrameCount, 0, 12 *sizeof(char));
+            size_t result = fread(strFrameCount, 12*sizeof(char), 12*sizeof(char), fSnap);
+            fclose(fSnap);
             remove("snap");
-            s_frameNumToTrace = s_currentFrameNum + 1;
+            s_frameNumToStartTrace = s_currentFrameNum + 1;
+            unsigned long frameCount = 1;
+            if (result == 0)
+            {
+                frameCount = strtoul(strFrameCount, NULL, 10 );
+            }
+            s_frameNumToStopTrace = s_frameNumToStartTrace + frameCount;
+            s_checkForSnap = false;
+            s_checkForStart = false;
+            os::log("apitrace: snap detected: Tracing %ld frame(s).\n", frameCount);
         }
     }
 
+    if (s_checkForStart)
+    {
+        FILE* fStart = fopen("starttrace", "r");
+        if (fStart != NULL)
+        {
+            fclose(fStart);
+            remove("starttrace");
+            s_frameNumToStartTrace = s_currentFrameNum + 1;
+            s_checkForSnap  = false;
+            s_checkForStart = false;
+            s_checkForStop = true;
+            os::log("apitrace: start detected: beginning trace range.\n");
+        }
+    }
+
+    if (s_checkForStop)
+    {
+        FILE* fStop = fopen("stoptrace", "r");
+        if (fStop != NULL)
+        {
+            fclose(fStop);
+            remove("stoptrace");
+            s_frameNumToStopTrace = s_currentFrameNum + 1;
+            s_checkForSnap  = false;
+            s_checkForStart = false;
+            s_checkForStop = false;
+            os::log("apitrace: stop detected: ending trace range.\n");
+        }
+    }
+    
     if ( !s_singleFrameTraceEnabled )
     {
         return true;
     } else {
-        return s_currentFrameNum == s_frameNumToTrace;
+        return s_frameNumToStartTrace <= s_currentFrameNum && s_currentFrameNum < s_frameNumToStopTrace;
     }
 }
 
