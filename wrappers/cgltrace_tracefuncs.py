@@ -60,12 +60,12 @@ class cglTraceCallWriter(GlTracer):
 
         if function.name in self.createContextFunctionNames:
             print '    if ( makeRealCall ) {'
-            print '        gltrace::createContext((uintptr_t)ctx, _result);'
+            print '        gltrace::createContext((uintptr_t)*ctx, (uintptr_t)*ctx);'
             print '    }'
 
         if function.name in self.makeCurrentFunctionNames:
             print '    if ( makeRealCall ) {'
-            print '        if (_result) {'
+            print '        if (_result == kCGLNoError) {'
             print '            if (ctx != NULL)'
             print '                gltrace::setContext((uintptr_t)ctx);'
             print '            else'

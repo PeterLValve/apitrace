@@ -107,6 +107,7 @@ public:
     GLint m_internalFormat;
     GLenum m_format;
     GLenum m_type;
+    bool m_generateMipmap;
 
     // list of mipmap levels that had contents uploaded
     std::list<TextureLevel> m_levels;
@@ -115,7 +116,8 @@ public:
        m_name(GL_NONE),
        m_target(GL_NONE),
        m_format(GL_NONE),
-       m_type(GL_NONE)
+       m_type(GL_NONE),
+       m_generateMipmap(false)
     {}
 
     ~Texture() {

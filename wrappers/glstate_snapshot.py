@@ -1064,6 +1064,7 @@ class StateSnapshot:
         pass
 
     def generateUniformCalls(self, funcPrefix, firstParam):
+        print '            { // UNIFORMS'
         print '            GLchar uniformName[1024];'
         print '            memset(uniformName, 0, 1024);'
         print '            GLenum uniformType = GL_NONE;'
@@ -1071,11 +1072,11 @@ class StateSnapshot:
         print '            GLfloat fParams[16];'
         print '            GLint iParams[16];'
         print '            GLdouble dParams[16];'
-        print '            GLuint uParams[16];'
+        print '            GLuint uiParams[16];'
         print '            memset(fParams, 0, 16*sizeof(GLfloat));'
         print '            memset(iParams, 0, 16*sizeof(GLint));'
         print '            memset(dParams, 0, 16*sizeof(GLdouble));'
-        print '            memset(uParams, 0, 16*sizeof(GLuint));'
+        print '            memset(uiParams, 0, 16*sizeof(GLuint));'
         print '            GLint active_uniforms = 0;'
         print '            _glGetProgramiv(programName, GL_ACTIVE_UNIFORMS, &active_uniforms);'
         print '            for (GLint index = 0; index < active_uniforms; ++index) {'
@@ -1094,75 +1095,51 @@ class StateSnapshot:
         print '                    // This will allow the replayer to use the correct uniform location.'
         print '                    _trace_glGetUniformLocation(programName, uniformName, location, false);'
         print '                    if (location == -1) { continue; }'
-        print '                    if (uniformType == GL_INT || uniformType == GL_BOOL) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_INT_VEC2 || uniformType == GL_BOOL_VEC2) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform2iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_INT_VEC3 || uniformType == GL_BOOL_VEC3) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform3iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_INT_VEC4 || uniformType == GL_BOOL_VEC4) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform4iv(%slocation, 1, iParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_UNSIGNED_INT) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC2) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform2uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC3) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform3uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_UNSIGNED_INT_VEC4) {'
-        print '                        _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform4uiv(%slocation, 1, uParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform1fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_VEC2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform2fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_VEC3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform3fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_VEC4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniform4fv(%slocation, 1, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform1dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_VEC2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform2dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_VEC3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform3dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_VEC4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniform4dv(%slocation, 1, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix2fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix3fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix4fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT2x3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix2x3fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT2x4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix2x4fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT3x2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix3x2fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT3x4) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix3x4fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT4x2) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix4x2fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_FLOAT_MAT4x3) {'
-        print '                        _glGetUniformfv(programName, location, fParams); _trace_gl%sUniformMatrix4x3fv(%slocation, 1, GL_FALSE, fParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix2dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix3dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix4dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT2x3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix2x3dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT2x4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix2x4dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT3x2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix3x2dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT3x4) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix3x4dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT4x2) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix4x2dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else if (uniformType == GL_DOUBLE_MAT4x3) {'
-        print '                        _glGetUniformdv(programName, location, dParams); _trace_gl%sUniformMatrix4x3dv(%slocation, 1, GL_FALSE, dParams, false);' % (funcPrefix, firstParam)
-        print '                    } else {'
+        for datatype, count, type in (('GL_INT',      '1', 'i'), ('GL_BOOL',      '1', 'i'),
+                                      ('GL_INT_VEC2', '2', 'i'), ('GL_BOOL_VEC2', '2', 'i'),
+                                      ('GL_INT_VEC3', '3', 'i'), ('GL_BOOL_VEC3', '3', 'i'),
+                                      ('GL_INT_VEC4', '4', 'i'), ('GL_BOOL_VEC4', '4', 'i'),
+                                      ('GL_UNSIGNED_INT',      '1', 'ui'),
+                                      ('GL_UNSIGNED_INT_VEC2', '2', 'ui'),
+                                      ('GL_UNSIGNED_INT_VEC3', '3', 'ui'),
+                                      ('GL_UNSIGNED_INT_VEC4', '4', 'ui'),
+                                      ('GL_FLOAT',      '1', 'f'),
+                                      ('GL_FLOAT_VEC2', '2', 'f'),
+                                      ('GL_FLOAT_VEC3', '3', 'f'),
+                                      ('GL_FLOAT_VEC4', '4', 'f'),
+                                      ('GL_DOUBLE',      '1', 'd'),
+                                      ('GL_DOUBLE_VEC2', '2', 'd'),
+                                      ('GL_DOUBLE_VEC3', '3', 'd'),
+                                      ('GL_DOUBLE_VEC4', '4', 'd'),
+                                     ):
+            print '                    if (uniformType == %s) {' % datatype
+            print '                        _glGetUniform%sv(programName, location, %sParams);' % (type, type)
+            print '                        _trace_gl%sUniform%s%sv(%slocation, 1, %sParams, false);' % (funcPrefix, count, type, firstParam, type)
+            print '                    } else'
+        for datatype, count, type in (('GL_FLOAT_MAT2', '2', 'f'),
+                                      ('GL_FLOAT_MAT3', '3', 'f'),
+                                      ('GL_FLOAT_MAT4', '4', 'f'),
+                                      ('GL_FLOAT_MAT2x3', '2x3', 'f'),
+                                      ('GL_FLOAT_MAT2x4', '2x4', 'f'),
+                                      ('GL_FLOAT_MAT3x2', '3x2', 'f'),
+                                      ('GL_FLOAT_MAT3x4', '3x4', 'f'),
+                                      ('GL_FLOAT_MAT4x2', '4x2', 'f'),
+                                      ('GL_DOUBLE_MAT2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT3', '3', 'd'),
+                                      ('GL_DOUBLE_MAT4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT2x3', '2x3', 'd'),
+                                      ('GL_DOUBLE_MAT2x4', '2x4', 'd'),
+                                      ('GL_DOUBLE_MAT3x2', '3x2', 'd'),
+                                      ('GL_DOUBLE_MAT3x4', '3x4', 'd'),
+                                      ('GL_DOUBLE_MAT4x2', '4x2', 'd'),
+                                      ('GL_DOUBLE_MAT4x3', '4x3', 'd'),
+                                     ):
+            print '                    if (uniformType == %s) {' % datatype
+            print '                        _glGetUniform%sv(programName, location, %sParams);' % (type, type)
+            print '                        _trace_gl%sUniformMatrix%s%sv(%slocation, 1, GL_FALSE, %sParams, false);' % (funcPrefix, count, type, firstParam, type)
+            print '                    } else'
+        
+        print '                    {'
         print '                        switch (uniformType) {'
         print '                            case GL_SAMPLER_1D: case GL_SAMPLER_2D: case GL_SAMPLER_3D: case GL_SAMPLER_CUBE: case GL_SAMPLER_1D_SHADOW: case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE: case GL_SAMPLER_CUBE_SHADOW: case GL_SAMPLER_BUFFER: case GL_SAMPLER_2D_RECT: case GL_SAMPLER_2D_RECT_SHADOW:'
         print '                            case GL_INT_SAMPLER_1D: case GL_INT_SAMPLER_2D: case GL_INT_SAMPLER_3D: case GL_INT_SAMPLER_CUBE: case GL_INT_SAMPLER_2D_MULTISAMPLE: case GL_INT_SAMPLER_BUFFER: case GL_INT_SAMPLER_2D_RECT:'
@@ -1174,6 +1151,102 @@ class StateSnapshot:
         print '                        }'
         print '                    }'
         print '                }'
+        print '            }'
+        print '            }'
+
+
+    def generateAttribCalls(self):
+        print '            { // ATTRIBS'
+        print '            GLchar name[1024];'
+        print '            memset(name, 0, 1024);'
+        print '            GLenum type = GL_NONE;'
+        print '            GLfloat fParams[16];'
+        print '            GLint iParams[16];'
+        print '            GLdouble dParams[16];'
+        print '            GLuint uiParams[16];'
+        print '            memset(fParams, 0, 16*sizeof(GLfloat));'
+        print '            memset(iParams, 0, 16*sizeof(GLint));'
+        print '            memset(dParams, 0, 16*sizeof(GLdouble));'
+        print '            memset(uiParams, 0, 16*sizeof(GLuint));'
+        print '            GLint active_attribs = 0;'
+        print '            _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &active_attribs);'
+        print '            for (GLint index = 0; index < active_attribs; ++index) {'
+        print '                GLint vertex_attrib_array_buffer_binding = 0;'
+        print '                _glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &vertex_attrib_array_buffer_binding);'
+        print '                if (vertex_attrib_array_buffer_binding != 0) {'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
+        print '                    if (vertex_attrib_array_enabled == GL_TRUE) {'
+        print '                        _trace_glEnableVertexAttribArray(index, false);'
+        print '                    } else {'
+        print '                        _trace_glDisableVertexAttribArray(index, false);'
+        print '                    }'
+        print '                    _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
+        print '                    _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
+        print '                    if (vertex_attrib_array_integer == GL_TRUE) {'
+        print '                        _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                    } else {'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
+        print '                        _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                    }'
+        print '                } else if (index != 0) {'
+
+        for datatype, count, getType, setType in (('GL_INT',      'I1', 'Ii', 'i'), ('GL_BOOL',      'I1', 'Ii', 'i'),
+                                                  ('GL_INT_VEC2', 'I2', 'Ii', 'i'), ('GL_BOOL_VEC2', 'I2', 'Ii', 'i'),
+                                                  ('GL_INT_VEC3', 'I3', 'Ii', 'i'), ('GL_BOOL_VEC3', 'I3', 'Ii', 'i'),
+                                                  ('GL_INT_VEC4', 'I4', 'Ii', 'i'), ('GL_BOOL_VEC4', 'I4', 'Ii', 'i'),
+                                                  ('GL_UNSIGNED_INT',      'I1', 'Iui', 'ui'),
+                                                  ('GL_UNSIGNED_INT_VEC2', 'I2', 'Iui', 'ui'),
+                                                  ('GL_UNSIGNED_INT_VEC3', 'I3', 'Iui', 'ui'),
+                                                  ('GL_UNSIGNED_INT_VEC4', 'I4', 'Iui', 'ui'),
+                                                  ('GL_FLOAT',      '1', 'f', 'f'),
+                                                  ('GL_FLOAT_VEC2', '2', 'f', 'f'),
+                                                  ('GL_FLOAT_VEC3', '3', 'f', 'f'),
+                                                  ('GL_FLOAT_VEC4', '4', 'f', 'f'),
+                                                  ('GL_DOUBLE',      'L1', 'd', 'd'),
+                                                  ('GL_DOUBLE_VEC2', 'L2', 'd', 'd'),
+                                                  ('GL_DOUBLE_VEC3', 'L3', 'd', 'd'),
+                                                  ('GL_DOUBLE_VEC4', 'L4', 'd', 'd'),
+                                     ):
+            print '                    if (type == %s) {' % datatype
+            print '                        _glGetVertexAttrib%sv(index, GL_CURRENT_VERTEX_ATTRIB, %sParams);' % (getType, setType)
+            print '                        _trace_glVertexAttrib%s%sv(index, %sParams, false);' % (count, setType, setType)
+            print '                    } else'
+        
+        
+        for datatype, count, type in (('GL_FLOAT_MAT2', '2', 'f'),
+                                      ('GL_FLOAT_MAT3', '3', 'f'),
+                                      ('GL_FLOAT_MAT4', '4', 'f'),
+                                      ('GL_FLOAT_MAT2x3', '3', 'f'),
+                                      ('GL_FLOAT_MAT2x4', '4', 'f'),
+                                      ('GL_FLOAT_MAT3x2', '2', 'f'),
+                                      ('GL_FLOAT_MAT3x4', '4', 'f'),
+                                      ('GL_FLOAT_MAT4x2', '2', 'f'),
+                                      ('GL_DOUBLE_MAT2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT3', '3', 'd'),
+                                      ('GL_DOUBLE_MAT4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT2x3', '3', 'd'),
+                                      ('GL_DOUBLE_MAT2x4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT3x2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT3x4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT4x2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT4x3', '3', 'd'),
+                                     ):
+            print '                    if (type == %s) {' % datatype
+            print '                        _glGetVertexAttrib%sv(index, GL_CURRENT_VERTEX_ATTRIB, %sParams);' % (type, type)
+            print '                        _trace_glVertexAttrib%s%sv(index, %sParams, false);' % (count, type, type)
+            print '                    } else'
+        
+        print '                    { // Unhandled type'
+        print '                    }'
+        print '                }'
+        print '            }'
         print '            }'
 
     def generateFile(self):
@@ -1215,6 +1288,7 @@ class StateSnapshot:
         print '{'
         print '    ScopedAllocator _allocator;'
         print '    (void)_allocator;'
+        print '    _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: State Snapshot", false);'
         print
 
         self.dump_atoms(glGet, '    ')
@@ -1229,6 +1303,7 @@ class StateSnapshot:
         self.snapshot_renderbuffer_parameters()
         self.snapshot_framebuffer_parameters()
 
+        print '    _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: State Snapshot", false);'
         print '}'
         print
         
@@ -1393,50 +1468,16 @@ class StateSnapshot:
         print '    { // VERTEX ARRAYS'
         print '        GLint vertex_array_binding = 0;'
         print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
-        print '        GLint array_buffer_binding = 0;'
-        print '        _glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &array_buffer_binding);'
-        print '        GLint max_vertex_attribs = 0;'
-        print '        _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::list<GLuint>::iterator iter = pContext->vertexArrays.begin(); iter != pContext->vertexArrays.end(); ++iter) {'
         print '            _trace_glBindVertexArray(*iter, true);'
-        print '            for (GLint index = 0; index < max_vertex_attribs; ++index) {'
+        print '            GLint element_array_buffer_binding = 0;'
+        print '            _glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_array_buffer_binding);'
+        print '            _trace_glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_array_buffer_binding, false);'
 
-        print '                // TODO: this could cause undefined behavior since we currently dont know'
-        print '                // what format the data was originally specified in, but we are reading it back as a double.'
-        print '                // We might have to track this state from the beginning of the trace.'
-        glGetVertexAttrib('index', "GL_CURRENT_VERTEX_ATTRIB")
-        print '                _trace_glVertexAttrib4dv(index, current_vertex_attrib, false);'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING")
-        print '                _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
-        print '                _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
-        print
-        print '                if (vertex_attrib_array_buffer_binding != 0) {'
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
-        print '                    if (vertex_attrib_array_integer == GL_TRUE) {'
-        print '                        _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
-        print '                    } else {'
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
-        print '                        _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
-        print '                    }'
-        print '                }'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
-        print '                if (vertex_attrib_array_enabled == GL_TRUE) {'
-        print '                    _trace_glEnableVertexAttribArray(index, false);'
-        print '                } else {'
-        print '                    _trace_glDisableVertexAttribArray(index, false);'
-        print '                }'
-        print '            }'
+        self.generateAttribCalls()
+
         print '        }'
-        print '        _trace_glBindBuffer(GL_ARRAY_BUFFER, array_buffer_binding, true);'
         print '        _trace_glBindVertexArray(vertex_array_binding, true);'
         print '    } // end VERTEX ARRAYS'
         print
@@ -1453,7 +1494,7 @@ class StateSnapshot:
         print '            GLuint programName = shaderIter->first;'
         print '            gltrace::Shader* pShader = &(shaderIter->second);'
         print '            _trace_glCreateShaderProgramv(pShader->type, pShader->count, pShader->sources, programName, false);'
-        self.generateUniformCalls("Program", 'programName, ');
+        self.generateUniformCalls("Program", 'programName, ')
         print '        }'
         print
         print '        GLenum shaderTypes[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_GEOMETRY_SHADER, GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER };'
@@ -1501,7 +1542,7 @@ class StateSnapshot:
 
         print '            _trace_glUseProgram(programName, true);'
 
-        self.generateUniformCalls("", "");
+        self.generateUniformCalls("", "")
 
         print '        }'
         print
@@ -1587,12 +1628,25 @@ class StateSnapshot:
         print '            // get & set all the state'
         self.dump_atoms(glGetTexParameter, '            ', 'target')
         self.snapshot_tex_level_parameters('            ', 'target')
+        print '            if (texture.m_generateMipmap)'
+        print '                _trace_glGenerateMipmap(target, false);'
         print '        }'
         print
         print '        // emit calls into the trace to set the proper bindings'
         print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
-        print '            _trace_glActiveTexture(GL_TEXTURE0 + unit, false);'
-        for target, binding in texture_targets:
+        print '            if (unit == 0 ||'
+        print '                pBindings1D[unit] != 0 || pEnabled1D[unit] != 0 ||'
+        print '                pBindings2D[unit] != 0 || pEnabled2D[unit] != 0 ||'
+        print '                pBindings3D[unit] != 0 || pEnabled3D[unit] != 0 ||'
+        print '                pBindingsRect[unit] != 0 || pEnabledRect[unit] != 0 ||'
+        print '                pBindingsCubeMap[unit] != 0 || pEnabledCubeMap[unit] != 0)'
+        print '            {'
+        print '                _trace_glActiveTexture(GL_TEXTURE0 + unit, false);'
+        print '            }'
+        print '            // Since the default state is 0 texture and disabled, we only need to update'
+        print '            // if the state is different, or this is texture unit 0, since we have mucked'
+        print '            // with the state above when creating the textures.'
+        for target, _ in texture_targets:
             bindingArray = 'NONE';
             enabledArray = 'NONE';
             if target == 'GL_TEXTURE_1D':
@@ -1610,12 +1664,14 @@ class StateSnapshot:
             elif target == 'GL_TEXTURE_CUBE_MAP':
                 bindingArray = 'pBindingsCubeMap'
                 enabledArray = 'pEnabledCubeMap'
-            print '            if ( %s[unit] ) {' % enabledArray
-            print '                _trace_glEnable(%s, false);' % target
-            print '            } else {'
-            print '                _trace_glDisable(%s, false);' % target
+            print '            if ( %s[unit] != 0 || %s[unit] != 0 || unit == 0) {' % (enabledArray, bindingArray)
+            print '                if ( %s[unit] ) {' % enabledArray
+            print '                    _trace_glEnable(%s, false);' % target
+            print '                } else {'
+            print '                    _trace_glDisable(%s, false);' % target
+            print '                }'
+            print '                _trace_glBindTexture(%s, %s[unit], true);' % (target, bindingArray)
             print '            }'
-            print '            _trace_glBindTexture(%s, %s[unit], true);' % (target, bindingArray)
             print
         print '        }'
         print
@@ -1721,7 +1777,10 @@ class StateSnapshot:
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_INTERNAL_FORMAT")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_WIDTH")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_HEIGHT")
-        print '            _trace_glRenderbufferStorageMultisample(GL_RENDERBUFFER, renderbuffer_samples, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
+        print '            if (renderbuffer_samples == 0)'
+        print '                _trace_glRenderbufferStorage(GL_RENDERBUFFER, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
+        print '            else '
+        print '                _trace_glRenderbufferStorageMultisample(GL_RENDERBUFFER, renderbuffer_samples, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
 
         print '            // TODO: Need to read from existing renderbuffers and write that data into the new Renderbuffers (to recreate their contents)'
         print '            // This may or may not be required depending on how the renderbuffer is being used. If its drawn to and used every frame, then'

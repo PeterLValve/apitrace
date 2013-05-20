@@ -471,7 +471,8 @@ class GlTracer(Tracer):
     frame_terminator_functions = set((
         "wglSwapBuffers",
         "glXSwapBuffers",
-        "eglSwapBuffers"
+        "eglSwapBuffers",
+        "CGLFlushDrawable",
     ))
 
     ## these are always traced
@@ -601,9 +602,8 @@ class GlTracer(Tracer):
         'CGLSetVirtualScreen'
         'CGLSetGlobalOption',
         'CGLSetOption',
-        'CGLLockContext',
-        'CGLUnlockContext',
-        
+        'CGLSetSurface',
+
 
         ## texture state
         'glTexImage1D',
@@ -612,6 +612,7 @@ class GlTracer(Tracer):
         'glCompressedTexImage1D',
         'glCompressedTexImage2D',
         'glCompressedTexImage3D',
+        'glGenerateMipmap',
 
         ## texture EXT_direct_state_access
         'glTextureImage1D',
@@ -942,7 +943,34 @@ class GlTracer(Tracer):
             print '        free(shaders);'
             print'         shaders = NULL;'
             print '    }'
-
+        elif function.name in ('glGenerateMipmap'):
+            print '    // glGenerateMipmap calls are special cased'
+            print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
+            print '    // The actual call will be added to the trace at a later time.'
+            print '    unsigned _tmpCall = 0;'
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        GLint boundTexture = 0;'
+            print '        if (target == GL_TEXTURE_1D) _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_1D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_1D_ARRAY, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_2D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_3D) _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            
+            print '        _glGetIntegerv(target, &boundTexture);'
+            print '        if (boundTexture > 0) {'
+            print '            ctx->textures[boundTexture].m_generateMipmap = true;'
+            print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            print '    _tmpCall = _call;'
+            print '    }'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '    if (trace::isTracingStateSetupFunctions() == false) {'
+            print '    unsigned _call = _tmpCall;'
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    }'
         elif function.name in ('glTexImage1D', 'glTexImage2D', 'glTexImage3D', 'glCompressedTexImage1D', 'glCompressedTexImage2D', 'glCompressedTexImage3D', 'glTextureImage1DEXT', 'glTextureImage2DEXT', 'glTextureImage3DEXT', 'glCompressedTextureImage1DEXT', 'glCompressedTextureImage2DEXT', 'glCompressedTextureImage3DEXT'):
             print '    // glTex*Image* calls are special cased'
             print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
