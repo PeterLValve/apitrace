@@ -223,6 +223,36 @@ static void retrace_CGLDestroyContext(trace::Call &call) {
     context_map.erase(it);
 }
 
+static void retrace_CGLSetOption(trace::Call &call) {
+    unsigned long long pname = call.arg(0).toUInt();
+    long long param = call.arg(1).toSInt();
+    CGLSetOption((CGLGlobalOption)pname, (GLint)param);
+}
+
+static void retrace_CGLSetSurface(trace::Call &call) {
+    unsigned long long ctx = call.arg(0).toUInt();
+    unsigned long long cid = call.arg(1).toUInt();
+    unsigned long long wid = call.arg(2).toUInt();
+    unsigned long long sid = call.arg(3).toUInt();
+    
+    Context *context = getContext(ctx);
+    
+    CGLSetSurface((CGLContextObj)context, (CGSConnectionID)cid, (CGSWindowID)wid, (CGSSurfaceID)sid);
+}
+
+static void retrace_CGLLockContext(trace::Call &call) {
+    unsigned long long ctx = call.arg(0).toUIntPtr();
+    Context* context = getContext(ctx);
+    CGLLockContext((CGLContextObj)context);
+}
+
+
+static void retrace_CGLUnlockContext(trace::Call & call) {
+    unsigned long long ctx = call.arg(0).toUIntPtr();
+    Context* context = getContext(ctx);
+    CGLUnlockContext((CGLContextObj)context);
+}
+
 
 static void retrace_CGLSetCurrentContext(trace::Call &call) {
     unsigned long long ctx = call.arg(0).toUIntPtr();
@@ -313,6 +343,10 @@ const retrace::Entry glretrace::cgl_callbacks[] = {
     {"CGLChoosePixelFormat", &retrace_CGLChoosePixelFormat},
     {"CGLCreateContext", &retrace_CGLCreateContext},
     {"CGLDestroyContext", &retrace_CGLDestroyContext},
+    {"CGLLockContext", &retrace_CGLLockContext},
+    {"CGLUnlockContext", &retrace_CGLUnlockContext},
+    {"CGLSetOption", &retrace_CGLSetOption},
+    {"CGLSetSurface", &retrace_CGLSetSurface},
     {"CGLDestroyPixelFormat", &retrace::ignore},
     {"CGLDisable", &retrace::ignore},
     {"CGLEnable", &retrace::ignore},
