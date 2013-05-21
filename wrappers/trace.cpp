@@ -126,12 +126,12 @@ bool isFrameToTrace(void) {
         {
             char strFrameCount[12]; // NOTE: there are only 10 characters in an unsigned long
             memset(strFrameCount, 0, 12 *sizeof(char));
-            size_t result = fread(strFrameCount, 12*sizeof(char), 12*sizeof(char), fSnap);
+            size_t result = fread(strFrameCount, sizeof(char), 12, fSnap);
             fclose(fSnap);
             remove("snap");
             s_frameNumToStartTrace = s_currentFrameNum + 1;
             unsigned long frameCount = 1;
-            if (result == 0)
+            if (result > 0)
             {
                 frameCount = strtoul(strFrameCount, NULL, 10 );
             }
