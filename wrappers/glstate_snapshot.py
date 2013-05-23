@@ -1676,7 +1676,7 @@ class StateSnapshot:
         print
 
         print '        // switch back to the previously active texture unit'
-        print '        _glActiveTexture(active_texture);'
+        print '        _trace_glActiveTexture(active_texture, true);'
 
         print '        free(pBindings1D); pBindings1D = NULL;'
         print '        free(pBindings2D); pBindings2D = NULL;'
