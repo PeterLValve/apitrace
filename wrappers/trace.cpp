@@ -41,7 +41,7 @@
 #include "os_string.hpp"
 #include "os_process.hpp"
 #include "trace.hpp"
-
+#include "trace_writer_local.hpp"
 
 namespace trace {
 
@@ -64,6 +64,9 @@ void incrementFrameNumber(void) {
     
     if (s_singleFrameTraceEnabled && s_currentFrameNum == s_frameNumToStopTrace)
     {
+        // Multiple snapshots are not currently allowed in the same file,
+        // so close the writer, which flushes the trace file and allows it to be replayed without having to exit the application.
+        trace::localWriter.close();
         os::log("apitrace: Trace completed. Captured %ld frames.\n", s_frameNumToStopTrace - s_frameNumToStartTrace);
     }
 }
