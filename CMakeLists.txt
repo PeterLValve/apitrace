@@ -315,6 +315,20 @@ add_library (common STATIC
     common/trace_profiler.cpp
     common/trace_option.cpp
     common/scoped_allocator.hpp
+    common/formatter.hpp
+    common/trace_api.hpp
+    common/trace_callset.hpp
+    common/trace_dump.hpp
+    common/trace_fast_callset.hpp
+    common/trace_file.hpp
+    common/trace_format.hpp
+    common/trace_loader.hpp
+    common/trace_model.hpp
+    common/trace_option.hpp
+    common/trace_parser.hpp
+    common/trace_profiler.hpp
+    common/trace_writer.hpp
+    common/trace_writer_local.hpp
     common/${os}
 )
 
