@@ -1,6 +1,6 @@
 /*********************************************************************
  *
- * Copyright 2012 Valve Corporation
+ * Copyright 2013 Valve Corporation
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person
@@ -25,17 +25,16 @@
  *
  *********************************************************************/
 #include <gltrace.hpp>
+#include "../../retrace/glstate.hpp"
+
 #ifdef WIN32
 #include "wgltrace_tracefuncs.h"
-#include "../../../retrace/glstate.hpp"
 #endif
 #ifdef __linux
-#include "../build32/wrappers/glxtrace_tracefuncs.h"
-#include "../../retrace/glstate.hpp"
+#include "glxtrace_tracefuncs.h"
 #endif
 #ifdef __APPLE__
-#include "../build/wrappers/cgltrace_tracefuncs.h"
-#include "../../retrace/glstate.hpp"
+#include "cgltrace_tracefuncs.h"
 #endif
 
 namespace gltrace {

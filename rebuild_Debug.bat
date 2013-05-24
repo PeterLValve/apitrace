@@ -1,0 +1,1 @@
+call builder.bat build32 build64 Debug
