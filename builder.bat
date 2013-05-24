@@ -58,9 +58,7 @@ REM
 :cmake64
 ECHO Regenerating 64-bit solution file using Cmake
 IF EXIST .\win64 rmdir /S /Q .\win64
-cmake -H%cd% -B%cd%\win64\ -G "Visual Studio 10 Win64"
-
-GOTO skip64
+cmake -DENABLE_GUI=FALSE -H%cd% -B%cd%\win64\ -G "Visual Studio 10 Win64"
 
 :build64
 ECHO Compiling 64-bit %CONFIG% binaries
