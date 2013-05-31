@@ -245,17 +245,17 @@ cglapi.addFunctions([
     Function(CGLError, "CGLSetSurface", [(CGLContextObj, "ctx"), (CGSConnectionID, "cid"), (CGSWindowID, "wid"), (CGSSurfaceID, "sid")]),
     Function(CGLError, "CGLGetSurface", [(CGLContextObj, "ctx"), (Pointer(CGSConnectionID), "cid"), (Pointer(CGSWindowID), "wid"), (Pointer(CGSSurfaceID), "sid")]),
     Function(CGLError, "CGLUpdateContext", [(CGLContextObj, "ctx")]),
-    # XXX: Confirm CGLOpenCLMuxLockDown
+    # XXX: All of the following prototypes are little more than guesses
     Function(CGLError, "CGLOpenCLMuxLockDown", []),
-    # FIXME: CGLAreContextsShared
-    # FIXME: CGLBackDispatch
-    # FIXME: CGLFrontDispatch
-    # FIXME: CGLGetNextContext
-    # FIXME: CGLRestoreDispatch
-    # FIXME: CGLRestoreDispatchFunction
-    # FIXME: CGLSelectDispatch
-    # FIXME: CGLSelectDispatchBounded
-    # FIXME: CGLSelectDispatchFunction
-    # FIXME: CGLSetPBufferVolatileState
+    Function(GLboolean, "CGLAreContextsShared", [(CGLContextObj, "ctx1"), (CGLContextObj, "ctx2")]),
+    Function(CGLContextObj, "CGLGetNextContext", [(CGLContextObj, "ctx")]),
+    Function(OpaquePointer(Void), "CGLFrontDispatch", [(CGLContextObj, "ctx")]),
+    Function(OpaquePointer(Void), "CGLBackDispatch", [(CGLContextObj, "ctx")]),
+    Function(Void, "CGLSelectDispatch", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "dispatch")]),
+    Function(Void, "CGLSelectDispatchBounded", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "dispatch"), (GLint, "size")]),
+    Function(Void, "CGLSelectDispatchFunction", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "functionPtr"), (GLint, "functionId")]),
+    Function(Void, "CGLRestoreDispatch", [(CGLContextObj, "ctx")]),
+    Function(Void, "CGLRestoreDispatchFunction", [(CGLContextObj, "ctx"), (GLint, "functionId")]),
+    Function(CGLError, "CGLSetPBufferVolatileState", [(CGLPBufferObj, "puffer"), (OpaquePointer(Void), "state")]),
 ])
 
