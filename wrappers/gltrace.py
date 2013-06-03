@@ -1189,14 +1189,14 @@ class GlTracer(Tracer):
         'glObjectLabel',
         'glGetObjectLabel',
         'glObjectPtrLabel',
-        'glGetObjectPtrLabel'
+        'glGetObjectPtrLabel',
         # GL_ARB_debug_output
         'glDebugMessageControlARB',
         'glDebugMessageInsertARB',
         'glDebugMessageCallbackARB',
         'glGetDebugMessageLogARB',
         # GL_AMD_debug_output
-        'glDebugMessageControlAMD',
+        'glDebugMessageEnableAMD',
         'glDebugMessageInsertAMD',
         'glDebugMessageCallbackAMD',
         'glGetDebugMessageLogAMD',
