@@ -247,8 +247,14 @@ usage(void)
         "                        default is `gl`\n"
         "    -o, --output=TRACE  specify output trace file;\n"
         "                        default is `PROGRAM.trace`\n"
-        "    -f, --frame=NUM     specify which frame number to trace\n"
-        "                        default is unset (capture all frames)\n";
+        "    -f, --frame=NUM     specify which frame number to trace;\n"
+        "                        default is unset (capture all frames)\n"
+        "    -f, --frame=NUM-NUM specify a range of frame numbers to trace\n"
+        "        --frame=ALPHA   enable on-demand frame tracing;\n"
+        "                        create a file called `snap` to initiate single-frame tracing;\n"
+        "                          writing a number in the `snap` file will indicate the number of frames to trace;\n"
+        "                        create a file called `starttrace` to start tracing a range of frames;\n"
+        "                        create a file called `stoptrace` to stop tracing a range of frames\n";
 }
 
 const static char *
