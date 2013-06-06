@@ -896,8 +896,6 @@ class GlTracer(Tracer):
                 print '        }'
 
             if function.name == 'glLinkProgramARB':
-                print '        gltrace::Context *ctx = gltrace::getContext();'
-                print '        ctx->programs[programObj].linked = true;'
                 print '        GLint active_attributes = 0;'
                 print '        _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_ATTRIBUTES_ARB, &active_attributes);'
                 print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
@@ -918,23 +916,12 @@ class GlTracer(Tracer):
             Tracer.generateTraceFunctionImplBodyReturn(self, function)
             print '    } else {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
-            print '        ctx->programs[%s].linked = true;' % function.args[0].name
             print '        GLint numAttachedShaders = 0;'
             print '        _glGetProgramiv(%s, GL_ATTACHED_SHADERS, &numAttachedShaders);' % function.args[0].name
             print '        GLuint* shaders = (GLuint*)malloc(sizeof(GLuint) * numAttachedShaders);'
             print '        _glGetAttachedShaders(%s, numAttachedShaders, NULL, shaders);' % function.args[0].name
             print '        for (GLint shaderIndex = 0; shaderIndex < numAttachedShaders; ++shaderIndex) {'
-            print '            GLint shaderType = GL_NONE;'
-            print '            _glGetShaderiv(shaders[shaderIndex], GL_SHADER_TYPE, &shaderType);'
-            print '            GLint shaderLength = 0;'
-            print '            _glGetShaderiv(shaders[shaderIndex], GL_SHADER_SOURCE_LENGTH, &shaderLength);'
-            print '            GLchar* shaderSource = (GLchar*)malloc(sizeof(GLchar) * shaderLength);'
-            print '            if (shaderSource != NULL) {'
-            print '                _glGetShaderSource(shaders[shaderIndex], shaderLength, NULL, shaderSource);'
-            print '                ctx->programs[%s].AddShader(shaders[shaderIndex], shaderType, shaderSource, shaderLength);' % function.args[0].name
-            print '                free(shaderSource);'
-            print '                shaderSource = NULL;'
-            print '            }'
+            print '            ctx->programs[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
             print '        }'
             print '        free(shaders);'
             print'         shaders = NULL;'
@@ -1075,6 +1062,13 @@ class GlTracer(Tracer):
             print '            ctx->renderbuffers.remove(renderbuffers[i]);'
             print '        }'
             print '    }'
+
+        if function.name in ('glCreateShaderObjectARB', 'glCreateShader'):
+            print '    gltrace::Context* ctx = gltrace::getContext();'
+            print '    ctx->shaderObjects[_result].SetSources(%s, 0, NULL, NULL);' % function.args[0].name
+        if function.name in ('glDeleteShaderObjectARB', 'glDeleteShader'):
+            print '    gltrace::Context* ctx = gltrace::getContext();'
+            print '    ctx->shaderObjects.erase(shader);'
 
         if function.name == 'glCreateProgramObjectARB':
             print '    gltrace::Context* ctx = gltrace::getContext();'
