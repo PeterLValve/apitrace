@@ -1482,12 +1482,13 @@ class StateSnapshot:
         print '    } // end VERTEX ARRAYS'
         print
 
+
     def snapshot_program_params(self):
         print '    { // PROGRAM PIPELINES'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating program pipelines", false);'
         print '        GLint program_pipeline_binding = 0;'
         print '        _glGetIntegerv(GL_PROGRAM_PIPELINE_BINDING, &program_pipeline_binding);'
         print
-
         print '        // recreate all the shader programs'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pContext->separateShaders.begin(); shaderIter != pContext->separateShaders.end(); ++shaderIter) {'
@@ -1520,36 +1521,59 @@ class StateSnapshot:
         print '        if (program_pipeline_binding != 0) {'
         print '            _trace_glBindProgramPipeline(program_pipeline_binding, false);'
         print '        }'
-        print '    }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating program pipelines", false);'
+        print '    } // end PROGRAM PIPELINES'
         print
+        print '    { // SHADERS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating shaders", false);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pContext->shaderObjects.begin(); shaderIter != pContext->shaderObjects.end(); ++shaderIter) {'
+        print '            GLuint shaderName = shaderIter->first;'
+        print '            // set source and compile'
+        print '            GLint shaderType = GL_NONE;'
+        print '            _glGetShaderiv(shaderName, GL_SHADER_TYPE, &shaderType);'
+        print '            GLint shaderLength = 0;'
+        print '            _glGetShaderiv(shaderName, GL_SHADER_SOURCE_LENGTH, &shaderLength);'
+        print '            GLchar* shaderSource = (GLchar*)malloc(sizeof(GLchar) * shaderLength);'
+        print '            if (shaderSource != NULL) {'
+        print '                _glGetShaderSource(shaderName, shaderLength, NULL, shaderSource);'
+        print '                _trace_glShaderSource(shaderName, 1, &shaderSource, &shaderLength, false);'
+        print '                _trace_glCompileShader(shaderName, false);'
+        print '                free(shaderSource);'
+        print '                shaderSource = NULL;'
+        print '            }'
+        print '        }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating shaders", false);'
+        print '    } // end SHADERS'
+        print 
         print '    { // PROGRAMS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating programs", false);'
         print '        // get the currently active program before recreating all program uniforms'
         glGet("GL_ACTIVE_PROGRAM")
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programs.begin(); iter != pContext->programs.end(); ++iter) {'
         print '            GLuint programName = iter->first;'
         print '            gltrace::Program* pProgram = &(iter->second);'
-        print '            if (pProgram->linked == false) { continue; }'
-
-        print '            // set source, compile, and attach all shaders'
-        print '            for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
-        print '                GLuint shaderName = shaderIter->first;'
-        print '                _trace_glShaderSource(shaderName, 1, shaderIter->second.sources, shaderIter->second.lengths, false);'
-        print '                _trace_glCompileShader(shaderName, false);'
-        print '                _trace_glAttachShader(programName, shaderName, false);'
-        print '            }'
-        print '            _trace_glLinkProgram(programName, false);'
-
-        print '            _trace_glUseProgram(programName, true);'
+        print '            if (pProgram->shaders.size() > 0) {'
+        print '                // set source, compile, and attach all shaders'
+        print '                for (std::list<GLuint>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
+        print '                    GLuint shaderName = *shaderIter;'
+        print '                    _trace_glAttachShader(programName, shaderName, false);'
+        print '                }'
+        print '                _trace_glLinkProgram(programName, false);'
+        print
+        print '                _trace_glUseProgram(programName, true);'
 
         self.generateUniformCalls("", "")
 
-        print '        }'
+        print '            } // end if pProgram->shaders.size() > 0'
+        print '        } // end for each program'
         print
         print '        if (pContext->programs.size() > 0) {'
         print '            // restore previously active program;'
         print '            _trace_glUseProgram(active_program, true);'
         print '        }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating programs", false);'
         print '    } // end PROGRAMS'
         print
 

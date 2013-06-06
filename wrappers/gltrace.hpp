@@ -303,19 +303,15 @@ private:
 
 class Program {
 public:
-    bool linked;
+    std::list<GLuint> shaders;
 
-    std::map<GLuint, Shader> shaders;
-
-    void AddShader(GLuint shaderName, GLenum shaderType, const GLchar* shaderSource, GLsizei shaderLength)
+    void AddShader(GLuint shaderName)
     {
-        if (shaderSource != NULL) {
-            shaders[shaderName].SetSources(shaderType, 1, &shaderSource, &shaderLength);
-        }
+        shaders.push_back(shaderName);
+        shaders.unique();
     }
 
     Program()
-        : linked(false)
     {
     }
 
@@ -346,6 +342,7 @@ public:
 
     // Used by state snapshot
     std::map<GLuint, Texture> textures;
+    std::map<GLuint, Shader> shaderObjects;
     std::map<GLuint, Program> programs;
     std::list<GLuint> pipelines;
     std::map<GLuint, Shader> separateShaders;
@@ -368,6 +365,7 @@ public:
     ~Context(void)
     {
         buffers.clear();
+        shaderObjects.clear();
         textures.clear();
         programs.clear();
         pipelines.clear();
