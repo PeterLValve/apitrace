@@ -108,6 +108,7 @@ public:
     GLenum m_format;
     GLenum m_type;
     bool m_generateMipmap;
+    bool m_createdWithEXT;
 
     // list of mipmap levels that had contents uploaded
     std::list<TextureLevel> m_levels;
@@ -117,7 +118,8 @@ public:
        m_target(GL_NONE),
        m_format(GL_NONE),
        m_type(GL_NONE),
-       m_generateMipmap(false)
+       m_generateMipmap(false),
+       m_createdWithEXT(false)
     {}
 
     ~Texture() {
@@ -225,12 +227,14 @@ public:
     GLchar** sources;
     GLsizei* lengths;
     GLenum type;
+    bool m_createdWithObjectARB;
 
     Shader()
         : count(0),
         sources(NULL),
         lengths(NULL),
-        type(GL_NONE)
+        type(GL_NONE),
+        m_createdWithObjectARB(false)
     {
     }
 
@@ -304,6 +308,8 @@ private:
 class Program {
 public:
     std::list<GLuint> shaders;
+    bool m_createdWithObjectARB;
+    bool m_createdWithGenProgramsARB;
 
     void AddShader(GLuint shaderName)
     {
@@ -311,13 +317,72 @@ public:
         shaders.unique();
     }
 
-    Program()
+    Program() :
+        m_createdWithObjectARB(false),
+        m_createdWithGenProgramsARB(false)
     {
     }
 
     ~Program()
     {
         shaders.clear();
+    }
+};
+
+class BufferObject {
+public:
+    bool m_createdWithARB;
+
+    BufferObject() :
+        m_createdWithARB(false)
+    {
+    }
+
+    ~BufferObject()
+    {
+    }
+};
+
+class Framebuffer {
+public:
+    bool m_createdWithEXT;
+
+    Framebuffer() :
+        m_createdWithEXT(false)
+    {
+    }
+
+    ~Framebuffer()
+    {
+    }
+};
+
+
+class Renderbuffer {
+public:
+    bool m_createdWithEXT;
+
+    Renderbuffer() :
+        m_createdWithEXT(false)
+    {
+    }
+
+    ~Renderbuffer()
+    {
+    }
+};
+
+class Query {
+public:
+    bool m_createdWithARB;
+
+    Query() :
+        m_createdWithARB(false)
+    {
+    }
+
+    ~Query()
+    {
     }
 };
 
@@ -346,11 +411,12 @@ public:
     std::map<GLuint, Program> programs;
     std::list<GLuint> pipelines;
     std::map<GLuint, Shader> separateShaders;
-    std::list<GLuint> framebuffers;
+    std::map<GLuint, Framebuffer> framebuffers;
     std::list<GLuint> vertexArrays;
-    std::list<GLuint> bufferObjects;
+    std::map<GLuint, BufferObject> bufferObjects;
     std::list<GLuint> samplers;
-    std::list<GLuint> renderbuffers;
+    std::map<GLuint, Renderbuffer> renderbuffers;
+    std::map<GLuint, Query> queries;
 
     Context(void) :
         profile(PROFILE_COMPAT),

@@ -974,141 +974,245 @@ class GlTracer(Tracer):
             print '    unsigned _call = _tmpCall;'
             Tracer.generateTraceFunctionImplBodyReturn(self, function)
             print '    }'
-        else:
-            Tracer.generateTraceFunctionImplBody(self, function)
-
-        if function.name  in ('glGenTextures', 'glGenTexturesEXT'):
+        elif function.name  in ('glGenTextures', 'glGenTexturesEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->textures[textures[i]];'
+            if function.name == 'glGetTexturesEXT':
+                print '            ctx->textures[textures[i]].m_createdWithEXT = true;'
+            else:
+                print '            ctx->textures[textures[i]].m_createdWithEXT = false;'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name in ('glDeleteTextures', 'glDeleteTexturesEXT'):
+        elif function.name in ('glDeleteTextures', 'glDeleteTexturesEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->textures.erase(textures[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name in ('glGenFramebuffers', 'glGenFramebuffersEXT'):
+        elif function.name in ('glGenFramebuffers', 'glGenFramebuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->framebuffers.push_back(framebuffers[i]);'
+            if function.name == 'glGenFramebuffersEXT':
+                print '            ctx->framebuffers[framebuffers[i]].m_createdWithEXT = true;'
+            else:
+                print '            ctx->framebuffers[framebuffers[i]].m_createdWithEXT = false;'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name in ('glDeleteFramebuffers', 'glDeleteFramebuffersEXT'):
+        elif function.name in ('glDeleteFramebuffers', 'glDeleteFramebuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->framebuffers.remove(framebuffers[i]);'
+            print '            ctx->framebuffers.erase(framebuffers[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name == 'glGenVertexArrays':
+        elif function.name == 'glGenVertexArrays':
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->vertexArrays.push_back(arrays[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name == 'glDeleteVertexArrays':
+        elif function.name == 'glDeleteVertexArrays':
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->vertexArrays.remove(arrays[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name in ('glGenBuffers', 'glGenBuffersARB'):
+        elif function.name in ('glGenBuffers', 'glGenBuffersARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->bufferObjects.push_back(%s[i]);' % function.args[1].name
+            if function.name == 'glGenBuffersARB':
+                print '            ctx->bufferObjects[%s[i]].m_createdWithARB = true;' % function.args[1].name
+            else:
+                print '            ctx->bufferObjects[%s[i]].m_createdWithARB = false;' % function.args[1].name
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name in ('glDeleteBuffers', 'glDeleteBuffersARB'):
+        elif function.name in ('glDeleteBuffers', 'glDeleteBuffersARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->bufferObjects.remove(%s[i]);' % function.args[1].name
+            print '            ctx->bufferObjects.erase(%s[i]);' % function.args[1].name
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name == 'glGenSamplers':
+        elif function.name == 'glGenSamplers':
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < count; ++i){'
             print '            ctx->samplers.push_back(samplers[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name == 'glDeleteSamplers':
+        elif function.name == 'glDeleteSamplers':
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < count; ++i){'
             print '            ctx->samplers.remove(samplers[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name in ('glGenRenderbuffers', 'glGenRenderbuffersEXT'):
+        elif function.name in ('glGenRenderbuffers', 'glGenRenderbuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->renderbuffers.push_back(renderbuffers[i]);'
+            if function.name == 'glGenRenderbuffersEXT':
+                print '            ctx->renderbuffers[renderbuffers[i]].m_createdWithEXT = true;'
+            else:
+                print '            ctx->renderbuffers[renderbuffers[i]].m_createdWithEXT = false;'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name in ('glDeleteRenderbuffers', 'glDeleteRenderbuffersEXT'):
+        elif function.name in ('glDeleteRenderbuffers', 'glDeleteRenderbuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->renderbuffers.remove(renderbuffers[i]);'
+            print '            ctx->renderbuffers.erase(renderbuffers[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name in ('glCreateShaderObjectARB', 'glCreateShader'):
-            print '    gltrace::Context* ctx = gltrace::getContext();'
-            print '    ctx->shaderObjects[_result].SetSources(%s, 0, NULL, NULL);' % function.args[0].name
-        if function.name in ('glDeleteShaderObjectARB', 'glDeleteShader'):
-            print '    gltrace::Context* ctx = gltrace::getContext();'
-            print '    ctx->shaderObjects.erase(shader);'
-
-        if function.name == 'glCreateProgramObjectARB':
-            print '    gltrace::Context* ctx = gltrace::getContext();'
-            print '    ctx->programs[_result];'
-        if function.name == 'glDeleteObjectARB':
-            print '    gltrace::Context* ctx = gltrace::getContext();'
-            print '    ctx->programs.erase(obj);'
-        if function.name in ('glGenPrograms', 'glGenProgramsARB'):
+        elif function.name in ('glCreateShaderObjectARB', 'glCreateShader'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            print '        gltrace::Shader shader;'
+            print '        shader.SetSources(%s, 0, NULL, NULL);' % function.args[0].name
+            if function.name == 'glCreateShaderObjectARB':
+                print '        shader.m_createdWithObjectARB = true;'
+            else:
+                print '        shader.m_createdWithObjectARB = false;'
+            print '        ctx->shaderObjects[_result] = shader;'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glDeleteShaderObjectARB', 'glDeleteShader'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            print '        ctx->shaderObjects.erase(shader);'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glCreateProgram', 'glCreateProgramObjectARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            if function.name == 'glCreateProgramObjectARB':
+                print '        ctx->programs[_result].m_createdWithObjectARB = true;'
+            else:
+                print '        ctx->programs[_result];'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name == 'glDeleteObjectARB':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            print '        ctx->programs.erase(obj);'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in 'glGenProgramsARB':
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->programs[programs[i]];'
+            print '            ctx->programs[programs[i]].m_createdWithGenProgramsARB = true;'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name in ('glDeletePrograms', 'glDeleteProgramsARB'):
+        elif function.name in ('glDeletePrograms', 'glDeleteProgramsARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->programs.erase(programs[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-
-        if function.name  in ('glGenProgramPipelines',):
+        elif function.name  in ('glGenProgramPipelines',):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->pipelines.push_back(pipelines[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        if function.name in ('glDeleteProgramPipelines',):
+        elif function.name in ('glDeleteProgramPipelines',):
             print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->pipelines.remove(pipelines[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
+        elif function.name in ('glGenQueries', 'glGenQueriesARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            if function.name == 'glGenQueriesARB':
+                print '            ctx->queries[ids[i]].m_createdWithARB = true;'
+            else:
+                print '            ctx->queries[ids[i]];'
+            print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glDeleteQueries', 'glDeleteQueriesARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->queries.erase(ids[i]);'
+            print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        else:
+            Tracer.generateTraceFunctionImplBody(self, function)
+
 
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
