@@ -108,6 +108,7 @@ public:
     GLenum m_format;
     GLenum m_type;
     bool m_generateMipmap;
+    bool m_createdWithEXT;
 
     // list of mipmap levels that had contents uploaded
     std::list<TextureLevel> m_levels;
@@ -117,7 +118,8 @@ public:
        m_target(GL_NONE),
        m_format(GL_NONE),
        m_type(GL_NONE),
-       m_generateMipmap(false)
+       m_generateMipmap(false),
+       m_createdWithEXT(false)
     {}
 
     ~Texture() {
@@ -329,6 +331,85 @@ public:
     }
 };
 
+class BufferObject {
+public:
+    bool m_createdWithARB;
+
+    BufferObject() :
+        m_createdWithARB(false)
+    {
+    }
+
+    ~BufferObject()
+    {
+    }
+};
+
+class Framebuffer {
+public:
+    bool m_createdWithEXT;
+
+    Framebuffer() :
+        m_createdWithEXT(false)
+    {
+    }
+
+    ~Framebuffer()
+    {
+    }
+};
+
+
+class Renderbuffer {
+public:
+    bool m_createdWithEXT;
+
+    Renderbuffer() :
+        m_createdWithEXT(false)
+    {
+    }
+
+    ~Renderbuffer()
+    {
+    }
+};
+
+class Query {
+public:
+    bool m_createdWithARB;
+
+    Query() :
+        m_createdWithARB(false)
+    {
+    }
+
+    ~Query()
+    {
+    }
+};
+
+class Sync {
+public:
+    GLenum m_condition;
+    GLbitfield m_flags;
+
+    Sync() :
+        m_condition(GL_SYNC_GPU_COMMANDS_COMPLETE),
+        m_flags(0)
+    {
+    }
+
+    Sync(GLenum condition, GLbitfield flags) :
+        m_condition(condition),
+        m_flags(flags)
+    {
+    }
+
+    ~Sync()
+    {
+    }
+};
+
 class Context {
 public:
     enum Profile profile;
@@ -351,11 +432,13 @@ public:
     std::map<GLuint, Program> programsARB;
     std::list<GLuint> pipelines;
     std::map<GLuint, Shader> separateShaders;
-    std::list<GLuint> framebuffers;
+    std::map<GLuint, Framebuffer> framebuffers;
     std::list<GLuint> vertexArrays;
-    std::list<GLuint> bufferObjects;
+    std::map<GLuint, BufferObject> bufferObjects;
     std::list<GLuint> samplers;
-    std::list<GLuint> renderbuffers;
+    std::map<GLuint, Renderbuffer> renderbuffers;
+    std::map<GLuint, Query> queries;
+    std::map<GLsync, Sync> syncObjects;
 
     Context(void) :
         profile(PROFILE_COMPAT),
@@ -381,6 +464,7 @@ public:
         bufferObjects.clear();
         samplers.clear();
         renderbuffers.clear();
+        syncObjects.clear();
     }
 
     inline bool

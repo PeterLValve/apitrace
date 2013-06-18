@@ -1256,10 +1256,13 @@ class StateSnapshot:
         print '#include "scoped_allocator.hpp"'
         print '#include "glproc.hpp"'
         print '#include "glsize.hpp"'
-        print '#include "../../retrace/glstate.hpp"'
-        print '#include "../../retrace/glstate_internal.hpp"'
-        print '#include "wgltrace_tracefuncs.h"'
         print '#include "gltrace.hpp"'
+        print '#include "../retrace/glstate.hpp"'
+        print '#include "../retrace/glstate_internal.hpp"'
+        print
+        print '#ifdef WIN32'
+        print '#include "wgltrace_tracefuncs.h"'
+        print '#endif'
         print
         print 'namespace glstate {'
         print
@@ -1280,8 +1283,10 @@ class StateSnapshot:
 
         self.snapshot_atoms(glGet, '    ')
 
+        self.snapshot_sync_objects()
         self.snapshot_material_params()
         self.snapshot_light_params()
+        self.snapshot_queries()
         self.snapshot_samplers()
         self.snapshot_buffers()
         self.snapshot_vertex_attribs()
@@ -1357,14 +1362,47 @@ class StateSnapshot:
                     self.snapshot_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
 
+
+    def snapshot_sync_objects(self):
+        print '    { // SYNC'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating sync objects", false);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLsync, gltrace::Sync>::iterator iter = pContext->syncObjects.begin(); iter != pContext->syncObjects.end(); ++iter) {'
+        print '            GLsync sync = iter->first;'
+        print '            gltrace::Sync syncObj = iter->second;'
+        print '            _trace_glFenceSync(syncObj.m_condition, syncObj.m_flags, sync, false);'
+        print '         }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating sync objects", false);'
+        print '    } // end SYNC'
+
+
+    def snapshot_queries(self):
+        print '    { // QUERIES'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating queries", false);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLuint, gltrace::Query>::iterator iter = pContext->queries.begin(); iter != pContext->queries.end(); ++iter) {'
+        print '            GLuint name = iter->first;'
+        print '            gltrace::Query query = iter->second;'
+        print '            if (query.m_createdWithARB) {'
+        print '                _trace_glGenQueriesARB(1, &name, false);'
+        print '            } else {'
+        print '                _trace_glGenQueries(1, &name, false);'
+        print '            }'
+        print '         }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating queries", false);'
+        print '    } // end QUERIES'
+
+
     def snapshot_samplers(self):
         print '    { // SAMPLERS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating samplers", false);'
         print '        // TODO: instead of iterating over all the created samplers, it would be more efficient'
         print '        // to flag the samplers that have changed and only update those. Or, always trace the '
         print '        // glSamplerParameter* calls to trace what the app calls.'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::list<GLuint>::iterator iter = pContext->samplers.begin(); iter != pContext->samplers.end(); ++iter) {'
-        print '            GLint sampler = *iter;'
+        print '            GLuint sampler = *iter;'
+        print '            _trace_glGenSamplers(1, &sampler, false);'
         print '            GLint texture_wrap_s = 0;'
         print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_S, &texture_wrap_s);'
         print '            GLint texture_wrap_t = 0;'
@@ -1418,19 +1456,28 @@ class StateSnapshot:
         print '        }'
         print
         print '        _glActiveTexture(active_texture);'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating samplers", false);'
         print '    } // end SAMPLERS'
 
 
     def snapshot_buffers(self):
         print '    { // BUFFERS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating buffers", false);'
         print '        // capture current active buffers'
         for target, binding in buffer_targets:
             glGet(binding)
         print
         print '        // recreate all buffer objects'
         print '        gltrace::Context* pContext = gltrace::getContext();'
-        print '        for (std::list<GLuint>::iterator iter = pContext->bufferObjects.begin(); iter != pContext->bufferObjects.end(); ++iter) {'
-        print '             _trace_glBindBuffer(GL_ARRAY_BUFFER, *iter, true);'
+        print '        for (std::map<GLuint, gltrace::BufferObject>::iterator iter = pContext->bufferObjects.begin(); iter != pContext->bufferObjects.end(); ++iter) {'
+        print '            GLuint bufName = iter->first;'
+        print '            gltrace::BufferObject buffer = iter->second;'
+        print '            if (buffer.m_createdWithARB) {'
+        print '                _trace_glGenBuffersARB(1, &bufName, false);'
+        print '            } else {'
+        print '                _trace_glGenBuffers(1, &bufName, false);'
+        print '            }'
+        print '             _trace_glBindBuffer(GL_ARRAY_BUFFER, bufName, true);'
         print '              GLint64 buffer_size = 0;'
         print '             _glGetBufferParameteri64v(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);'
         print '              GLint buffer_usage = 0;'
@@ -1448,15 +1495,19 @@ class StateSnapshot:
         for target, binding in buffer_targets:
             print '        _trace_glBindBuffer(%s, %s, true);' % (target, binding[3:].lower())
         print ''
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating buffers", false);'
         print '    } // end BUFFERS'
         print
 
     def snapshot_vertex_attribs(self):
         print '    { // VERTEX ARRAYS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating vertex arrays", false);'
         print '        GLint vertex_array_binding = 0;'
         print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::list<GLuint>::iterator iter = pContext->vertexArrays.begin(); iter != pContext->vertexArrays.end(); ++iter) {'
+        print '             GLuint name = *iter;'
+        print '            _trace_glGenVertexArrays(1, &name, false);'
         print '            _trace_glBindVertexArray(*iter, true);'
         print '            GLint element_array_buffer_binding = 0;'
         print '            _glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_array_buffer_binding);'
@@ -1466,6 +1517,7 @@ class StateSnapshot:
 
         print '        }'
         print '        _trace_glBindVertexArray(vertex_array_binding, true);'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating vertex arrays", false);'
         print '    } // end VERTEX ARRAYS'
         print
 
@@ -1493,6 +1545,7 @@ class StateSnapshot:
         print '        // setup program pipelines with shaders and uniforms'
         print '        for (std::list<GLuint>::iterator pipelineIter = pContext->pipelines.begin(); pipelineIter != pContext->pipelines.end(); ++pipelineIter) {'
         print '            GLuint pipelineName = *pipelineIter;'
+        print '            _trace_glGenProgramPipelines(1, &pipelineName, false);'
         print '            GLint active_program = 0;'
         print '            _glGetProgramPipelineiv(pipelineName, GL_ACTIVE_PROGRAM, &active_program);'
         print
@@ -1516,6 +1569,12 @@ class StateSnapshot:
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pContext->shaderObjects.begin(); shaderIter != pContext->shaderObjects.end(); ++shaderIter) {'
         print '            GLuint shaderName = shaderIter->first;'
+        print '            gltrace::Shader shader = shaderIter->second;'
+        print '            if (shader.m_createdWithObjectARB) {'
+        print '                _trace_glCreateShaderObjectARB(shader.type, shaderName, false);'
+        print '            } else {'
+        print '                _trace_glCreateShader(shader.type, shaderName, false);'
+        print '            }'
         print '            // set source and compile'
         print '            GLint shaderType = GL_NONE;'
         print '            _glGetShaderiv(shaderName, GL_SHADER_TYPE, &shaderType);'
@@ -1543,7 +1602,13 @@ class StateSnapshot:
         print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programsARB.begin(); iter != pContext->programsARB.end(); ++iter) {'
         print '            GLuint programName = iter->first;'
         print '            gltrace::Program* pProgram = &(iter->second);'
-        print '            _trace_glGenProgramsARB(1, &programName, false);'
+        print '            if (pProgram->m_createdWithGenProgramsARB) {'
+        print '                _trace_glGenProgramsARB(1, &programName, false);'
+        print '            } else if (pProgram->m_createdWithObjectARB) {'
+        print '                _trace_glCreateProgramObjectARB(programName, false);'
+        print '            } else {'
+        print '                _trace_glCreateProgram(programName, false);'
+        print '            }'
         print '            if (pProgram->shaders.size() > 0) {'
         print '                // set source, compile, and attach all shaders'
         print '                for (std::list<GLuint>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
@@ -1603,6 +1668,7 @@ class StateSnapshot:
     def snapshot_texture_parameters(self):
         print '    // TEXTURES'
         print '    {'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating textures", false);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        // get the current active texture unit'
         print '        GLint active_texture = 0;'
@@ -1667,7 +1733,11 @@ class StateSnapshot:
         print '        for (std::map<GLuint, gltrace::Texture>::iterator iter = pContext->textures.begin(); iter != pContext->textures.end(); ++iter) {'
         print '            GLuint texName = iter->first;'
         print '            gltrace::Texture& texture = iter->second;'
-
+        print '            if (texture.m_createdWithEXT) {'
+        print '                _trace_glGenTexturesEXT(1, &texName, false);'
+        print '            } else {'
+        print '                _trace_glGenTextures(1, &texName, false);'
+        print '            }'
         print '            GLenum target = texture.m_target;'
         print '            // emit a call to bind the texture'
         print '            _trace_glBindTexture(target, texName, true);'
@@ -1737,6 +1807,7 @@ class StateSnapshot:
         print '        delete [] pEnabledRect; pEnabledRect = NULL;'
         print '        delete [] pEnabledCubeMap; pEnabled1D = NULL;'
         print
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating textures", false);'
         print '    }'
         print
 
@@ -1811,14 +1882,22 @@ class StateSnapshot:
     def snapshot_renderbuffer_parameters(self):
         print '    // RENDERBUFFERS'
         print '    {'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating renderbuffers", false);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        // get the current active renderbuffer'
         print '        GLint renderbuffer_binding = 0;'
         print '        _glGetIntegerv(GL_RENDERBUFFER_BINDING, &renderbuffer_binding);'
         print 
         print '        // recreate all the renderbuffers'
-        print '        for (std::list<GLuint>::iterator iter = pContext->renderbuffers.begin(); iter != pContext->renderbuffers.end(); ++iter) {'
-        print '            _trace_glBindRenderbuffer(GL_RENDERBUFFER, *iter, true);'
+        print '        for (std::map<GLuint, gltrace::Renderbuffer>::iterator iter = pContext->renderbuffers.begin(); iter != pContext->renderbuffers.end(); ++iter) {'
+        print '            GLuint name = iter->first;'
+        print '            gltrace::Renderbuffer renderbuffer = iter->second;'
+        print '            if (renderbuffer.m_createdWithEXT) {'
+        print '                _trace_glGenRenderbuffersEXT(1, &name, false);'
+        print '            } else {'
+        print '                _trace_glGenRenderbuffers(1, &name, false);'
+        print '            }'
+        print '            _trace_glBindRenderbuffer(GL_RENDERBUFFER, name, true);'
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_SAMPLES")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_INTERNAL_FORMAT")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_WIDTH")
@@ -1836,11 +1915,13 @@ class StateSnapshot:
         print
         print '        // switch back to the previously active renderbuffer'
         print '        _glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_binding);'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating renderbuffers", false);'
         print '    }'
         print
 
     def snapshot_framebuffer_parameters(self):
         print '    { // FRAMEBUFFERS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating framebuffers", false);'
         print '        // backup current bindings'
         print '        GLint draw_framebuffer_binding = 0;'
         print '        _glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_framebuffer_binding);'
@@ -1859,10 +1940,20 @@ class StateSnapshot:
         print '        _glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);'
 
         print '        gltrace::Context *ctx = gltrace::getContext();'
+        print '        for (std::map<GLuint, gltrace::Framebuffer>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
+        print '            GLuint name = iter->first;'
+        print '            gltrace::Framebuffer framebuffer = iter->second;'
+        print '            if (framebuffer.m_createdWithEXT) {'
+        print '                _trace_glGenFramebuffersEXT(1, &name, false);'
+        print '            } else {'
+        print '                _trace_glGenFramebuffers(1, &name, false);'
+        print '            }'
+        print '        }'
         for target in ('GL_DRAW_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER'):
             print '        // %s' % target
-            print '        for (std::list<GLuint>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
-            print '            _trace_glBindFramebuffer(%s, *iter, true);' % target
+            print '        for (std::map<GLuint, gltrace::Framebuffer>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
+            print '            GLuint name = iter->first;'
+            print '            _trace_glBindFramebuffer(%s, name, true);' % target
             print '            for (GLint i = 0; i < max_color_attachments; ++i) {'
             print '                GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
             print '                snapshotFramebufferAttachmentParameters(%s, color_attachment);' % target
@@ -1872,6 +1963,7 @@ class StateSnapshot:
             print '        }'
         print '        _trace_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding, true);'
         print '        _trace_glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding, true);'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating framebuffers", false);'
         print '    } // end FRAMEBUFFERS'
         print
 
