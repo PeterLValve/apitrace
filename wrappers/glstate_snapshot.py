@@ -1609,7 +1609,11 @@ class StateSnapshot:
         print '                    GLuint shaderName = *shaderIter;'
         print '                    _trace_glAttachShader(programName, shaderName, false);'
         print '                }'
-        print '                _trace_glLinkProgram(programName, false);'
+        print '                if (pProgram->m_linkedWithARB) {'
+        print '                    _trace_glLinkProgramARB(programName, false);'
+        print '                } else {'
+        print '                    _trace_glLinkProgram(programName, false);'
+        print '                }'
         print
         print '                _trace_glUseProgram(programName, true);'
 

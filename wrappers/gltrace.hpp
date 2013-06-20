@@ -310,6 +310,7 @@ public:
     std::list<GLuint> shaders;
     bool m_createdWithObjectARB;
     bool m_createdWithGenProgramsARB;
+    bool m_linkedWithARB;
 
     void AddShader(GLuint shaderName)
     {
@@ -319,7 +320,8 @@ public:
 
     Program() :
         m_createdWithObjectARB(false),
-        m_createdWithGenProgramsARB(false)
+        m_createdWithGenProgramsARB(false),
+        m_linkedWithARB(false)
     {
     }
 
@@ -424,7 +426,8 @@ public:
         user_arrays_arb(false),
         user_arrays_nv(false),
         retain_count(0),
-        hdc((uintptr_t)NULL),        dpy((uintptr_t)NULL),
+        hdc((uintptr_t)NULL),
+        dpy((uintptr_t)NULL),
         bound(false)
     { }
 

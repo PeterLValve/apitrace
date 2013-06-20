@@ -898,7 +898,6 @@ class GlTracer(Tracer):
                 print '                }'
                 print '            }'
                 print '        }'
-
             if function.name == 'glLinkProgramARB':
                 print '        GLint active_attributes = 0;'
                 print '        _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_ATTRIBUTES_ARB, &active_attributes);'
@@ -928,7 +927,9 @@ class GlTracer(Tracer):
             print '            ctx->programs[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
             print '        }'
             print '        free(shaders);'
-            print'         shaders = NULL;'
+            print '        shaders = NULL;'
+            if function.name == 'glLinkProgramARB':
+                print '        ctx->programs[%s].m_linkedWithARB = true;' % function.args[0].name
             print '    }'
         elif function.name in ('glGenerateMipmap'):
             print '    // glGenerateMipmap calls are special cased'
