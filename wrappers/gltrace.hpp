@@ -411,6 +411,7 @@ public:
     std::map<GLuint, Texture> textures;
     std::map<GLuint, Shader> shaderObjects;
     std::map<GLuint, Program> programs;
+    std::map<GLuint, Program> programsARB;
     std::list<GLuint> pipelines;
     std::map<GLuint, Shader> separateShaders;
     std::map<GLuint, Framebuffer> framebuffers;
@@ -437,6 +438,7 @@ public:
         shaderObjects.clear();
         textures.clear();
         programs.clear();
+        programsARB.clear();
         pipelines.clear();
         separateShaders.clear();
         framebuffers.clear();

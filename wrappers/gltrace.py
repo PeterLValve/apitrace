@@ -634,7 +634,6 @@ class GlTracer(Tracer):
         'glDeleteProgramsARB',
         'glCreateShaderObjectARB',
         'glCreateProgramObjectARB',
-        'glProgramStringARB',
         'glLinkProgramARB',
 
         ## ARB separate shader objects
@@ -887,8 +886,9 @@ class GlTracer(Tracer):
                 print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
                 print '            GLint size = 0;'
                 print '            GLenum type = 0;'
-                print '            GLchar name[256];'
-                # TODO: Use ACTIVE_ATTRIBUTE_MAX_LENGTH instead of 256
+                print '            GLint active_attribute_max_length = 0;'
+                print '            _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &active_attribute_max_length);'
+                print '            GLchar* name = (GLchar*)malloc(sizeof(GLchar) * active_attribute_max_length);'
                 print '            _glGetActiveAttrib(program, attrib, sizeof name, NULL, &size, &type, name);'
                 print "            if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
                 print '                GLint location = _glGetAttribLocation(program, name);'
@@ -897,6 +897,7 @@ class GlTracer(Tracer):
                 self.fake_call(bind_function, ['program', 'location', 'name'])
                 print '                }'
                 print '            }'
+                print '            free(name);'
                 print '        }'
             if function.name == 'glLinkProgramARB':
                 print '        GLint active_attributes = 0;'
@@ -904,8 +905,9 @@ class GlTracer(Tracer):
                 print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
                 print '            GLint size = 0;'
                 print '            GLenum type = 0;'
-                print '            GLcharARB name[256];'
-                # TODO: Use ACTIVE_ATTRIBUTE_MAX_LENGTH instead of 256
+                print '            GLint active_attribute_max_length = 0;'
+                print '            _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_UNIFORM_MAX_LENGTH_ARB, &active_attribute_max_length);'
+                print '            GLcharARB* name = (GLcharARB*)malloc(sizeof(GLcharARB) * active_attribute_max_length);'
                 print '            _glGetActiveAttribARB(programObj, attrib, sizeof name, NULL, &size, &type, name);'
                 print "            if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
                 print '                GLint location = _glGetAttribLocationARB(programObj, name);'
@@ -914,6 +916,7 @@ class GlTracer(Tracer):
                 self.fake_call(bind_function, ['programObj', 'location', 'name'])
                 print '                }'
                 print '            }'
+                print '            free(name);'
                 print '        }'
             Tracer.generateTraceFunctionImplBodyArgs(self, function)
             Tracer.generateTraceFunctionImplBodyReturn(self, function)
@@ -924,12 +927,22 @@ class GlTracer(Tracer):
             print '        GLuint* shaders = (GLuint*)malloc(sizeof(GLuint) * numAttachedShaders);'
             print '        _glGetAttachedShaders(%s, numAttachedShaders, NULL, shaders);' % function.args[0].name
             print '        for (GLint shaderIndex = 0; shaderIndex < numAttachedShaders; ++shaderIndex) {'
-            print '            ctx->programs[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
+            print '            if (_glIsProgram(%s) == GL_TRUE) {' % function.args[0].name
+            print '                ctx->programs[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
+            print '            } else if (_glIsProgramARB(%s) == GL_TRUE) {' % function.args[0].name
+            print '                ctx->programsARB[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
+            print '            } else {'
+            print '                assert(!"Unknown program type");'
+            print '            }'
             print '        }'
             print '        free(shaders);'
             print '        shaders = NULL;'
             if function.name == 'glLinkProgramARB':
-                print '        ctx->programs[%s].m_linkedWithARB = true;' % function.args[0].name
+                print '        if (_glIsProgram(%s) == GL_TRUE) {' % function.args[0].name
+                print '            ctx->programs[%s].m_linkedWithARB = true;' % function.args[0].name
+                print '        } else {'
+                print '            ctx->programsARB[%s].m_linkedWithARB = true;' % function.args[0].name
+                print '        }'
             print '    }'
         elif function.name in ('glGenerateMipmap'):
             print '    // glGenerateMipmap calls are special cased'
@@ -1140,30 +1153,30 @@ class GlTracer(Tracer):
             print '    } else {'
             Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        elif function.name == 'glDeleteObjectARB':
+        elif function.name in ('glDeleteProgram', 'glDeleteObjectARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context* ctx = gltrace::getContext();'
-            print '        ctx->programs.erase(obj);'
+            print '        ctx->programs.erase(%s);' % function.args[0].name
             print '    } else {'
             Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        elif function.name in 'glGenProgramsARB':
+        elif function.name in ('glGenProgramsARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->programs[programs[i]].m_createdWithGenProgramsARB = true;'
+            print '            ctx->programsARB[programs[i]].m_createdWithGenProgramsARB = true;'
             print '        }'
             print '    } else {'
             Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'
-        elif function.name in ('glDeletePrograms', 'glDeleteProgramsARB'):
+        elif function.name in ('glDeleteProgramsARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
-            print '            ctx->programs.erase(programs[i]);'
+            print '            ctx->programsARB.erase(programs[i]);'
             print '        }'
             print '    } else {'
             Tracer.generateTraceFunctionImplBody(self, function)

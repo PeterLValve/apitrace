@@ -1593,12 +1593,32 @@ class StateSnapshot:
         print '        // get the currently active program before recreating all program uniforms'
         glGet("GL_ACTIVE_PROGRAM")
         print '        gltrace::Context* pContext = gltrace::getContext();'
+        print
+        print '        // recreate programs based on GL_ARB_vertex_program and GL_ARB_fragment_program'
+        print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programsARB.begin(); iter != pContext->programsARB.end(); ++iter) {'
+        print '            GLuint programName = iter->first;'
+        print '            gltrace::Program* pProgram = &(iter->second);'
+        print '            _trace_glGenProgramsARB(1, &programName, false);'
+        print '            if (pProgram->shaders.size() > 0) {'
+        print '                // set source, compile, and attach all shaders'
+        print '                for (std::list<GLuint>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
+        print '                    GLuint shaderName = *shaderIter;'
+        print '                    _trace_glAttachShader(programName, shaderName, false);'
+        print '                }'
+        print '                _trace_glLinkProgramARB(programName, false);'
+        print
+        print '                _trace_glUseProgram(programName, true);'
+
+        self.generateUniformCalls("", "")
+
+        print '            } // end if pProgram->shaders.size() > 0'
+        print '        } // end for each program'
+        print
+        print '        // recreate programs based on GL_ARB_shader_objects'
         print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programs.begin(); iter != pContext->programs.end(); ++iter) {'
         print '            GLuint programName = iter->first;'
         print '            gltrace::Program* pProgram = &(iter->second);'
-        print '            if (pProgram->m_createdWithGenProgramsARB) {'
-        print '                _trace_glGenProgramsARB(1, &programName, false);'
-        print '            } else if (pProgram->m_createdWithObjectARB) {'
+        print '            if (pProgram->m_createdWithObjectARB) {'
         print '                _trace_glCreateProgramObjectARB(programName, false);'
         print '            } else {'
         print '                _trace_glCreateProgram(programName, false);'
@@ -1607,7 +1627,11 @@ class StateSnapshot:
         print '                // set source, compile, and attach all shaders'
         print '                for (std::list<GLuint>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
         print '                    GLuint shaderName = *shaderIter;'
-        print '                    _trace_glAttachShader(programName, shaderName, false);'
+        print '                    if (pProgram->m_linkedWithARB) {'
+        print '                        _trace_glAttachObjectARB(programName, shaderName, false);'
+        print '                    } else {'
+        print '                        _trace_glAttachShader(programName, shaderName, false);'
+        print '                    }'
         print '                }'
         print '                if (pProgram->m_linkedWithARB) {'
         print '                    _trace_glLinkProgramARB(programName, false);'
@@ -1622,7 +1646,7 @@ class StateSnapshot:
         print '            } // end if pProgram->shaders.size() > 0'
         print '        } // end for each program'
         print
-        print '        if (pContext->programs.size() > 0) {'
+        print '        if (pContext->programs.size() > 0 || pContext->programsARB.size() > 0) {'
         print '            // restore previously active program;'
         print '            _trace_glUseProgram(active_program, true);'
         print '        }'

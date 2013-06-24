@@ -599,8 +599,8 @@ glapi.addFunctions([
     GlFunction(Void, "glGetVertexAttribfv", [(GLuint, "index"), (GLenum, "pname"), Out(Array(GLfloat, "_gl_param_size(pname)"), "params")], sideeffects=False),
     GlFunction(Void, "glGetVertexAttribiv", [(GLuint, "index"), (GLenum, "pname"), Out(Array(GLint, "_gl_param_size(pname)"), "params")], sideeffects=False),
     GlFunction(Void, "glGetVertexAttribPointerv", [(GLuint, "index"), (GLenum, "pname"), Out(Pointer(GLpointer), "pointer")], sideeffects=False),
-    GlFunction(GLboolean, "glIsProgram", [(GLprogram, "program")], sideeffects=False),
-    GlFunction(GLboolean, "glIsShader", [(GLshader, "shader")], sideeffects=False),
+    GlFunction(GLboolean, "glIsProgram", [(GLprogram, "program")], sideeffects=False, fail="GL_FALSE"),
+    GlFunction(GLboolean, "glIsShader", [(GLshader, "shader")], sideeffects=False, fail="GL_FALSE"),
     GlFunction(Void, "glLinkProgram", [(GLprogram, "program")]),
     GlFunction(Void, "glShaderSource", [(GLshader, "shader"), (GLsizei, "count"), (Array(Const(String(Const(GLchar), "_glShaderSource_length(string, length, {i})")), "count"), "string"), (Array(Const(GLint), "count"), "length")]),
     GlFunction(Void, "glUseProgram", [(GLprogram, "program")]),
@@ -908,7 +908,7 @@ glapi.addFunctions([
     GlFunction(Void, "glGetVertexAttribfvARB", [(GLuint, "index"), (GLenum, "pname"), Out(Array(GLfloat, "_gl_param_size(pname)"), "params")], sideeffects=False),
     GlFunction(Void, "glGetVertexAttribivARB", [(GLuint, "index"), (GLenum, "pname"), Out(Array(GLint, "_gl_param_size(pname)"), "params")], sideeffects=False),
     GlFunction(Void, "glGetVertexAttribPointervARB", [(GLuint, "index"), (GLenum, "pname"), Out(Pointer(GLpointer), "pointer")], sideeffects=False),
-    GlFunction(GLboolean, "glIsProgramARB", [(GLprogramARB, "program")], sideeffects=False),
+    GlFunction(GLboolean, "glIsProgramARB", [(GLprogramARB, "program")], sideeffects=False, fail="GL_FALSE"),
 
     # GL_ARB_vertex_buffer_object
     GlFunction(Void, "glBindBufferARB", [(GLenum, "target"), (GLbuffer, "buffer")]),
