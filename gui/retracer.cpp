@@ -130,6 +130,7 @@ Retracer::Retracer(QObject *parent)
     : QThread(parent),
       m_benchmarking(false),
       m_doubleBuffered(true),
+      m_singlethread(false),
       m_captureState(false),
       m_captureCall(0),
       m_profileGpu(false),
@@ -172,6 +173,16 @@ bool Retracer::isDoubleBuffered() const
 void Retracer::setDoubleBuffered(bool db)
 {
     m_doubleBuffered = db;
+}
+
+bool Retracer::isSinglethread() const
+{
+    return m_singlethread;
+}
+
+void Retracer::setSinglethread(bool singlethread)
+{
+    m_singlethread = singlethread;
 }
 
 bool Retracer::isProfilingGpu() const
@@ -303,6 +314,10 @@ void Retracer::run()
     default:
         emit finished(QLatin1String("Unsupported API"));
         return;
+    }
+
+    if (m_singlethread) {
+        arguments << QLatin1String("--singlethread");
     }
 
     if (m_captureState) {
