@@ -18,6 +18,7 @@ add_custom_command (
                 glretrace.py
                 retrace.py
                 ${CMAKE_SOURCE_DIR}/specs/glapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glesapi.py
                 ${CMAKE_SOURCE_DIR}/specs/gltypes.py
                 ${CMAKE_SOURCE_DIR}/specs/stdapi.py
 )
@@ -103,7 +104,7 @@ if (WIN32 OR APPLE OR X11_FOUND)
         if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
             target_link_libraries (glretrace rt)
             if (READPROC_H_FOUND)
-                target_link_libraries (glretrace proc)
+                target_link_libraries (glretrace ${proc_LIBRARY})
             endif ()
         endif ()
 
@@ -131,7 +132,7 @@ if (ENABLE_EGL AND X11_FOUND AND NOT WIN32 AND NOT APPLE)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         target_link_libraries (eglretrace rt)
         if (READPROC_H_FOUND)
-            target_link_libraries (eglretrace proc)
+            target_link_libraries (eglretrace ${proc_LIBRARY})
         endif ()
     endif ()
 

@@ -96,23 +96,10 @@ class EglTracer(GlTracer):
             print '        _EGLImageKHR_free_image_info(info);'
             print '    }'
 
-    def emitFakeTexture2D(self):
-        function = glapi.getFunctionByName('glTexImage2D')
-        instances = function.argNames()
-        print '        unsigned _fake_call = trace::localWriter.beginEnter(&_%s_sig);' % (function.name,)
-        for arg in function.args:
-            assert not arg.output
-            self.serializeArg(function, arg)
-        print '        trace::localWriter.endEnter();'
-        print '        trace::localWriter.beginLeave(_fake_call);'
-        print '        trace::localWriter.endLeave();'
-
-
 
 if __name__ == '__main__':
     print '#include <stdlib.h>'
     print '#include <string.h>'
-    print '#include <dlfcn.h>'
     print
     print '#include "trace_writer_local.hpp"'
     print
@@ -120,6 +107,7 @@ if __name__ == '__main__':
     print '#define GL_GLEXT_PROTOTYPES'
     print '#define EGL_EGLEXT_PROTOTYPES'
     print
+    print '#include "dlopen.hpp"'
     print '#include "glproc.hpp"'
     print '#include "glsize.hpp"'
     print '#include "eglsize.hpp"'
@@ -137,31 +125,6 @@ if __name__ == '__main__':
     print r'''
 
 
-/*
- * Android does not support LD_PRELOAD.
- */
-#if !defined(ANDROID)
-
-
-/*
- * Invoke the true dlopen() function.
- */
-static void *_dlopen(const char *filename, int flag)
-{
-    typedef void * (*PFN_DLOPEN)(const char *, int);
-    static PFN_DLOPEN dlopen_ptr = NULL;
-
-    if (!dlopen_ptr) {
-        dlopen_ptr = (PFN_DLOPEN)dlsym(RTLD_NEXT, "dlopen");
-        if (!dlopen_ptr) {
-            os::log("apitrace: error: dlsym(RTLD_NEXT, \"dlopen\") failed\n");
-            return NULL;
-        }
-    }
-
-    return dlopen_ptr(filename, flag);
-}
-
 
 /*
  * Several applications, such as Quake3, use dlopen("libGL.so.1"), but
@@ -174,7 +137,7 @@ void * dlopen(const char *filename, int flag)
 {
     bool intercept = false;
 
-    if (filename) {
+    if (filename && trace::isTracingEnabled()) {
         intercept =
             strcmp(filename, "libEGL.so") == 0 ||
             strcmp(filename, "libEGL.so.1") == 0 ||
@@ -214,9 +177,6 @@ void * dlopen(const char *filename, int flag)
 
     return handle;
 }
-
-
-#endif /* !ANDROID */
 
 
 #if defined(ANDROID)

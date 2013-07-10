@@ -84,6 +84,8 @@ class GlRetracer(Retracer):
         "glMultiDrawArrays",
         "glMultiDrawArraysEXT",
         "glMultiModeDrawArraysIBM",
+        'glMultiDrawArraysIndirect',
+        'glMultiDrawArraysIndirectAMD',
     ])
 
     draw_elements_function_names = set([
@@ -103,11 +105,17 @@ class GlRetracer(Retracer):
         "glMultiDrawElementsBaseVertex",
         "glMultiDrawElementsEXT",
         "glMultiModeDrawElementsIBM",
+        'glMultiDrawElementsIndirect',
+        'glMultiDrawElementsIndirectAMD',
     ])
 
     draw_indirect_function_names = set([
         "glDrawArraysIndirect",
         "glDrawElementsIndirect",
+        'glMultiDrawArraysIndirect',
+        'glMultiDrawArraysIndirectAMD',
+        'glMultiDrawElementsIndirect',
+        'glMultiDrawElementsIndirectAMD',
     ])
 
     misc_draw_function_names = set([
@@ -130,6 +138,9 @@ class GlRetracer(Retracer):
     # object.  See also the ARB_pixel_buffer_object specification.
     pack_function_names = set([
         'glGetCompressedTexImage',
+        'glGetCompressedTexImageARB',
+        'glGetCompressedTextureImageEXT',
+        'glGetCompressedMultiTexImageEXT',
         'glGetConvolutionFilter',
         'glGetHistogram',
         'glGetMinmax',
@@ -139,6 +150,8 @@ class GlRetracer(Retracer):
         'glGetPolygonStipple',
         'glGetSeparableFilter',
         'glGetTexImage',
+        'glGetTextureImageEXT',
+        'glGetMultiTexImageEXT',
         'glReadPixels',
         'glGetnCompressedTexImageARB',
         'glGetnConvolutionFilterARB',

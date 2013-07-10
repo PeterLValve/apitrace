@@ -23,6 +23,8 @@
  *
  **************************************************************************/
 
+#ifdef _WIN32
+
 #include <windows.h>
 
 #include <assert.h>
@@ -42,7 +44,7 @@ String
 getProcessName(void)
 {
     String path;
-    size_t size = MAX_PATH;
+    DWORD size = MAX_PATH;
     char *buf = path.buf(size);
 
     DWORD nWritten = GetModuleFileNameA(NULL, buf, size);
@@ -57,7 +59,7 @@ String
 getCurrentDir(void)
 {
     String path;
-    size_t size = MAX_PATH;
+    DWORD size = MAX_PATH;
     char *buf = path.buf(size);
     
     DWORD ret = GetCurrentDirectoryA(size, buf);
@@ -67,6 +69,12 @@ getCurrentDir(void)
     path.truncate();
 
     return path;
+}
+
+bool
+createDirectory(const String &path)
+{
+    return CreateDirectoryA(path, NULL);
 }
 
 bool
@@ -166,7 +174,7 @@ int execute(char * const * args)
         sep = ' ';
     }
 
-    STARTUPINFO startupInfo;
+    STARTUPINFOA startupInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));
     startupInfo.cb = sizeof(startupInfo);
 
@@ -229,11 +237,7 @@ long long timeFrequency = 0LL;
 void
 abort(void)
 {
-#ifndef NDEBUG
-    DebugBreak();
-#else
-    ExitProcess(0);
-#endif
+    TerminateProcess(GetCurrentProcess(), 1);
 }
 
 
@@ -299,7 +303,7 @@ unhandledExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 
     static int recursion_count = 0;
     if (recursion_count) {
-        fprintf(stderr, "apitrace: warning: recursion handling exception\n");
+        fputs("apitrace: warning: recursion handling exception\n", stderr);
     } else {
         if (gCallback) {
             ++recursion_count;
@@ -336,3 +340,5 @@ resetExceptionCallback(void)
 
 
 } /* namespace os */
+
+#endif  // defined(_WIN32)

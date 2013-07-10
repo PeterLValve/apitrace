@@ -35,11 +35,19 @@ tracing.
 Linux / Mac OS X
 ----------------
 
+Additional optional dependencies for Linux:
+
+* libprocps (procps development libraries)
+
+* libdwarf
+
 Build as:
 
-    cmake -H. -Bbuild
+    cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RelWithDebInfo
     make -C build
 
+Other possible values for `CMAKE_BUILD_TYPE` `Debug`, `Release`,
+`RelWithDebInfo`, and `MinSizeRel`.
 
 You can also build the 32-bits GL wrapper on a 64-bits distribution, provided
 you have a multilib gcc and 32-bits X11 libraries, by doing:
@@ -72,6 +80,15 @@ Build as:
 
 You can also choose a particular ABI by passing `ANDROID_ABI` variable to
 cmake, e.g., `-DANDROID_ABI=x86`.
+
+FirefoxOS
+---------
+
+Put Apitrace source tree into `B2GROOT/external/apitrace/` and the `Android.mk`
+file (`B2GROOT/external/apitrace/Android.mk`) will do the needful to compile
+and install apitrace appropriately into the system image as part of FirefoxOS
+build process. It expects a linaro-type of Android NDK to be present in
+`../../prebuilt/ndk/android-ndk-r7` (ie `B2GROOT/prebuilt/ndk/android-ndk-r7`).
 
 
 Windows
@@ -106,6 +123,10 @@ and press the _Configure_ button.
 It will try to detect most required/optional dependencies automatically.  When
 not found automatically, you can manually specify the location of the
 dependencies from the CMake GUI.
+
+Qt on Windows doesn't ship with 64-bit binaries, you may want to add
+`-DENABLE_GUI=FALSE` to the above cmake command line for Windows 64-bits
+builds.
 
 After you've successfully configured, you can start the build by opening the
 generated `build\apitrace.sln` solution file, or invoking CMake as:

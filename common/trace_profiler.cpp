@@ -120,9 +120,7 @@ void Profiler::addCall(unsigned no,
     }
 
     if (cpuTimes && cpuStart) {
-        double cpuTimeScale = 1.0E9 / os::timeFrequency;
-        cpuStart = (cpuStart - baseCpuTime) * cpuTimeScale;
-        cpuDuration = cpuDuration * cpuTimeScale;
+        cpuStart = cpuStart - baseCpuTime;
 
         if (cpuDuration < minCpuTime) {
             return;
@@ -230,7 +228,7 @@ void Profiler::parseLine(const char* in, Profile* profile)
             program.pixelTotal += call.pixels;
             program.vsizeTotal += call.vsizeDuration;
             program.rssTotal += call.rssDuration;
-            program.calls.push_back(profile->calls.size() - 1);
+            program.calls.push_back((unsigned int)(profile->calls.size() - 1));
         }
     } else if (type.compare("frame_end") == 0) {
         Profile::Frame frame;
@@ -254,7 +252,7 @@ void Profiler::parseLine(const char* in, Profile* profile)
         frame.cpuDuration = lastCpuTime - frame.cpuStart;
         frame.vsizeDuration = lastVsizeUsage - frame.vsizeStart;
         frame.rssDuration = lastRssUsage - frame.rssStart;
-        frame.calls.end = profile->calls.size() - 1;
+        frame.calls.end = (unsigned int)(profile->calls.size() - 1);
 
         profile->frames.push_back(frame);
     }

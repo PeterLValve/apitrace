@@ -109,6 +109,11 @@ void MainWindow::loadTrace(const QString &fileName, int callNum)
     newTraceFile(fileName);
 }
 
+void MainWindow::setRemoteTarget(const QString &host)
+{
+    m_retracer->setRemoteTarget(host);
+}
+
 void MainWindow::callItemSelected(const QModelIndex &index)
 {
     ApiTraceEvent *event =
@@ -145,6 +150,8 @@ void MainWindow::callItemSelected(const QModelIndex &index)
                 }
             }
         }
+        m_ui.backtraceBrowser->setText(call->backtrace());
+        m_ui.backtraceDock->setVisible(!call->backtrace().isNull());
         m_ui.vertexDataDock->setVisible(call->hasBinaryData());
         m_selectedEvent = call;
     } else {
@@ -154,6 +161,7 @@ void MainWindow::callItemSelected(const QModelIndex &index)
             m_selectedEvent = 0;
         }
         m_ui.detailsDock->hide();
+        m_ui.backtraceDock->hide();
         m_ui.vertexDataDock->hide();
     }
     if (m_selectedEvent && m_selectedEvent->hasState()) {
@@ -768,6 +776,7 @@ void MainWindow::initObjects()
     m_argsEditor = new ArgumentsEditor(this);
 
     m_ui.detailsDock->hide();
+    m_ui.backtraceDock->hide();
     m_ui.errorsDock->hide();
     m_ui.vertexDataDock->hide();
     m_ui.stateDock->hide();
@@ -775,6 +784,7 @@ void MainWindow::initObjects()
 
     tabifyDockWidget(m_ui.stateDock, m_ui.vertexDataDock);
     tabifyDockWidget(m_ui.detailsDock, m_ui.errorsDock);
+    tabifyDockWidget(m_ui.detailsDock, m_ui.backtraceDock);
 
     m_ui.surfacesTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
 

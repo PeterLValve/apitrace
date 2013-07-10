@@ -57,7 +57,7 @@ _vertexCount(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount)
     case D3DPT_TRIANGLESTRIP:
         return PrimitiveCount + 2;
     case D3DPT_TRIANGLEFAN:
-        return PrimitiveCount + 1;
+        return PrimitiveCount + 2;
     default:
         os::log("apitrace: warning: %s: unknown D3DPRIMITIVETYPE %u\n", __FUNCTION__, PrimitiveType);
         return 0;
@@ -106,10 +106,10 @@ _shaderSize(const DWORD *pFunction)
             break;
 
         case D3DSIO_END:
-            if (dwToken != D3DSIO_END) {
-                os::log("apitrace: warning: %s: malformed END token\n", __FUNCTION__);
+            if (dwToken == D3DSIO_END) {
+                return dwLength * sizeof *pFunction;
             }
-            return dwLength * sizeof *pFunction;
+            break;
         }
     }
 }

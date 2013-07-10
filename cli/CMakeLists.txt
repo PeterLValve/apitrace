@@ -33,4 +33,23 @@ target_link_libraries (apitrace
     ${GETOPT_LIBRARIES}
 )
 
+if (NOT CMAKE_CROSSCOMPILING)
+    set_target_properties (apitrace PROPERTIES
+        # On debug builds tell where the source is so that scripts can be found
+        COMPILE_DEFINITIONS_DEBUG APITRACE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    )
+endif ()
+
+if (MSVC)
+    # On MSVC builds tell which subdirectory the binaries with be (for each
+    # configuration)
+    set_target_properties (apitrace PROPERTIES
+        COMPILE_DEFINITIONS_DEBUG APITRACE_CONFIGURATION_SUBDIR="Debug"
+        COMPILE_DEFINITIONS_RELEASE APITRACE_CONFIGURATION_SUBDIR="Release"
+        COMPILE_DEFINITIONS_MINSIZEREL APITRACE_CONFIGURATION_SUBDIR="MinSizeRel"
+        COMPILE_DEFINITIONS_RELWITHDEBINFO APITRACE_CONFIGURATION_SUBDIR="RelWithDebInfo"
+    )
+endif ()
+
+
 install (TARGETS apitrace RUNTIME DESTINATION bin)

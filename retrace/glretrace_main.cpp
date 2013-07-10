@@ -178,7 +178,9 @@ completeCallQuery(CallQuery& query) {
     }
 
     if (retrace::profilingCpuTimes) {
-        cpuDuration = query.cpuEnd - query.cpuStart;
+        double cpuTimeScale = 1.0E9 / getTimeFrequency();
+        cpuDuration = (query.cpuEnd - query.cpuStart) * cpuTimeScale;
+        query.cpuStart *= cpuTimeScale;
     }
 
     if (retrace::profilingMemoryUsage) {
@@ -318,7 +320,8 @@ initContext() {
     /* Sync the gpu and cpu start times */
     if (retrace::profilingCpuTimes || retrace::profilingGpuTimes) {
         if (!retrace::profiler.hasBaseTimes()) {
-            GLint64 currentTime = getCurrentTime();
+            double cpuTimeScale = 1.0E9 / getTimeFrequency();
+            GLint64 currentTime = getCurrentTime() * cpuTimeScale;
             retrace::profiler.setBaseCpuTime(currentTime);
             retrace::profiler.setBaseGpuTime(currentTime);
         }
@@ -476,6 +479,11 @@ retrace::flushRendering(void) {
 
 void
 retrace::waitForInput(void) {
+    glretrace::Context *currentContext = glretrace::getCurrentContext();
+    if (currentContext) {
+        glretrace::flushQueries();
+        glFlush();
+    }
     while (glws::processEvents()) {
         os::sleep(100*1000);
     }

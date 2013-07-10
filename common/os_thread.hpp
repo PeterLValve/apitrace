@@ -40,6 +40,9 @@
 #endif
 
 
+/*
+ * This feature is not supported on Windows XP
+ */
 #define USE_WIN32_CONDITION_VARIABLES 0
 
 
@@ -50,13 +53,10 @@
  * - http://gcc.gnu.org/onlinedocs/gcc-4.6.3/gcc/Thread_002dLocal.html
  * - http://msdn.microsoft.com/en-us/library/9w1sdazb.aspx
  */
-#if defined(_MSC_VER)
-#  define thread_specific __declspec(thread)
-#elif defined(__GNUC__)
-#  define thread_specific __thread
+#if defined(HAVE_COMPILER_TLS)
+#  define OS_THREAD_SPECIFIC_PTR(_type) HAVE_COMPILER_TLS _type *
 #else
-#  define thread_specific
-#  error "Unsupported compiler"
+#  define OS_THREAD_SPECIFIC_PTR(_type) os::thread_specific_ptr< _type >
 #endif
 
 
@@ -283,6 +283,74 @@ namespace os {
     };
 
 
+    template <typename T>
+    class thread_specific_ptr
+    {
+    private:
+#ifdef _WIN32
+        DWORD dwTlsIndex;
+#else
+        pthread_key_t key;
+#endif
+
+    public:
+        thread_specific_ptr(void) {
+#ifdef _WIN32
+            dwTlsIndex = TlsAlloc();
+#else
+            pthread_key_create(&key, NULL);
+#endif
+        }
+
+        ~thread_specific_ptr() {
+#ifdef _WIN32
+            TlsFree(dwTlsIndex);
+#else
+            pthread_key_delete(key);
+#endif
+        }
+
+        inline T *
+        get(void) const {
+            void *ptr;
+#ifdef _WIN32
+            ptr = TlsGetValue(dwTlsIndex);
+#else
+            ptr = pthread_getspecific(key);
+#endif
+            return static_cast<T*>(ptr);
+        }
+
+        inline
+        operator T * (void) const
+        {
+            return get();
+        }
+
+        inline T *
+        operator -> (void) const
+        {
+            return get();
+        }
+
+        inline T *
+        operator = (T * new_value)
+        {
+            set(new_value);
+            return new_value;
+        }
+
+        inline void
+        set(T* new_value) {
+#ifdef _WIN32
+            TlsSetValue(dwTlsIndex, new_value);
+#else
+            pthread_setspecific(key, new_value);
+#endif
+        }
+    };
+
+
     /**
      * Same interface as std::thread
      */
@@ -306,6 +374,10 @@ namespace os {
         {
         }
 
+        inline
+        ~thread() {
+        }
+
         template< class Function, class Arg >
         explicit thread( Function& f, Arg arg ) {
 #ifdef _WIN32
@@ -314,6 +386,12 @@ namespace os {
 #else
             pthread_create(&_native_handle, NULL, (void *(*) (void *))f, (void *)arg);
 #endif
+        }
+
+        inline thread &
+        operator =(const thread &other) {
+            _native_handle = other._native_handle;
+            return *this;
         }
 
         inline bool

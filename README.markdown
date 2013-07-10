@@ -11,14 +11,14 @@ About **apitrace**
 
 * visualize and edit trace files.
 
-See the [apitrace homepage](http://apitrace.github.com/) for more details.
+See the [apitrace homepage](http://apitrace.github.io/) for more details.
 
 
 Obtaining **apitrace**
 ======================
 
 To obtain apitrace either [download the latest
-binaries](http://apitrace.github.com/#download) for your platform if
+binaries](http://apitrace.github.io/#download) for your platform if
 available, or follow the instructions in INSTALL.markdown to build it yourself.
 On 64bits Linux and Windows platforms you'll need apitrace binaries that match
 the architecture (32bits or 64bits) of the application being traced.
@@ -151,68 +151,9 @@ To trace the application inside gdb, invoke gdb as:
 
 ### Android ###
 
-The following instructions should work at least for Android Ice Scream
-Sandwitch.
-
-To trace applications started from within the Android VM process
-(`app_process` aka zygote) you'll have to wrap this process and enable
-tracing dynamically for the application to be traced.
-
-- Wrapping the android main VM process:
-
-  In the Android root /init.rc add the `LD_PRELOAD` setting to zygote's
-  environment in the 'service zygote' section:
-
-        service zygote ...
-           setenv LD_PRELOAD /data/egltrace.so
-           ...
-
-  Note that ICS will overwrite the /init.rc during each boot with the
-  version in the recovery image. So you'll have to change the file in
-  your ICS source tree, rebuild and reflash the device.
-  Rebuilding/reflashing only the recovery image should be sufficient.
-
-- Copy egltrace.so to /data
-
-  On the host:
-
-        adb push /path/to/apitrace/build/wrappers/egltrace.so /data
-
-- Adjust file permissions to store the trace file:
-
-  By default egltrace.so will store the trace in
-  `/data/app_process.trace`. For this to work for applications running
-  with a uid other than 0, you have to allow writes to the `/data`
-  directory on the device:
-
-        chmod 0777 /data
-
-- Enable tracing for a specific process name:
-
-  To trace for example the Settings application:
-
-        setprop debug.apitrace.procname com.android.settings
-
-  In general this name will match what `ps` reports.
-
-- Start the application:
-
-  If the application was already running, for example due to ICS's way
-  of pre-starting the apps, you might have to kill the application
-  first:
-
-        kill <pid of app>
-
-  Launch the application for example from the application menu.
-
-To trace standalone applications do:
-
-    adb push /path/to/apitrace/build/wrappers/egltrace.so /data
-    adb shell
-    # cd /data/local/tmp
-    # LD_PRELOAD=/data/egltrace.so test-opengl-gl2_basic
-    adb pull /data/local/tmp/test-opengl-gl2_basic.trace
-    apitrace replay test-opengl-gl2_basic.trace
+To trace standalone native OpenGL ES applications, use
+`LD_PRELOAD=/path/to/egltrace.so /path/to/application` like described in the
+previous section.  To trace Java applications, refer to Dalvik.markdown.
 
 ### Mac OS X ###
 
@@ -328,25 +269,44 @@ This works only on Unices, and it will truncate the traces due to performance
 limitations.
 
 
-Recording a video with FFmpeg
------------------------------
+Recording a video with FFmpeg/Libav
+-----------------------------------
 
-You can make a video of the output by doing
+You can make a video of the output with FFmpeg by doing
 
     apitrace dump-images -o - application.trace \
     | ffmpeg -r 30 -f image2pipe -vcodec ppm -i pipe: -vcodec mpeg4 -y output.mp4
 
+or Libav (which replaces FFmpeg on recent Debian/Ubuntu distros) doing
+
+    apitrace dump-images -o - application.trace \
+    | avconv -r 30 -f image2pipe -vcodec ppm -i - -vcodec mpeg4 -y output.mp4
+
+Recording a video with gstreamer
+--------------------------------------
+
+You can make a video of the output with gstreamer by doing
+
+    glretrace --snapshot-format=RGB -s - smokinguns.trace | gst-launch-0.10 fdsrc blocksize=409600 ! queue \
+    ! videoparse format=rgb width=1920 height=1080 ! queue ! ffmpegcolorspace ! queue \
+    ! vaapiupload direct-rendering=0 ! queue ! vaapiencodeh264 ! filesink location=xxx.264
 
 Trimming a trace
 ----------------
 
-You can make a smaller trace by doing:
+You can truncate a trace by doing:
 
-    apitrace trim --callset 100-1000 -o trimed.trace applicated.trace
+    apitrace trim --exact --calls 0-12345 -o trimed.trace application.trace
 
 If you need precise control over which calls to trim you can specify the
 individual call numbers a plaintext file, as described in the 'Call sets'
 section above.
+
+There is also experimental support for automatically trimming the calls
+necessary for a given frame or call:
+
+   apitrace trim --auto --calls=12345 -o trimed.trace application.trace
+   apitrace trim --auto --frames=12345 -o trimed.trace application.trace
 
 
 Profiling a trace
@@ -475,6 +435,59 @@ For example, on Linux:
 Or on Windows:
 
     python scripts\retracediff.py --retrace \path\to\glretrace.exe --ref-env TRACE_LIBGL=\path\to\reference\opengl32.dll application.trace
+
+
+Advanced GUI usage
+==================
+
+qapitrace has rudimentary support for replaying traces on a remote
+target device. This can be useful, for example, when developing for an
+embedded system. The primary GUI will run on the local host, while any
+replays will be performed on the target device.
+
+In order to target a remote device, use the command-line:
+
+    qapitrace --remote-target <HOST> <trace-file>
+
+In order for this to work, the following must be available in the
+system configuration:
+
+1. It must be possible for the current user to initiate an ssh session
+   that has access to the target's window system. The command to be
+   exectuted by qapitrace will be:
+
+        ssh <HOST> glretrace
+
+   For example, if the target device is using the X window system, one
+   can test whether an ssh session has access to the target X server
+   with:
+
+        ssh <HOST> xdpyinfo
+
+   If this command fails with something like "cannot open display"
+   then the user will have to configure the target to set the DISPLAY
+   environment variable, (for example, setting DISPLAY=:0 in the
+   .bashrc file on the target or similar).
+
+   Also, note that if the ssh session requires a custom username, then
+   this must be configured on the host side so that ssh can be
+   initiated without a username.
+
+   For example, if you normally connect with `ssh user@192.168.0.2`
+   you could configure ~/.ssh/config on the host with a block such as:
+
+        Host target
+          HostName 192.168.0.2
+          User user
+
+   And after this you should be able to connect with `ssh target` so
+   that you can also use `qapitrace --remote-target target`.
+
+2. The target host must have a functional glretrace binary available
+
+3. The target host must have access to <trace-file> at the same path
+   in the filesystem as the <trace-file> path on the host system being
+   passed to the qapitrace command line.
 
 
 [![githalytics.com alpha](https://cruel-carlota.pagodabox.com/c1062ad633aa7a458e9d7520021307e4 "githalytics.com")](http://githalytics.com/apitrace/apitrace)

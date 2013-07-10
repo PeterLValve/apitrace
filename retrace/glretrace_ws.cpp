@@ -131,7 +131,7 @@ Context::~Context()
 }
 
 
-static thread_specific Context *
+static OS_THREAD_SPECIFIC_PTR(Context)
 currentContextPtr;
 
 
@@ -213,6 +213,9 @@ updateDrawable(int width, int height) {
     if (width == 0 || height == 0) {
         return;
     }
+
+    width  = std::max(width,  currentDrawable->width);
+    height = std::max(height, currentDrawable->height);
 
     // Check for bound framebuffer last, as this may have a performance impact.
     GLint draw_framebuffer = 0;

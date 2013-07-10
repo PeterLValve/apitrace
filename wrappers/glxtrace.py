@@ -80,16 +80,85 @@ class GlxTracer(GlTracer):
             print '            gltrace::clearContext();'
             print '    }'
 
+        if function.name == 'glXBindTexImageEXT':
+            # FIXME: glXBindTexImageEXT gets called frequently, so we should
+            # avoid recording the same data over and over again somehow, e.g.:
+            # - get the pixels before and after glXBindTexImageEXT, and only
+            #   emit emitFakeTexture2D when it changes
+            # - keep a global hash of the pixels
+            # FIXME: Handle mipmaps
+            print r'''
+                unsigned glx_target = 0;
+                _glXQueryDrawable(display, drawable, GLX_TEXTURE_TARGET_EXT, &glx_target);
+                GLenum target;
+                switch (glx_target) {
+                // FIXME
+                //case GLX_TEXTURE_1D_EXT:
+                //    target = GL_TEXTURE_1D;
+                //    break;
+                case GLX_TEXTURE_2D_EXT:
+                    target = GL_TEXTURE_2D;
+                    break;
+                case GLX_TEXTURE_RECTANGLE_EXT:
+                    target = GL_TEXTURE_RECTANGLE;
+                    break;
+                default:
+                    os::log("apitrace: warning: %s: unsupported GLX_TEXTURE_TARGET_EXT 0x%u\n", __FUNCTION__, glx_target);
+                    target = GL_NONE;
+                    break;
+                }
+                GLint level = 0;
+                GLint internalformat = GL_NONE;
+                _glGetTexLevelParameteriv(target, level, GL_TEXTURE_INTERNAL_FORMAT, &internalformat);
+                // XXX: GL_TEXTURE_INTERNAL_FORMAT cannot be trusted on NVIDIA
+                // -- it sometimes returns GL_BGRA, even though GL_BGR/BGRA is
+                // not a valid internal format.
+                switch (internalformat) {
+                case GL_BGR:
+                    internalformat = GL_RGB;
+                    break;
+                case GL_BGRA:
+                    internalformat = GL_RGBA;
+                    break;
+                }
+                GLint width = 0;
+                _glGetTexLevelParameteriv(target, level, GL_TEXTURE_WIDTH, &width);
+                GLint height = 0;
+                _glGetTexLevelParameteriv(target, level, GL_TEXTURE_HEIGHT, &height);
+                GLint border = 0;
+                // XXX: We always use GL_RGBA format to read the pixels because:
+                // - some implementations (Mesa) seem to return bogus results
+                //   for GLX_TEXTURE_FORMAT_EXT
+                // - hardware usually stores GL_RGB with 32bpp, so it should be
+                //   faster to read/write
+                // - it is more robust against GL_(UN)PACK_ALIGNMENT state
+                //   changes
+                // The drawback is that traces will be slightly bigger.
+                GLenum format = GL_RGBA;
+                GLenum type = GL_UNSIGNED_BYTE;
+                if (target && internalformat && height && width) {
+                    // FIXME: This assumes (UN)PACK state (in particular
+                    // GL_(UN)PACK_ROW_LENGTH) is set to its defaults. We
+                    // really should temporarily reset the state here (and emit
+                    // according fake calls) to cope when its not. At very
+                    // least we need a heads up warning that this will cause
+                    // problems.
+                    GLint alignment = 4;
+                    GLint row_stride = _align(width * 4, alignment);
+                    GLvoid * pixels = malloc(height * row_stride);
+                    _glGetTexImage(target, level, format, type, pixels);
+            '''
+            self.emitFakeTexture2D()
+            print r'''
+                    free(pixels);
+                }
+            '''
+
 
 if __name__ == '__main__':
     print
     print '#include <stdlib.h>'
     print '#include <string.h>'
-    print
-    print '#ifndef _GNU_SOURCE'
-    print '#define _GNU_SOURCE // for dladdr'
-    print '#endif'
-    print '#include <dlfcn.h>'
     print
     print '#include "trace_writer_local.hpp"'
     print
@@ -97,6 +166,7 @@ if __name__ == '__main__':
     print '#define GL_GLEXT_PROTOTYPES'
     print '#define GLX_GLXEXT_PROTOTYPES'
     print
+    print '#include "dlopen.hpp"'
     print '#include "glproc.hpp"'
     print '#include "glsize.hpp"'
     print
@@ -110,26 +180,6 @@ if __name__ == '__main__':
     tracer.traceApi(api)
 
     print r'''
-
-
-/*
- * Invoke the true dlopen() function.
- */
-static void *_dlopen(const char *filename, int flag)
-{
-    typedef void * (*PFN_DLOPEN)(const char *, int);
-    static PFN_DLOPEN dlopen_ptr = NULL;
-
-    if (!dlopen_ptr) {
-        dlopen_ptr = (PFN_DLOPEN)dlsym(RTLD_NEXT, "dlopen");
-        if (!dlopen_ptr) {
-            os::log("apitrace: error: dlsym(RTLD_NEXT, \"dlopen\") failed\n");
-            return NULL;
-        }
-    }
-
-    return dlopen_ptr(filename, flag);
-}
 
 
 /*

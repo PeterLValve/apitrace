@@ -29,7 +29,7 @@
 
 #if !defined(_WIN32)
 #include <unistd.h> // for symlink
-#include <dlfcn.h>
+#include "dlopen.hpp"
 #endif
 
 
@@ -145,24 +145,70 @@ _getPrivateProcAddress(const char *procName)
 #else
 
 
-/*
- * Invoke the true dlopen() function.
- */
-static void *
-_dlopen(const char *filename, int flag)
-{
-    typedef void * (*PFNDLOPEN)(const char *, int);
-    static PFNDLOPEN dlopen_ptr = NULL;
-
-    if (!dlopen_ptr) {
-        dlopen_ptr = (PFNDLOPEN)dlsym(RTLD_NEXT, "dlopen");
-        if (!dlopen_ptr) {
-            os::log("apitrace: error: dlsym(RTLD_NEXT, \"dlopen\") failed\n");
-            return NULL;
+static inline void
+logSymbol(const char *name, void *ptr) {
+    if (0) {
+        if (ptr) {
+            Dl_info info;
+            if (ptr && dladdr(ptr, &info)) {
+                os::log("apitrace: %s -> \"%s\"\n", name, info.dli_fname);
+            }
+        } else {
+            os::log("apitrace: %s -> NULL\n", name);
         }
     }
+}
 
-    return dlopen_ptr(filename, flag);
+
+#ifdef __GLIBC__
+extern "C" void * __libc_dlsym(void *, const char *);
+#endif
+
+
+/*
+ * Protect against dlsym interception.
+ *
+ * We implement the whole API, so we don't need to intercept dlsym -- dlopen is
+ * enough. However we need to protect against other dynamic libraries
+ * intercepting dlsym, to prevent infinite recursion,
+ *
+ * In particular the Steam Community Overlay advertises dlsym. See also
+ * http://lists.freedesktop.org/archives/apitrace/2013-March/000573.html
+ */
+static inline void *
+_dlsym(void *handle, const char *symbol)
+{
+    void *result;
+
+#ifdef __GLIBC__
+    /*
+     * We rely on glibc's internal __libc_dlsym.  See also
+     * http://www.linuxforu.com/2011/08/lets-hook-a-library-function/
+     *
+     * Use use it to obtain the true dlsym.  We don't use __libc_dlsym directly
+     * because it does not support things such as RTLD_NEXT.
+     */
+    typedef void * (*PFN_DLSYM)(void *, const char *);
+    static PFN_DLSYM dlsym_ptr = NULL;
+    if (!dlsym_ptr) {
+        void *libdl_handle = _dlopen("libdl.so.2", RTLD_LOCAL | RTLD_NOW);
+        if (libdl_handle) {
+            dlsym_ptr = (PFN_DLSYM)__libc_dlsym(libdl_handle, "dlsym");
+        }
+        if (!dlsym_ptr) {
+            os::log("apitrace: error: failed to look up real dlsym\n");
+            return NULL;
+        }
+
+        logSymbol("dlsym", (void*)dlsym_ptr);
+    }
+
+    result = dlsym_ptr(handle, symbol);
+#else
+    result = dlsym(handle, symbol);
+#endif
+
+    return result;
 }
 
 
@@ -209,7 +255,11 @@ void * _libgl_sym(const char *symbol)
         }
     }
 
-    return dlsym(_libGlHandle, symbol);
+    result = _dlsym(_libGlHandle, symbol);
+
+    logSymbol(symbol, result);
+
+    return result;
 }
 
 

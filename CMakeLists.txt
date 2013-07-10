@@ -3,7 +3,8 @@ cmake_minimum_required (VERSION 2.8)
 
 # Use clang on MacOSX. gcc doesn't support __thread key, and Apple has
 # abandoned it for clang.  This must be done before the project is defined.
-if (APPLE)
+# But DONT force clang if we are cross-compiling to Android.
+if (APPLE AND NOT ANDROID_NDK)
     set (CMAKE_C_COMPILER "clang")
     set (CMAKE_CXX_COMPILER "clang++")
 endif ()
@@ -34,18 +35,16 @@ set (ENABLE_EGL true CACHE BOOL "Enable EGL support.")
 ##############################################################################
 # Find dependencies
 
-# Ensure __thread is support
-if (NOT MSVC)
+# Check for compiler TLS support.  We don't use compiler TLS support on Windows
+# because, even if the compiler supports it, Windows XP does not support TLS on
+# DLLs.
+if (NOT WIN32)
     include (CheckCXXSourceCompiles)
     check_cxx_source_compiles("__thread int i; int main() { return 0; }" HAVE_COMPILER_TLS)
-    if (NOT HAVE_COMPILER_TLS)
-        if (APPLE)
-            message (FATAL_ERROR "C++ compiler does not support __thread keyword. Please install XCode 4.5 or higher.")
-        else (MINGW32)
-            message (FATAL_ERROR "C++ compiler does not support __thread keyword. Please use MinGW g++ version 4.4 or higher")
-        else ()
-            message (FATAL_ERROR "C++ compiler does not support __thread keyword.")
-        endif ()
+    if (HAVE_COMPILER_TLS)
+        add_definitions (-DHAVE_COMPILER_TLS=__thread)
+    else ()
+        message (WARNING "C++ compiler does not support __thread keyword.")
     endif ()
 endif ()
 
@@ -175,6 +174,11 @@ if (MINGW)
     endif ()
 endif ()
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    # For RTLD_DEFAULT and RTLD_NEXT
+    add_definitions (-D_GNU_SOURCE)
+endif ()
+
 
 # Put all executables into the same top level build directory, regardless of
 # which subdirectory they are declared
@@ -194,6 +198,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     CHECK_INCLUDE_FILES(proc/readproc.h READPROC_H_FOUND)
     if (READPROC_H_FOUND)
         add_definitions (-DHAVE_READPROC_H)
+        find_library (proc_LIBRARY NAMES proc procps)
     endif ()
 endif()
 
@@ -254,6 +259,12 @@ if (WIN32)
     add_subdirectory (thirdparty/directxtex)
 endif ()
 
+if (CMAKE_EXECUTABLE_FORMAT STREQUAL "ELF")
+    add_subdirectory (thirdparty/libbacktrace)
+    include_directories (${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/libbacktrace)
+    set (LIBBACKTRACE_LIBRARIES backtrace)
+endif ()
+
 # Always use bundled QJSon.
 # - The packaged versions QJson are very old, and do not support NaN/Infinity.
 # - To make it easier to build the GUI on Windows and MacOSX, as there are no
@@ -298,6 +309,7 @@ endif ()
 add_library (common STATIC
     common/trace_callset.cpp
     common/trace_dump.cpp
+    common/trace_fast_callset.cpp
     common/trace_file.cpp
     common/trace_file_read.cpp
     common/trace_file_write.cpp
@@ -313,10 +325,10 @@ add_library (common STATIC
     common/trace_profiler.cpp
     common/trace_option.cpp
     common/${os}
+    common/trace_backtrace.cpp
 )
 
 set_target_properties (common PROPERTIES
-    COMPILE_DEFINITIONS APITRACE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     # Ensure it can be statically linked in shared libraries
     COMPILE_FLAGS "${CMAKE_SHARED_LIBRARY_CXX_FLAGS}"
 )
@@ -401,7 +413,7 @@ if (MSVC)
     )
 endif ()
 
-set (CPACK_PACKAGE_VERSION_MAJOR "3")
+set (CPACK_PACKAGE_VERSION_MAJOR "4")
 set (CPACK_PACKAGE_VERSION_MINOR "0")
 
 # Use current date in YYYYMMDD format as patch number 

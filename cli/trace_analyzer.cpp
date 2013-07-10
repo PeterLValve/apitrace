@@ -162,7 +162,7 @@ TraceAnalyzer::consume(std::string resource)
     resources.erase(resource);
 
     for (call = calls.begin(); call != calls.end(); call++) {
-        required.insert(*call);
+        required.add(*call);
     }
 }
 
@@ -268,12 +268,6 @@ TraceAnalyzer::callHasNoSideEffects(trace::Call *call, const char *name)
 {
     /* If call is flagged as no side effects, then we are done here. */
     if (call->flags & trace::CALL_FLAG_NO_SIDE_EFFECTS) {
-        return true;
-    }
-
-    /* Similarly, swap-buffers calls don't have interesting side effects. */
-    if (call->flags & trace::CALL_FLAG_SWAP_RENDERTARGET &&
-        call->flags & trace::CALL_FLAG_END_FRAME) {
         return true;
     }
 
@@ -721,7 +715,7 @@ TraceAnalyzer::requireDependencies(trace::Call *call)
     consume("state");
 }
 
-TraceAnalyzer::TraceAnalyzer(TrimFlags trimFlagsOpt = -1):
+TraceAnalyzer::TraceAnalyzer(TrimFlags trimFlagsOpt):
     transformFeedbackActive(false),
     framebufferObjectActive(false),
     insideBeginEnd(false),
@@ -760,13 +754,13 @@ TraceAnalyzer::require(trace::Call *call)
     requireDependencies(call);
 
     /* Then insert this call itself. */
-    required.insert(call->no);
+    required.add(call->no);
 }
 
 /* Return a set of all the required calls, (both those calls added
  * explicitly with require() and those implicitly depended
  * upon. */
-std::set<unsigned>  *
+trace::FastCallSet *
 TraceAnalyzer::get_required(void)
 {
     return &required;

@@ -287,6 +287,9 @@ public:
     bool hasBinaryData() const;
     int binaryDataIndex() const;
 
+    QString backtrace() const;
+    void setBacktrace(QString backtrace);
+
     void missingThumbnail();
 
     bool isDrawCall() const;
@@ -301,6 +304,8 @@ private:
     QVector<QVariant> m_editedValues;
 
     QString m_error;
+
+    QString m_backtrace;
 
     mutable QString m_richText;
     mutable QString m_searchText;

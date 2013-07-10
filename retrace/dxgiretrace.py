@@ -95,7 +95,16 @@ createWindow(DXGI_SWAP_CHAIN_DESC *pSwapChainDesc) {
                 # Toggle debugging
                 print r'    Flags &= ~D3D11_CREATE_DEVICE_DEBUG;'
                 print r'    if (retrace::debug) {'
-                print r'        if (LoadLibraryA("d3d11sdklayers")) {'
+                print r'        OSVERSIONINFO osvi;'
+                print r'        BOOL bIsWindows8orLater;'
+                print r'        ZeroMemory(&osvi, sizeof osvi);'
+                print r'        osvi.dwOSVersionInfoSize = sizeof osvi;'
+                print r'        GetVersionEx(&osvi);'
+                print r'        bIsWindows8orLater = '
+                print r'            (osvi.dwMajorVersion > 6) ||'
+                print r'            (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion >= 2);'
+                print r'        const char *szD3d11SdkLayers = bIsWindows8orLater ? "d3d11_1sdklayers" : "d3d11sdklayers";'
+                print r'        if (LoadLibraryA(szD3d11SdkLayers)) {'
                 print r'            Flags |= D3D11_CREATE_DEVICE_DEBUG;'
                 print r'        }'
                 print r'    }'
@@ -104,6 +113,33 @@ createWindow(DXGI_SWAP_CHAIN_DESC *pSwapChainDesc) {
                 self.forceDriver('D3D_DRIVER_TYPE')
 
         Retracer.invokeFunction(self, function)
+
+        # Debug layers with Windows 8 or Windows 7 Platform update are a mess.
+        # It's not possible to know before hand whether they are or not
+        # available, so always retry with debug flag off..
+        if function.name in self.createDeviceFunctionNames:
+            print r'    if (FAILED(_result)) {'
+
+            if function.name.startswith('D3D10CreateDevice'):
+                print r'        if (_result == E_FAIL && (Flags & D3D10_CREATE_DEVICE_DEBUG)) {'
+                print r'            retrace::warning(call) << "debug layer (d3d10sdklayers.dll) not installed\n";'
+                print r'            Flags &= ~D3D10_CREATE_DEVICE_DEBUG;'
+                Retracer.invokeFunction(self, function)
+                print r'        }'
+            elif function.name.startswith('D3D11CreateDevice'):
+                print r'        if (_result == E_FAIL && (Flags & D3D11_CREATE_DEVICE_DEBUG)) {'
+                print r'            retrace::warning(call) << "debug layer (d3d11sdklayers.dll for Windows 7, d3d11_1sdklayers.dll for Windows 8 or Windows 7 with KB 2670838) not properly installed\n";'
+                print r'            Flags &= ~D3D11_CREATE_DEVICE_DEBUG;'
+                Retracer.invokeFunction(self, function)
+                print r'        }'
+            else:
+                assert False
+
+            print r'        if (FAILED(_result)) {'
+            print r'            exit(1);'
+            print r'        }'
+
+            print r'    }'
 
     def forceDriver(self, enum):
         # This can only work when pAdapter is NULL. For non-NULL pAdapter we
@@ -153,14 +189,20 @@ createWindow(DXGI_SWAP_CHAIN_DESC *pSwapChainDesc) {
         # keep track of the last used device for state dumping
         if interface.name in ('ID3D10Device', 'ID3D10Device1'):
             if method.name == 'Release':
-                print r'    d3d10Dumper.unbindDevice(_this);'
+                print r'    if (call.ret->toUInt() == 0) {'
+                print r'        d3d10Dumper.unbindDevice(_this);'
+                print r'    }'
             else:
                 print r'    d3d10Dumper.bindDevice(_this);'
-        if interface.name in ('ID3D11DeviceContext',):
+        if interface.name in ('ID3D11DeviceContext', 'ID3D11DeviceContext1'):
             if method.name == 'Release':
-                print r'    d3d11Dumper.unbindDevice(_this);'
+                print r'    if (call.ret->toUInt() == 0) {'
+                print r'        d3d11Dumper.unbindDevice(_this);'
+                print r'    }'
             else:
-                print r'    d3d11Dumper.bindDevice(_this);'
+                print r'    if (_this->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE) {'
+                print r'        d3d11Dumper.bindDevice(_this);'
+                print r'    }'
 
         if interface.name == 'IDXGIFactory' and method.name == 'QueryInterface':
             print r'    if (riid == IID_IDXGIFactoryDWM) {'
@@ -261,11 +303,11 @@ createWindow(DXGI_SWAP_CHAIN_DESC *pSwapChainDesc) {
             print r'    d3dretrace::processEvents();'
 
         if method.name == 'Map':
-            print '    VOID *_pbData = NULL;'
-            print '    size_t _MappedSize = 0;'
-            print '    _getMapInfo(_this, %s, _pbData, _MappedSize);' % ', '.join(method.argNames())
-            print '    if (_MappedSize) {'
-            print '        _maps[_this] = _pbData;'
+            print '    _MAP_DESC _MapDesc;'
+            print '    _getMapDesc(_this, %s, _MapDesc);' % ', '.join(method.argNames())
+            print '    size_t _MappedSize = _MapDesc.Size;'
+            print '    if (_MapDesc.Size) {'
+            print '        _maps[_this] = _MapDesc.pData;'
             print '    } else {'
             print '        return;'
             print '    }'

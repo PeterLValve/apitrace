@@ -30,6 +30,9 @@
 #include <limits.h> // for CHAR_MAX
 #include <iostream>
 #include <getopt.h>
+#ifndef _WIN32
+#include <unistd.h> // for isatty()
+#endif
 
 #include "os_binary.hpp"
 #include "os_time.hpp"
@@ -42,11 +45,16 @@
 
 
 static bool waitOnFinish = false;
+static bool loopOnFinish = false;
 
-static const char *comparePrefix = NULL;
 static const char *snapshotPrefix = NULL;
+static enum {
+    PNM_FMT,
+    RAW_RGB
+} snapshotFormat = PNM_FMT;
+
 static trace::CallSet snapshotFrequency;
-static trace::CallSet compareFrequency;
+static trace::ParseBookmark lastFrameStart;
 
 static unsigned dumpStateCallNo = ~0;
 
@@ -94,30 +102,17 @@ Dumper *dumper = &defaultDumper;
 
 
 /**
- * Take/compare snapshots.
+ * Take snapshots.
  */
 static void
 takeSnapshot(unsigned call_no) {
     static unsigned snapshot_no = 0;
 
-    assert(snapshotPrefix || comparePrefix);
-
-    image::Image *ref = NULL;
-
-    if (comparePrefix) {
-        os::String filename = os::String::format("%s%010u.png", comparePrefix, call_no);
-        ref = image::readPNG(filename);
-        if (!ref) {
-            return;
-        }
-        if (retrace::verbosity >= 0) {
-            std::cout << "Read " << filename << "\n";
-        }
-    }
+    assert(snapshotPrefix);
 
     image::Image *src = dumper->getSnapshot();
     if (!src) {
-        std::cout << "Failed to get snapshot\n";
+        std::cerr << call_no << ": warning: failed to get snapshot\n";
         return;
     }
 
@@ -126,7 +121,10 @@ takeSnapshot(unsigned call_no) {
             char comment[21];
             snprintf(comment, sizeof comment, "%u",
                      useCallNos ? call_no : snapshot_no);
-            src->writePNM(std::cout, comment);
+            if (snapshotFormat == RAW_RGB)
+                src->writeRAW(std::cout);
+            else
+                src->writePNM(std::cout, comment);
         } else {
             os::String filename = os::String::format("%s%010u.png",
                                                      snapshotPrefix,
@@ -135,11 +133,6 @@ takeSnapshot(unsigned call_no) {
                 std::cout << "Wrote " << filename << "\n";
             }
         }
-    }
-
-    if (ref) {
-        std::cout << "Snapshot " << call_no << " average precision of " << src->compare(*ref) << " bits\n";
-        delete ref;
     }
 
     delete src;
@@ -160,8 +153,7 @@ static void
 retraceCall(trace::Call *call) {
     bool swapRenderTarget = call->flags &
         trace::CALL_FLAG_SWAP_RENDERTARGET;
-    bool doSnapshot = snapshotFrequency.contains(*call) ||
-        compareFrequency.contains(*call);
+    bool doSnapshot = snapshotFrequency.contains(*call);
 
     // For calls which cause rendertargets to be swaped, we take the
     // snapshot _before_ swapping the rendertargets.
@@ -274,6 +266,12 @@ public:
         }
     }
 
+    ~RelayRunner() {
+        if (thread.joinable()) {
+            thread.join();
+        }
+    }
+
     /**
      * Thread main loop.
      */
@@ -309,13 +307,34 @@ public:
      */
     void
     runLeg(trace::Call *call) {
+
         /* Consume successive calls for this thread. */
         do {
+            bool callEndsFrame = false;
+            static trace::ParseBookmark frameStart;
+
             assert(call);
             assert(call->thread_id == leg);
+
+            if (loopOnFinish && call->flags & trace::CALL_FLAG_END_FRAME) {
+                callEndsFrame = true;
+                parser.getBookmark(frameStart);
+            }
+
             retraceCall(call);
             delete call;
             call = parser.parse_call();
+
+            /* Restart last frame if looping is requested. */
+            if (loopOnFinish) {
+                if (!call) {
+                    parser.setBookmark(lastFrameStart);
+                    call = parser.parse_call();
+                } else if (callEndsFrame) {
+                    lastFrameStart = frameStart;
+                }
+            }
+
         } while (call && call->thread_id == leg);
 
         if (call) {
@@ -423,6 +442,14 @@ RelayRace::run(void) {
         return;
     }
 
+    /* If the user wants to loop we need to get a bookmark target. We
+     * usually get this after replaying a call that ends a frame, but
+     * for a trace that has only one frame we need to get it at the
+     * beginning. */
+    if (loopOnFinish) {
+        parser.getBookmark(lastFrameStart);
+    }
+
     RelayRunner *foreRunner = getForeRunner();
     if (call->thread_id == 0) {
         /* We are the forerunner thread, so no need to pass baton */
@@ -528,18 +555,18 @@ usage(const char *argv0) {
         "      --pgpu              gpu profiling (gpu times per draw call)\n"
         "      --ppd               pixels drawn profiling (pixels drawn per draw call)\n"
         "      --pmem              memory usage profiling (vsize rss per call)\n"
-        "  -c, --compare=PREFIX    compare against snapshots with given PREFIX\n"
-        "  -C, --calls=CALLSET     calls to compare (default is every frame)\n"
         "      --call-nos[=BOOL]   use call numbers in snapshot filenames\n"
         "      --core              use core profile\n"
         "      --db                use a double buffer visual (default)\n"
         "      --driver=DRIVER     force driver type (`hw`, `sw`, `ref`, `null`, or driver module name)\n"
         "      --sb                use a single buffer visual\n"
         "  -s, --snapshot-prefix=PREFIX    take snapshots; `-` for PNM stdout output\n"
+        "      --snapshot-format=FMT       use (PNM or RGB; default is PNM) when writing to stdout output\n"
         "  -S, --snapshot=CALLSET  calls to snapshot (default is every frame)\n"
         "  -v, --verbose           increase output verbosity\n"
         "  -D, --dump-state=CALL   dump state at specific call no\n"
         "  -w, --wait              waitOnFinish on final frame\n"
+        "      --loop              continuously loop, replaying final frame.\n"
         "      --singlethread      use a single thread to replay command stream\n";
 }
 
@@ -553,18 +580,18 @@ enum {
     PPD_OPT,
     PMEM_OPT,
     SB_OPT,
-    SINGLETHREAD_OPT,
+    SNAPSHOT_FORMAT_OPT,
+    LOOP_OPT,
+    SINGLETHREAD_OPT
 };
 
 const static char *
-shortOptions = "bc:C:D:hs:S:vw";
+shortOptions = "bD:hs:S:vw";
 
 const static struct option
 longOptions[] = {
     {"benchmark", no_argument, 0, 'b'},
     {"call-nos", optional_argument, 0, CALL_NOS_OPT },
-    {"calls", required_argument, 0, 'C'},
-    {"compare", required_argument, 0, 'c'},
     {"core", no_argument, 0, CORE_OPT},
     {"db", no_argument, 0, DB_OPT},
     {"driver", required_argument, 0, DRIVER_OPT},
@@ -576,9 +603,11 @@ longOptions[] = {
     {"pmem", no_argument, 0, PMEM_OPT},
     {"sb", no_argument, 0, SB_OPT},
     {"snapshot-prefix", required_argument, 0, 's'},
+    {"snapshot-format", required_argument, 0, SNAPSHOT_FORMAT_OPT},
     {"snapshot", required_argument, 0, 'S'},
     {"verbose", no_argument, 0, 'v'},
     {"wait", no_argument, 0, 'w'},
+    {"loop", no_argument, 0, LOOP_OPT},
     {"singlethread", no_argument, 0, SINGLETHREAD_OPT},
     {0, 0, 0, 0}
 };
@@ -596,7 +625,6 @@ int main(int argc, char **argv)
     using namespace retrace;
     int i;
 
-    assert(compareFrequency.empty());
     assert(snapshotFrequency.empty());
 
     int opt;
@@ -611,18 +639,6 @@ int main(int argc, char **argv)
             break;
         case CALL_NOS_OPT:
             useCallNos = trace::boolOption(optarg);
-            break;
-        case 'c':
-            comparePrefix = optarg;
-            if (compareFrequency.empty()) {
-                compareFrequency = trace::CallSet(trace::FREQUENCY_FRAME);
-            }
-            break;
-        case 'C':
-            compareFrequency = trace::CallSet(optarg);
-            if (comparePrefix == NULL) {
-                comparePrefix = "";
-            }
             break;
         case 'D':
             dumpStateCallNo = atoi(optarg);
@@ -663,7 +679,30 @@ int main(int argc, char **argv)
             if (snapshotPrefix[0] == '-' && snapshotPrefix[1] == 0) {
                 os::setBinaryMode(stdout);
                 retrace::verbosity = -2;
+            } else {
+                /*
+                 * Create the snapshot directory if it does not exist.
+                 *
+                 * We can't just use trimFilename() because when applied to
+                 * "/foo/boo/" it would merely return "/foo".
+                 *
+                 * XXX: create nested directories.
+                 */
+                os::String prefix(snapshotPrefix);
+                os::String::iterator sep = prefix.rfindSep(false);
+                if (sep != prefix.end()) {
+                    prefix.erase(sep, prefix.end());
+                    if (!prefix.exists() && !os::createDirectory(prefix)) {
+                        std::cerr << "error: failed to create `" << prefix.str() << "` directory\n";
+                    }
+                }
             }
+            break;
+	case SNAPSHOT_FORMAT_OPT:
+            if (strcmp(optarg, "RGB") == 0)
+                snapshotFormat = RAW_RGB;
+            else
+                snapshotFormat = PNM_FMT;
             break;
         case 'S':
             snapshotFrequency = trace::CallSet(optarg);
@@ -676,6 +715,9 @@ int main(int argc, char **argv)
             break;
         case 'w':
             waitOnFinish = true;
+            break;
+        case LOOP_OPT:
+            loopOnFinish = true;
             break;
         case PGPU_OPT:
             retrace::debug = false;
@@ -711,6 +753,12 @@ int main(int argc, char **argv)
             return 1;
         }
     }
+
+#ifndef _WIN32
+    if (!isatty(STDOUT_FILENO)) {
+        dumpFlags |= trace::DUMP_FLAG_NO_COLOR;
+    }
+#endif
 
     retrace::setUp();
     if (retrace::profiling) {

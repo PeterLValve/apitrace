@@ -59,12 +59,16 @@ class D3DRetracer(Retracer):
         # keep track of the last used device for state dumping
         if interface.name in ('IDirect3DDevice9', 'IDirect3DDevice9Ex'):
             if method.name == 'Release':
-                print r'    d3d9Dumper.unbindDevice(_this);'
+                print r'    if (call.ret->toUInt() == 0) {'
+                print r'        d3d9Dumper.unbindDevice(_this);'
+                print r'    }'
             else:
                 print r'    d3d9Dumper.bindDevice(_this);'
         if interface.name in ('IDirect3DDevice8', 'IDirect3DDevice8Ex'):
             if method.name == 'Release':
-                print r'    d3d8Dumper.unbindDevice(_this);'
+                print r'    if (call.ret->toUInt() == 0) {'
+                print r'        d3d8Dumper.unbindDevice(_this);'
+                print r'    }'
             else:
                 print r'    d3d8Dumper.bindDevice(_this);'
 
@@ -121,7 +125,6 @@ class D3DRetracer(Retracer):
         # process events after presents
         if method.name == 'Present':
             print r'    d3dretrace::processEvents();'
-            print r'    Sleep(500);'
 
         if method.name in ('Lock', 'LockRect', 'LockBox'):
             print '    VOID *_pbData = NULL;'

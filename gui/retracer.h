@@ -21,6 +21,9 @@ public:
     QString fileName() const;
     void setFileName(const QString &name);
 
+    QString remoteTarget() const;
+    void setRemoteTarget(const QString &host);
+
     void setAPI(trace::API api);
 
     bool isBenchmarking() const;
@@ -65,6 +68,7 @@ protected:
 
 private:
     QString m_fileName;
+    QString m_remoteTarget;
     trace::API m_api;
     bool m_benchmarking;
     bool m_doubleBuffered;

@@ -36,6 +36,7 @@
 
 
 #include <string.h>
+#include <assert.h>
 
 #include <algorithm>
 
@@ -445,17 +446,141 @@ _glDrawElementsBaseVertex_count(GLsizei count, GLenum type, const GLvoid *indice
 #define _glDrawArraysInstancedEXT_count _glDrawArraysInstanced_count
 #define _glDrawElementsInstancedEXT_count _glDrawElementsInstanced_count
 
+typedef struct {
+    GLuint count;
+    GLuint primCount;
+    GLuint first;
+    GLuint baseInstance;
+} DrawArraysIndirectCommand;
+
+static inline GLuint
+_glMultiDrawArraysIndirect_count(const GLvoid *indirect, GLsizei drawcount, GLsizei stride) {
+    const DrawArraysIndirectCommand *cmd;
+    GLvoid *temp = 0;
+
+    if (drawcount <= 0) {
+        return 0;
+    }
+
+    if (stride == 0) {
+        stride = sizeof *cmd;
+    }
+
+    GLint draw_indirect_buffer = _glGetInteger(GL_DRAW_INDIRECT_BUFFER_BINDING);
+    if (draw_indirect_buffer) {
+        // Read commands from indirect buffer object
+        GLintptr offset = (GLintptr)indirect;
+        GLsizeiptr size = sizeof *cmd + (drawcount - 1) * stride;
+        GLvoid *temp = malloc(size);
+        if (!temp) {
+            return 0;
+        }
+        memset(temp, 0, size);
+        _glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, size, temp);
+        indirect = temp;
+    } else {
+        if (!indirect) {
+            return 0;
+        }
+    }
+
+    GLuint count = 0;
+    for (GLsizei i = 0; i < drawcount; ++i) {
+        cmd = (const DrawArraysIndirectCommand *)((const GLbyte *)indirect + i * stride);
+
+        GLuint count_i = _glDrawArraysInstancedBaseInstance_count(
+            cmd->first,
+            cmd->count,
+            cmd->primCount,
+            cmd->baseInstance
+        );
+
+        count = std::max(count, count_i);
+    }
+
+    if (draw_indirect_buffer) {
+        free(temp);
+    }
+
+    return count;
+}
+
 static inline GLuint
 _glDrawArraysIndirect_count(const GLvoid *indirect) {
-    os::log("apitrace: warning: %s: unsupported\n", __FUNCTION__);
-    return 0;
+    return _glMultiDrawArraysIndirect_count(indirect, 1, 0);
+}
+
+typedef struct {
+    GLuint count;
+    GLuint primCount;
+    GLuint firstIndex;
+    GLuint baseVertex;
+    GLuint baseInstance;
+} DrawElementsIndirectCommand;
+
+static inline GLuint
+_glMultiDrawElementsIndirect_count(GLenum type, const GLvoid *indirect, GLsizei drawcount, GLsizei stride) {
+    const DrawElementsIndirectCommand *cmd;
+    GLvoid *temp = 0;
+
+    if (drawcount <= 0) {
+        return 0;
+    }
+
+    if (stride == 0) {
+        stride = sizeof *cmd;
+    }
+
+    GLint draw_indirect_buffer = _glGetInteger(GL_DRAW_INDIRECT_BUFFER_BINDING);
+    if (draw_indirect_buffer) {
+        // Read commands from indirect buffer object
+        GLintptr offset = (GLintptr)indirect;
+        GLsizeiptr size = sizeof *cmd + (drawcount - 1) * stride;
+        GLvoid *temp = malloc(size);
+        if (!temp) {
+            return 0;
+        }
+        memset(temp, 0, size);
+        _glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, size, temp);
+        indirect = temp;
+    } else {
+        if (!indirect) {
+            return 0;
+        }
+    }
+
+    cmd = (const DrawElementsIndirectCommand *)indirect;
+
+    GLuint count = 0;
+    for (GLsizei i = 0; i < drawcount; ++i) {
+        cmd = (const DrawElementsIndirectCommand *)((const GLbyte *)indirect + i * stride);
+
+        GLuint count_i = _glDrawElementsInstancedBaseVertexBaseInstance_count(
+            cmd->count,
+            type,
+            (GLvoid *)(uintptr_t)(cmd->firstIndex * _gl_type_size(type)),
+            cmd->primCount,
+            cmd->baseVertex,
+            cmd->baseInstance
+        );
+
+        count = std::max(count, count_i);
+    }
+
+    if (draw_indirect_buffer) {
+        free(temp);
+    }
+
+    return count;
 }
 
 static inline GLuint
 _glDrawElementsIndirect_count(GLenum type, const GLvoid *indirect) {
-    os::log("apitrace: warning: %s: unsupported\n", __FUNCTION__);
-    return 0;
+    return _glMultiDrawElementsIndirect_count(type, indirect, 1, 0);
 }
+
+#define _glMultiDrawArraysIndirectAMD_count _glMultiDrawArraysIndirect_count
+#define _glMultiDrawElementsIndirectAMD_count _glMultiDrawElementsIndirect_count
 
 static inline GLuint
 _glMultiDrawArrays_count(const GLint *first, const GLsizei *count, GLsizei drawcount) {
@@ -582,37 +707,66 @@ _glMap2d_size(GLenum target, GLint ustride, GLint uorder, GLint vstride, GLint v
 
 #define _glMap2f_size _glMap2d_size
 
+/**
+ * Number of channels in this format.
+ *
+ * That is, the number of elements per pixel when this format is passed with a
+ * to DrawPixels, ReadPixels, TexImage*, TexSubImage*, GetTexImage, etc.
+ */
 static inline unsigned
 _gl_format_channels(GLenum format) {
     switch (format) {
     case GL_COLOR_INDEX:
     case GL_RED:
+    case GL_RED_INTEGER:
     case GL_GREEN:
+    case GL_GREEN_INTEGER:
     case GL_BLUE:
+    case GL_BLUE_INTEGER:
     case GL_ALPHA:
+    case GL_ALPHA_INTEGER:
     case GL_INTENSITY:
     case GL_LUMINANCE:
+    case GL_LUMINANCE_INTEGER_EXT:
     case GL_DEPTH_COMPONENT:
     case GL_STENCIL_INDEX:
         return 1;
     case GL_DEPTH_STENCIL:
     case GL_LUMINANCE_ALPHA:
+    case GL_LUMINANCE_ALPHA_INTEGER_EXT:
     case GL_RG:
-    case GL_HILO_NV:
-    case GL_DSDT_NV:
+    case GL_RG_INTEGER:
+    case GL_422_EXT: // (luminance, chrominance)
+    case GL_422_REV_EXT: // (luminance, chrominance)
+    case GL_422_AVERAGE_EXT: // (luminance, chrominance)
+    case GL_422_REV_AVERAGE_EXT: // (luminance, chrominance)
+    case GL_HILO_NV: // (hi, lo)
+    case GL_DSDT_NV: // (ds, dt)
+    case GL_YCBCR_422_APPLE: // (luminance, chroma)
+    case GL_RGB_422_APPLE: // (G, B) on even pixels, (G, R) on odd pixels
+    case GL_YCRCB_422_SGIX: // (Y, [Cb,Cr])
         return 2;
     case GL_RGB:
+    case GL_RGB_INTEGER:
     case GL_BGR:
-    case GL_DSDT_MAG_NV:
+    case GL_BGR_INTEGER:
+    case GL_DSDT_MAG_NV: // (ds, dt, magnitude)
+    case GL_YCRCB_444_SGIX: // (Cb, Y, Cr)
         return 3;
     case GL_RGBA:
+    case GL_RGBA_INTEGER:
     case GL_BGRA:
+    case GL_BGRA_INTEGER:
     case GL_ABGR_EXT:
     case GL_CMYK_EXT:
-    case GL_DSDT_MAG_VIB_NV:
+    case GL_DSDT_MAG_VIB_NV: // (ds, dt, magnitude, vibrance)
         return 4;
     case GL_CMYKA_EXT:
         return 5;
+    case GL_FORMAT_SUBSAMPLE_24_24_OML:
+    case GL_FORMAT_SUBSAMPLE_244_244_OML:
+        // requires UNSIGNED_INT_10_10_10_2, so this value will be ignored
+        return 0;
     default:
         os::log("apitrace: warning: %s: unexpected format GLenum 0x%04X\n", __FUNCTION__, format);
         return 0;
@@ -813,6 +967,507 @@ _glClearBuffer_size(GLenum buffer)
         os::log("apitrace: warning: %s: unexpected buffer GLenum 0x%04X\n", __FUNCTION__, buffer);
         return 0;
     }
+}
+
+static inline size_t
+_glPath_coords_size(GLsizei numCoords, GLenum coordType)
+{
+    switch (coordType) {
+    case GL_BYTE:
+        return numCoords * sizeof(GLbyte);
+    case GL_UNSIGNED_BYTE:
+        return numCoords * sizeof(GLubyte);
+    case GL_SHORT:
+        return numCoords * sizeof(GLshort);
+    case GL_UNSIGNED_SHORT:
+        return numCoords * sizeof(GLushort);
+    case GL_FLOAT:
+        return numCoords * sizeof(GLfloat);
+    default:
+        return 0;
+    }
+}
+
+static inline size_t
+_glPath_fontName_size(GLenum fontTarget, const void *fontName)
+{
+    switch (fontTarget) {
+    case GL_STANDARD_FONT_NAME_NV:
+    case GL_SYSTEM_FONT_NAME_NV:
+    case GL_FILE_NAME_NV:
+        {
+            // Include +1 to copy nul terminator.
+            GLsizei size = GLsizei(strlen(reinterpret_cast<const char*>(fontName))+1);
+            return size;
+        }
+    default:
+        return 0;
+    }
+}
+
+static inline size_t
+_glPath_chardcodes_size(GLsizei numGlyphs, GLenum type)
+{
+    GLsizei bytes_per_glyph;
+    switch (type) {
+    case GL_FLOAT:
+    case GL_INT:
+        bytes_per_glyph = 4;
+        break;
+    case GL_BYTE:
+        bytes_per_glyph = 1;
+        break;
+    case GL_SHORT:
+        bytes_per_glyph = 2;
+        break;
+    default:
+        return 0;
+    }
+    return bytes_per_glyph*numGlyphs;
+}
+
+static GLsizei floatPerTransformList(GLenum transformType)
+{
+    switch (transformType) {
+    case GL_NONE:
+        return 0;
+    case GL_TRANSLATE_X_NV:
+    case GL_TRANSLATE_Y_NV:
+        return 1;
+    case GL_TRANSLATE_2D_NV:
+        return 2;
+    case GL_TRANSLATE_3D_NV:
+        return 3;
+    case GL_AFFINE_2D_NV:
+    case GL_TRANSPOSE_AFFINE_2D_NV:
+        return 6;
+    case GL_PROJECTIVE_2D_NV:
+    case GL_TRANSPOSE_PROJECTIVE_2D_NV:
+        return 9;
+    case GL_AFFINE_3D_NV:
+    case GL_TRANSPOSE_AFFINE_3D_NV:
+        return 12;
+    case GL_PROJECTIVE_3D_NV:
+    case GL_TRANSPOSE_PROJECTIVE_3D_NV:
+        return 16;
+    default:
+        return 0;
+    }
+}
+
+static inline size_t
+_gl_transformType_size(GLenum transformType)
+{
+    return floatPerTransformList(transformType)*sizeof(GLfloat);
+}
+
+static inline size_t
+_gl_transformType_size(GLsizei numPaths, GLenum transformType)
+{
+    return numPaths*floatPerTransformList(transformType)*sizeof(GLfloat);
+}
+
+static size_t valuesPerPathParameter(GLenum pname)
+{
+    switch (pname) {
+    case GL_PATH_FILL_MODE_NV:
+    case GL_PATH_FILL_MASK_NV:
+    case GL_PATH_FILL_COVER_MODE_NV:
+    case GL_PATH_STROKE_WIDTH_NV:
+    case GL_PATH_INITIAL_END_CAP_NV:
+    case GL_PATH_TERMINAL_END_CAP_NV:
+    case GL_PATH_JOIN_STYLE_NV:
+    case GL_PATH_MITER_LIMIT_NV:
+    case GL_PATH_INITIAL_DASH_CAP_NV:
+    case GL_PATH_TERMINAL_DASH_CAP_NV:
+    case GL_PATH_DASH_OFFSET_NV:
+    case GL_PATH_DASH_OFFSET_RESET_NV:
+    case GL_PATH_CLIENT_LENGTH_NV:
+    case GL_PATH_STROKE_COVER_MODE_NV:
+    case GL_PATH_STROKE_MASK_NV:
+    case GL_PATH_STROKE_OVERSAMPLE_COUNT_NV:
+    case GL_PATH_SAMPLE_QUALITY_NV:
+    case GL_PATH_END_CAPS_NV:  // not valid for glGetPathParameter
+    case GL_PATH_DASH_CAPS_NV: // not valid for glGetPathParameter
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static inline size_t
+_gl_PathParameter_size(GLenum pname)
+{
+    return valuesPerPathParameter(pname);
+}
+
+// See RFC-3629 "UTF-8, a transformation format of ISO 10646"
+// http://www.rfc-editor.org/rfc/rfc3629.txt
+// http://rfc-ref.org/RFC-TEXTS/3629/index.html
+static bool
+__glPathGetCodePointUTF8(const void *&utf_string,
+                         GLuint &code_point)
+{
+    const GLubyte *p = reinterpret_cast<const GLubyte*>(utf_string);
+    GLubyte c0 = p[0];
+    if ((c0 & 0x80) == 0x00) {
+        // Zero continuation (0 to 127)
+        code_point = c0;
+        assert(code_point <= 127);
+        p += 1;
+    } else {
+        GLubyte c1 = p[1];
+        if ((c1 & 0xC0) != 0x80) {
+            // Stop processing the UTF byte sequence early.
+            return false;
+        }
+        if ((c0 & 0xE0) == 0xC0) {
+            // One contination (128 to 2047)
+            code_point = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
+            if (code_point < 128) {
+                return false;
+            }
+            assert(code_point >= 128 && code_point <= 2047);
+            p += 2;
+        } else {
+            GLubyte c2 = p[2];
+            if ((c2 & 0xC0) != 0x80) {
+                // Stop processing the UTF byte sequence early.
+                return false;
+            }
+            if ((c0 & 0xF0) == 0xE0) {
+                // Two continuation (2048 to 55295 and 57344 to 65535)
+                code_point = ((c0 & 0x0F) << 12) |
+                             ((c1 & 0x3F) << 6) |
+                              (c2 & 0x3F);
+                // "The definition of UTF-8 prohibits encoding character numbers between
+                // U+D800 and U+DFFF, which are reserved for use with the UTF-16
+                // encoding form (as surrogate pairs) and do not directly represent
+                // characters."
+                // 0xD800 = 55,296
+                // 0xDFFF = 57,343
+                if ((code_point >= 55296) && (code_point <= 57343)) {
+                    // Stop processing the UTF byte sequence early.
+                    return false;
+                }
+                if (code_point < 2048) {
+                    return false;
+                }
+                assert(code_point >= 2048 && code_point <= 65535);
+                assert(code_point < 55296 || code_point > 57343);
+                p += 3;
+            } else {
+                GLubyte c3 = p[3];
+                if ((c3 & 0xC0) != 0x80) {
+                    // Stop processing the UTF byte sequence early.
+                    return false;
+                }
+                if ((c0 & 0xF8) == 0xF0) {
+                    // Three continuation (65536 to 1114111)
+                    code_point = ((c0 & 0x07) << 18) |
+                                 ((c1 & 0x3F) << 12) | 
+                                 ((c2 & 0x3F) << 6) |
+                                  (c3 & 0x3F);
+                    if (code_point < 65536 && code_point > 1114111) {
+                        return false;
+                    }
+                    assert(code_point >= 65536 && code_point <= 1114111);
+                    p += 4;
+                } else {
+                    // Skip invalid or restricted encodings.
+                    // Stop processing the UTF byte sequence early.
+                    return false;
+                }
+            }
+        }
+    }
+    utf_string = p;
+    return true;
+}
+
+// See RFC-2781 "UTF-16, a transformation format of ISO 10646"
+// http://rfc-ref.org/RFC-TEXTS/2781/index.html
+// http://www.rfc-editor.org/rfc/rfc2781.txt
+static bool
+__glPathGetCodePointUTF16(const void *&utf_string,
+                          GLuint &code_point)
+{
+    // Section 2.2 (Decoding UTF-16) of http://www.rfc-editor.org/rfc/rfc2781.txt
+    // "Decoding of a single character from UTF-16 to an ISO 10646 character
+    // value proceeds as follows."
+    const GLushort *p = reinterpret_cast<const GLushort*>(utf_string);
+
+    // "Let W1 be the next 16-bit integer in the
+    // sequence of integers representing the text."
+    GLushort W1 = p[0];
+    // "1) If W1 < 0xD800 or W1 > 0xDFFF, the character value U is the value
+    // of W1. Terminate."
+    if ((W1 < 0xDB00) || (W1 > 0xDFFF)) {
+        code_point = W1;
+        p += 1;
+    } else {
+        // "2) Determine if W1 is between 0xD800 and 0xDBFF."
+        bool between1 = (W1 >= 0xDB00) && (W1 <= 0xDBFF);
+        if (!between1) {
+            // "If not, the sequence
+            // is in error and no valid character can be obtained using W1.
+            // Terminate."
+            return false;
+        }
+        // "Let W2 be the (eventual) next integer following W1."
+        GLushort W2 = p[1];
+        // DOES NOT APPLY because API provides character (not byte) count.
+        // "3) If there is no W2 (that is, the sequence ends with W1), [Terminate]"
+
+        // "... or if W2 is not between 0xDC00 and 0xDFFF, the sequence
+        // is in error.  Terminate."
+        bool between2 = (W2 >= 0xDC00) && (W2 <= 0xDFFF);
+        if (!between2) {
+            return false;
+        }
+        // "4) Construct a 20-bit unsigned integer U', taking the 10 low-order
+        // bits of W1 as its 10 high-order bits and the 10 low-order bits of
+        // W2 as its 10 low-order bits."
+        code_point = ((W1 & 0x3FF) << 10) |
+                      (W2 & 0x3FF);
+        // "5) Add 0x10000 to U' to obtain the character value U. Terminate."
+        code_point += 0x10000;
+        p += 2;
+    }
+    utf_string = p;
+    return true;
+}
+
+static size_t bytesOfSequence(GLsizei count, GLenum type, const GLvoid *sequence)
+{
+    GLsizei bytes_per_element;
+    switch (type) {
+    case GL_BYTE:
+        bytes_per_element = sizeof(GLbyte);
+        break;
+    case GL_UNSIGNED_BYTE:
+        bytes_per_element = sizeof(GLubyte);
+        break;
+    case GL_SHORT:
+        bytes_per_element = sizeof(GLshort);
+        break;
+    case GL_UNSIGNED_SHORT:
+        bytes_per_element = sizeof(GLushort);
+        break;
+    case GL_INT:
+        bytes_per_element = sizeof(GLint);
+        break;
+    case GL_UNSIGNED_INT:
+        bytes_per_element = sizeof(GLuint);
+        break;
+    case GL_FLOAT:
+        bytes_per_element = sizeof(GLfloat);
+        break;
+    case GL_2_BYTES:
+        bytes_per_element = 2*sizeof(GLubyte);
+        break;
+    case GL_3_BYTES:
+        bytes_per_element = 3*sizeof(GLubyte);
+        break;
+    case GL_4_BYTES:
+        bytes_per_element = 4*sizeof(GLubyte);
+        break;
+    case GL_UTF8_NV:
+        {
+            const void *utf_string = sequence;
+            for (GLsizei i=0; i<count; i++) {
+                GLuint code_point;  // ignored
+                bool ok = __glPathGetCodePointUTF8(utf_string, code_point);
+                if (!ok) {
+                    break;
+                }
+            }
+            const char *start = reinterpret_cast<const char*>(sequence);
+            const char *end = reinterpret_cast<const char*>(utf_string);
+            return end - start;
+        }
+    case GL_UTF16_NV:
+        {
+            const void *utf_string = sequence;
+            for (GLsizei i=0; i<count; i++) {
+                GLuint code_point;  // ignored
+                bool ok = __glPathGetCodePointUTF16(utf_string, code_point);
+                if (!ok) {
+                    break;
+                }
+            }
+            const char *start = reinterpret_cast<const char*>(sequence);
+            const char *end = reinterpret_cast<const char*>(utf_string);
+            return end - start;
+        }
+    default:  // generate INVALID_ENUM
+        return 0;
+    }
+    if (count > 0) {
+        return count * bytes_per_element;
+    } else {
+        return 0;
+    }
+}
+
+static inline size_t
+_gl_Paths_size(GLsizei numPaths, GLenum pathNameType, const GLvoid *paths)
+{
+    return bytesOfSequence(numPaths, pathNameType, paths);
+}
+
+static inline size_t
+_gl_PathColorGen_size(GLenum genMode, GLenum colorFormat)
+{
+    GLsizei coeffsPerComponent;
+    switch (genMode) {
+    case GL_NONE:
+        coeffsPerComponent = 0;
+        break;
+    case GL_OBJECT_LINEAR:
+    case GL_PATH_OBJECT_BOUNDING_BOX_NV:
+        coeffsPerComponent = 3;
+        break;
+    case GL_EYE_LINEAR:
+        coeffsPerComponent = 4;
+        break;
+    default:
+        return 0;
+    }
+
+    GLsizei components;
+    switch (colorFormat) {
+    case GL_LUMINANCE:
+    case GL_ALPHA:
+    case GL_INTENSITY:
+        components = 1;
+        break;
+    case GL_LUMINANCE_ALPHA:
+        components = 2;
+        break;
+    case GL_RGB:
+        components = 3;
+        break;
+    case GL_RGBA:
+        components = 4;
+        break;
+    default:
+        return 0;
+    }
+
+    GLsizei numCoeffs = components * coeffsPerComponent;
+    return numCoeffs*sizeof(GLfloat);
+}
+
+static inline size_t
+_gl_PathTexGen_size(GLenum genMode, GLsizei components)
+{
+    GLsizei coeffsPerComponent;
+    switch (genMode) {
+    case GL_NONE:
+        return 0;
+    case GL_OBJECT_LINEAR:
+    case GL_PATH_OBJECT_BOUNDING_BOX_NV:
+        coeffsPerComponent = 3;
+        break;
+    case GL_EYE_LINEAR:
+        coeffsPerComponent = 4;
+        break;
+    default:
+        return 0;
+    }
+
+    if (components < 1 || components > 4) {
+        return 0;
+    }
+
+    GLsizei numCoeffs = components * coeffsPerComponent;
+    return numCoeffs*sizeof(GLfloat);
+}
+
+static size_t valuesPerGetPathParameter(GLenum pname)
+{
+    switch (pname) {
+    case GL_PATH_FILL_MODE_NV:
+    case GL_PATH_FILL_MASK_NV:
+    case GL_PATH_FILL_COVER_MODE_NV:
+    case GL_PATH_STROKE_WIDTH_NV:
+    case GL_PATH_INITIAL_END_CAP_NV:
+    case GL_PATH_TERMINAL_END_CAP_NV:
+    case GL_PATH_JOIN_STYLE_NV:
+    case GL_PATH_MITER_LIMIT_NV:
+    case GL_PATH_INITIAL_DASH_CAP_NV:
+    case GL_PATH_TERMINAL_DASH_CAP_NV:
+    case GL_PATH_DASH_OFFSET_NV:
+    case GL_PATH_DASH_OFFSET_RESET_NV:
+    case GL_PATH_CLIENT_LENGTH_NV:
+    case GL_PATH_STROKE_COVER_MODE_NV:
+    case GL_PATH_STROKE_MASK_NV:
+    case GL_PATH_STROKE_OVERSAMPLE_COUNT_NV:
+    case GL_PATH_SAMPLE_QUALITY_NV:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static inline size_t
+_gl_GetPathParameter_size(GLenum pname)
+{
+    return valuesPerGetPathParameter(pname);
+}
+
+static inline size_t
+_gl_GetPathSpacing(GLsizei numPaths, GLenum transformType)
+{
+    switch (transformType) {
+    case GL_TRANSLATE_X_NV:
+        return (numPaths-1)*1;
+    case GL_TRANSLATE_2D_NV:
+        return (numPaths-1)*2;
+    default:
+        return 0;
+    }
+}
+
+/**
+ * Helper function for determining the string lengths for glShaderSource and
+ * glShaderSourceARB, which is a tad too complex to inline in the specs.
+ */
+template<class Char>
+static inline size_t
+_glShaderSource_length(const Char * const * string, const GLint *length, GLsizei index)
+{
+    if (length != NULL && length[index] >= 0) {
+        return (size_t)length[index];
+    } else {
+        return strlen(string[index]);
+    }
+}
+
+/**
+ * Helper function for determining the string lengths for glGetDebugMessageLog*.
+ */
+template<class Char>
+static inline size_t
+_glGetDebugMessageLog_length(const Char * string, const GLsizei *lengths, GLuint count)
+{
+    size_t size = 0;
+    GLuint index;
+    if (lengths) {
+        for (index = 0; index < count; ++index) {
+            size += lengths[index];
+        }
+    } else {
+        for (index = 0; index < count; ++index) {
+            size += strlen(&string[size]) + 1;
+        }
+    }
+    if (size) {
+        // Remove the last null terminator
+        --size;
+    }
+    return size;
 }
 
 /* 

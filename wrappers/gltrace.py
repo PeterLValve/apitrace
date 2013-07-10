@@ -357,7 +357,7 @@ class GlTracer(Tracer):
         print '    }'
         print
         print '    GLint buffer_binding = 0;'
-        print '    _glGetIntegerv(target, &buffer_binding);'
+        print '    _glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &buffer_binding);'
         print '    if (buffer_binding > 0) {'
         print '        gltrace::Buffer & buf = ctx->buffers[buffer_binding];'
         print '        buf.getSubData(offset, size, data);'
@@ -443,6 +443,10 @@ class GlTracer(Tracer):
         'glMultiDrawElementsBaseVertex',
         'glDrawArraysIndirect',
         'glDrawElementsIndirect',
+        'glMultiDrawArraysIndirect',
+        'glMultiDrawArraysIndirectAMD',
+        'glMultiDrawElementsIndirect',
+        'glMultiDrawElementsIndirectAMD',
         'glDrawArraysEXT',
         'glDrawRangeElementsEXT',
         'glDrawRangeElementsEXT_size',
@@ -696,12 +700,24 @@ class GlTracer(Tracer):
             # These functions have been dispatched already
             return
 
+        Tracer.invokeFunction(self, function)
+
+    def doInvokeFunction(self, function):
+        # Same as invokeFunction() but called both when trace is enabled or disabled.
+        #
+        # Used to modify the behavior of GL entry-points.
+
+        # Override GL extensions
+        if function.name in ('glGetString', 'glGetIntegerv', 'glGetStringi'):
+            Tracer.doInvokeFunction(self, function, prefix = 'gltrace::_', suffix = '_override')
+            return
+
         # We implement GL_EXT_debug_marker, GL_GREMEDY_*, etc., and not the
         # driver
         if function.name in self.marker_functions:
             return
 
-        if function.name in ('glXGetProcAddress', 'glXGetProcAddressARB', 'wglGetProcAddress'):
+        if function.name in self.getProcAddressFunctionNames:
             else_ = ''
             for marker_function in self.marker_functions:
                 if self.api.getFunctionByName(marker_function):
@@ -710,16 +726,19 @@ class GlTracer(Tracer):
                     print '    }'
                 else_ = 'else '
             print '    %s{' % else_
-            Tracer.invokeFunction(self, function)
+            Tracer.doInvokeFunction(self, function)
+
+            # Replace function addresses with ours
+            # XXX: Doing this here instead of wrapRet means that the trace will
+            # contain the addresses of the wrapper functions, and not the real
+            # functions, but in practice this should make no difference.
+            if function.name in self.getProcAddressFunctionNames:
+                print '    _result = _wrapProcAddress(%s, _result);' % (function.args[0].name,)
+
             print '    }'
             return
 
-        # Override GL extensions
-        if function.name in ('glGetString', 'glGetIntegerv', 'glGetStringi'):
-            Tracer.invokeFunction(self, function, prefix = 'gltrace::_', suffix = '_override')
-            return
-
-        Tracer.invokeFunction(self, function)
+        Tracer.doInvokeFunction(self, function)
 
     buffer_targets = [
         'ARRAY_BUFFER',
@@ -737,10 +756,6 @@ class GlTracer(Tracer):
 
     def wrapRet(self, function, instance):
         Tracer.wrapRet(self, function, instance)
-
-        # Replace function addresses with ours
-        if function.name in self.getProcAddressFunctionNames:
-            print '    %s = _wrapProcAddress(%s, %s);' % (instance, function.args[0].name, instance)
 
         # Keep track of buffer mappings
         if function.name in ('glMapBuffer', 'glMapBufferARB'):
@@ -778,12 +793,24 @@ class GlTracer(Tracer):
         'glBitmap',
         'glColorSubTable',
         'glColorTable',
+        'glCompressedMultiTexImage1DEXT',
+        'glCompressedMultiTexImage2DEXT',
+        'glCompressedMultiTexImage3DEXT',
+        'glCompressedMultiTexSubImage1DEXT',
+        'glCompressedMultiTexSubImage2DEXT',
+        'glCompressedMultiTexSubImage3DEXT',
         'glCompressedTexImage1D',
         'glCompressedTexImage2D',
         'glCompressedTexImage3D',
         'glCompressedTexSubImage1D',
         'glCompressedTexSubImage2D',
         'glCompressedTexSubImage3D',
+        'glCompressedTextureImage1DEXT',
+        'glCompressedTextureImage2DEXT',
+        'glCompressedTextureImage3DEXT',
+        'glCompressedTextureSubImage1DEXT',
+        'glCompressedTextureSubImage2DEXT',
+        'glCompressedTextureSubImage3DEXT',
         'glConvolutionFilter1D',
         'glConvolutionFilter2D',
         'glDrawPixels',
@@ -1043,6 +1070,16 @@ class GlTracer(Tracer):
         function = api.getFunctionByName('glClientActiveTexture')
         self.fake_call(function, [texture])
 
+    def emitFakeTexture2D(self):
+        function = glapi.glapi.getFunctionByName('glTexImage2D')
+        instances = function.argNames()
+        print '        unsigned _fake_call = trace::localWriter.beginEnter(&_%s_sig);' % (function.name,)
+        for arg in function.args:
+            assert not arg.output
+            self.serializeArg(function, arg)
+        print '        trace::localWriter.endEnter();'
+        print '        trace::localWriter.beginLeave(_fake_call);'
+        print '        trace::localWriter.endLeave();'
 
 
 
