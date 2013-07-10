@@ -604,7 +604,6 @@ class GlTracer(Tracer):
         'CGLSetOption',
         'CGLSetSurface',
 
-
         ## texture state
         'glTexImage1D',
         'glTexImage2D',
@@ -1221,6 +1220,23 @@ class GlTracer(Tracer):
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->queries.erase(ids[i]);'
             print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glFenceSync'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        gltrace::Sync syncObj(condition, flags);'
+            print '        ctx->syncObjects[_result] = syncObj;'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glDeleteSync'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        ctx->syncObjects.erase(sync);'
             print '    } else {'
             Tracer.generateTraceFunctionImplBody(self, function)
             print '    }'

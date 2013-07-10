@@ -388,6 +388,28 @@ public:
     }
 };
 
+class Sync {
+public:
+    GLenum m_condition;
+    GLbitfield m_flags;
+
+    Sync() :
+        m_condition(GL_SYNC_GPU_COMMANDS_COMPLETE),
+        m_flags(0)
+    {
+    }
+
+    Sync(GLenum condition, GLbitfield flags) :
+        m_condition(condition),
+        m_flags(flags)
+    {
+    }
+
+    ~Sync()
+    {
+    }
+};
+
 class Context {
 public:
     enum Profile profile;
@@ -420,6 +442,7 @@ public:
     std::list<GLuint> samplers;
     std::map<GLuint, Renderbuffer> renderbuffers;
     std::map<GLuint, Query> queries;
+    std::map<GLsync, Sync> syncObjects;
 
     Context(void) :
         profile(PROFILE_COMPAT),
@@ -446,6 +469,7 @@ public:
         bufferObjects.clear();
         samplers.clear();
         renderbuffers.clear();
+        syncObjects.clear();
     }
 
     inline bool

@@ -1256,23 +1256,19 @@ class StateSnapshot:
         print '#include "scoped_allocator.hpp"'
         print '#include "glproc.hpp"'
         print '#include "glsize.hpp"'
-
+        print '#include "gltrace.hpp"'
+        print '#include "../retrace/glstate.hpp"'
+        print '#include "../retrace/glstate_internal.hpp"'
+        print
         print '#ifdef WIN32'
-        print '#include "../../retrace/glstate.hpp"'
-        print '#include "../../retrace/glstate_internal.hpp"'
         print '#include "wgltrace_tracefuncs.h"'
         print '#endif'
         print '#ifdef __linux'
-        print '#include "../retrace/glstate.hpp"'
-        print '#include "../retrace/glstate_internal.hpp"'
         print '#include "glxtrace_tracefuncs.h"'
         print '#endif'
         print '#ifdef __APPLE__'
-        print '#include "../retrace/glstate.hpp"'
-        print '#include "../retrace/glstate_internal.hpp"'
         print '#include "cgltrace_tracefuncs.h"'
         print '#endif'
-        print '#include "gltrace.hpp"'
         print
         print 'namespace glstate {'
         print
@@ -1293,6 +1289,7 @@ class StateSnapshot:
 
         self.dump_atoms(glGet, '    ')
 
+        self.snapshot_sync_objects()
         self.snapshot_material_params()
         self.snapshot_light_params()
         self.snapshot_queries()
@@ -1370,6 +1367,19 @@ class StateSnapshot:
                 if self.texenv_param_target(name) == target:
                     self.dump_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
+
+
+    def snapshot_sync_objects(self):
+        print '    { // SYNC'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating sync objects", false);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLsync, gltrace::Sync>::iterator iter = pContext->syncObjects.begin(); iter != pContext->syncObjects.end(); ++iter) {'
+        print '            GLsync sync = iter->first;'
+        print '            gltrace::Sync syncObj = iter->second;'
+        print '            _trace_glFenceSync(syncObj.m_condition, syncObj.m_flags, sync, false);'
+        print '         }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating sync objects", false);'
+        print '    } // end SYNC'
 
 
     def snapshot_queries(self):
