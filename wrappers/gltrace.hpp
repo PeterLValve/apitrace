@@ -234,7 +234,13 @@ public:
     // TODO: This will fail for buffers shared by multiple contexts.
     std::map <GLuint, Buffer> buffers;
 
+    // Used by state snapshot
     std::map <GLuint, Texture> textures;
+    std::list<GLuint> framebuffers;
+    std::list<GLuint> vertexArrays;
+    std::list<GLuint> bufferObjects;
+    std::list<GLuint> samplers;
+    std::list<GLuint> renderbuffers;
 
     Context(void) :
         profile(PROFILE_COMPAT),

@@ -51,6 +51,18 @@ framebuffer_targets = [
     ('GL_READ_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER_BINDING'),
 ]
 
+buffer_targets = (
+    ('GL_ARRAY_BUFFER', 'GL_ARRAY_BUFFER_BINDING'),
+    ('GL_COPY_READ_BUFFER', 'GL_COPY_READ_BUFFER'),
+    ('GL_COPY_WRITE_BUFFER', 'GL_COPY_WRITE_BUFFER'),
+    ('GL_ELEMENT_ARRAY_BUFFER', 'GL_ELEMENT_ARRAY_BUFFER_BINDING'),
+    ('GL_PIXEL_PACK_BUFFER', 'GL_PIXEL_PACK_BUFFER_BINDING'),
+    ('GL_PIXEL_UNPACK_BUFFER', 'GL_PIXEL_UNPACK_BUFFER_BINDING'),
+    ('GL_TEXTURE_BUFFER', 'GL_TEXTURE_BUFFER'),
+    ('GL_TRANSFORM_FEEDBACK_BUFFER', 'GL_TRANSFORM_FEEDBACK_BUFFER_BINDING'),
+    ('GL_UNIFORM_BUFFER', 'GL_UNIFORM_BUFFER_BINDING'),
+)
+
 state_that_cannot_replay = (
     'GL_VENDOR',
     'GL_RENDERER',
@@ -251,6 +263,17 @@ state_that_cannot_replay = (
     'GL_MAX_PROGRAM_IF_DEPTH_NV',
     'GL_MAX_PROGRAM_LOOP_DEPTH_NV',
     'GL_MAX_PROGRAM_LOOP_COUNT_NV',
+    'GL_RGBA_FLOAT_MODE_ARB',
+    'GL_RGBA_INTEGER_MODE_EXT',
+    'GL_FRAMEBUFFER_SRGB_CAPABLE_EXT',
+    'GL_SHADER_COMPILER',
+    'GL_TRANSFORM_FEEDBACK_BUFFER_PAUSED',
+    'GL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE',
+    'GL_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION',
+    'GL_TEXTURE_RENDERBUFFER_DATA_STORE_BINDING_NV',
+    'GL_SUBPIXEL_BITS',
+    'GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH',
+    'GL_COMPRESSED_TEXTURE_FORMATS',
 )
 
 state_deprecated_before_gl33 = (
@@ -265,6 +288,8 @@ state_deprecated_before_gl33 = (
     'GL_CURRENT_RASTER_POSITION_VALID',
     'GL_CURRENT_RASTER_DISTANCE',
     'GL_POINT_SMOOTH',
+    'GL_POINT_SIZE_MIN',
+    'GL_POINT_SIZE_MAX',
     'GL_LINE_STIPPLE',
     'GL_LINE_STIPPLE_PATTERN',
     'GL_LINE_STIPPLE_REPEAT',
@@ -372,11 +397,17 @@ state_deprecated_before_gl33 = (
     'GL_HISTOGRAM',
     'GL_MINMAX',
     'GL_RESCALE_NORMAL',
+    'GL_VERTEX_ARRAY_BUFFER_BINDING',
     'GL_VERTEX_ARRAY',
+    'GL_NORMAL_ARRAY_BUFFER_BINDING',
     'GL_NORMAL_ARRAY',
+    'GL_COLOR_ARRAY_BUFFER_BINDING',
     'GL_COLOR_ARRAY',
+    'GL_INDEX_ARRAY_BUFFER_BINDING',
     'GL_INDEX_ARRAY',
+    'GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING',
     'GL_TEXTURE_COORD_ARRAY',
+    'GL_EDGE_FLAG_ARRAY_BUFFER_BINDING',
     'GL_EDGE_FLAG_ARRAY',
     'GL_VERTEX_ARRAY_SIZE',
     'GL_VERTEX_ARRAY_TYPE',
@@ -439,6 +470,7 @@ state_deprecated_before_gl33 = (
     'GL_BINORMAL_ARRAY_POINTER_EXT',
     'GL_FOG_COORD_SRC',
     'GL_CURRENT_FOG_COORD',
+    'GL_FOG_COORD_ARRAY_BUFFER_BINDING',
     'GL_FOG_COORD_ARRAY_TYPE',
     'GL_FOG_COORD_ARRAY_STRIDE',
     'GL_FOG_COORD_ARRAY',
@@ -447,6 +479,7 @@ state_deprecated_before_gl33 = (
     'GL_CLAMP_VERTEX_COLOR',
     'GL_CLAMP_FRAGMENT_COLOR',
     'GL_CURRENT_SECONDARY_COLOR',
+    'GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING',
     'GL_SECONDARY_COLOR_ARRAY_SIZE',
     'GL_SECONDARY_COLOR_ARRAY_TYPE',
     'GL_SECONDARY_COLOR_ARRAY_STRIDE',
@@ -459,6 +492,16 @@ state_deprecated_before_gl33 = (
     'GL_TRANSPOSE_COLOR_MATRIX',
     'GL_CURRENT_MATRIX_ARB',
     'GL_VERTEX_PROGRAM_TWO_SIDE',
+    'GL_TEXTURE_RESIDENT',
+    'GL_WEIGHT_ARRAY_BUFFER_BINDING',
+    'GL_CURRENT_WEIGHT_ARB',
+    'GL_WEIGHT_ARRAY_ARB',
+    'GL_WEIGHT_ARRAY_TYPE_ARB',
+    'GL_WEIGHT_ARRAY_STRIDE_ARB',
+    'GL_WEIGHT_ARRAY_SIZE_ARB',
+    'GL_WEIGHT_ARRAY_POINTER_ARB',
+    'GL_RGB_SCALE',
+    'GL_ALPHA_SCALE',
 )
 
 ## some enable_disable items are also listed under state_deprecated_before_gl33
@@ -608,6 +651,9 @@ state_enable_disable = (
     #'GL_TEXTURE_CUBE_MAP_ARRAY',
     'GL_TEXTURE_BINDING_2D_MULTISAMPLE',
     'GL_DEBUG_OUTPUT',
+    'GL_SAMPLE_ALPHA_TO_COVERAGE',
+    'GL_SAMPLE_ALPHA_TO_ONE',
+    'GL_SAMPLE_COVERAGE',
 )
 
 ## this is a collection of simple state that can easily be set.
@@ -628,45 +674,55 @@ state_setters = (
     ('GL_CURRENT_RASTER_POSITION_VALID', ''),
     ('GL_CURRENT_RASTER_DISTANCE', ''),
     ('GL_POINT_SIZE', 'glPointSize(point_size)'),
+    ('GL_POINT_SIZE_MIN', 'glPointParameterf(GL_POINT_SIZE_MIN, point_size_min)'),
+    ('GL_POINT_SIZE_MAX', 'glPointParameterf(GL_POINT_SIZE_MAX, point_size_max)'),
+    ('GL_POINT_DISTANCE_ATTENUATION', 'glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION, point_distance_attenuation)'),
+    ('GL_POINT_FADE_THRESHOLD_SIZE', 'glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE, point_fade_threshold_size)'),
     ('GL_LINE_WIDTH', 'glLineWidth(line_width)'),
-    ('GL_LINE_STIPPLE_PATTERN', ''),
-    ('GL_LINE_STIPPLE_REPEAT', ''),
+    ('GL_LINE_STIPPLE_REPEAT,GL_LINE_STIPPLE_PATTERN', 'glLineStipple(line_stipple_repeat, line_stipple_pattern)'),
+    ('GL_LIST_BASE', 'glListBase(list_base)'),
     ('GL_LIST_MODE', ''),
-    ('GL_LIST_BASE', ''),
     ('GL_LIST_INDEX', ''),
-#    ('GL_POLYGON_MODE', 'glPolygonMode(GL_FRONT /* TODO: GL_BACK */, polygon_mode[0])'),
+    ('GL_POLYGON_MODE', 'glPolygonMode(GL_FRONT, polygon_mode[0]);glPolygonMode(GL_BACK, polygon_mode[1])'),
     ('GL_CULL_FACE_MODE', 'glCullFace(cull_face_mode)'),
     ('GL_FRONT_FACE', 'glFrontFace(front_face)'),
-    ('GL_LIGHT_MODEL_AMBIENT', ''),
-    ('GL_SHADE_MODEL', ''),
+    ('GL_LIGHT_MODEL_AMBIENT', 'glLightModelfv(GL_LIGHT_MODEL_AMBIENT, light_model_ambient)'),
+    ('GL_SHADE_MODEL', 'glShadeModel(shade_model)'),
     ('GL_COLOR_MATERIAL_FACE', ''),
     ('GL_COLOR_MATERIAL_PARAMETER', ''),
-    ('GL_FOG_INDEX', ''),
-    ('GL_FOG_DENSITY', ''),
-    ('GL_FOG_START', ''),
-    ('GL_FOG_END', ''),
-    ('GL_FOG_MODE', ''),
-    ('GL_FOG_COLOR', ''),
+    ('GL_FOG_INDEX', 'glFogi(GL_FOG_INDEX, fog_index)'),
+    ('GL_FOG_DENSITY', 'glFogf(GL_FOG_DENSITY, fog_density)'),
+    ('GL_FOG_START', 'glFogf(GL_FOG_START, fog_start)'),
+    ('GL_FOG_END', 'glFogf(GL_FOG_END, fog_end)'),
+    ('GL_FOG_MODE', 'glFogi(GL_FOG_MODE, fog_mode)'),
+    ('GL_FOG_COLOR', 'glFogfv(GL_FOG_COLOR, fog_color)'),
+    ('GL_DEPTH_WRITEMASK', 'glDepthMask(depth_writemask)'),
     ('GL_DEPTH_WRITEMASK', 'glDepthMask(depth_writemask)'),
     ('GL_DEPTH_RANGE', 'glDepthRangef(depth_range[0], depth_range[1])'),
     ('GL_DEPTH_CLEAR_VALUE', 'glClearDepthf(depth_clear_value)'),
     ('GL_DEPTH_FUNC', 'glDepthFunc(depth_func)'),
     ('GL_ACCUM_CLEAR_VALUE', 'glClearAccum(accum_clear_value[0], accum_clear_value[1], accum_clear_value[2], accum_clear_value[3])'),
+    ('GL_STENCIL_WRITEMASK', 'glStencilMaskSeparate(GL_FRONT, stencil_writemask)'),
+    ('GL_STENCIL_BACK_WRITEMASK', 'glStencilMaskSeparate(GL_BACK, stencil_back_writemask)'),
     ('GL_STENCIL_CLEAR_VALUE', 'glClearStencil(stencil_clear_value)'),
-#    ('GL_STENCIL_FUNC', 'glStencilFunc(stencil_func)'), ## needs ref and mask as well
-    ('GL_STENCIL_VALUE_MASK', 'glStencilMask(stencil_value_mask)'),
+    ('GL_STENCIL_FUNC,GL_STENCIL_REF,GL_STENCIL_VALUE_MASK', 'glStencilFuncSeparate(GL_FRONT, stencil_func, stencil_ref, stencil_value_mask)'),
+    ('GL_STENCIL_BACK_FUNC,GL_STENCIL_BACK_REF,GL_STENCIL_BACK_VALUE_MASK', 'glStencilFuncSeparate(GL_BACK, stencil_back_func, stencil_back_ref, stencil_back_value_mask)'),
+    ('GL_STENCIL_FAIL,GL_STENCIL_PASS_DEPTH_FAIL,GL_STENCIL_PASS_DEPTH_PASS', 'glStencilOpSeparate(GL_FRONT, stencil_fail, stencil_pass_depth_fail, stencil_pass_depth_pass)'),
+    ('GL_STENCIL_BACK_FAIL,GL_STENCIL_BACK_PASS_DEPTH_FAIL,GL_STENCIL_BACK_PASS_DEPTH_PASS', 'glStencilOpSeparate(GL_BACK, stencil_back_fail, stencil_back_pass_depth_fail, stencil_back_pass_depth_pass)'),
     ('GL_MATRIX_MODE', 'glMatrixMode(matrix_mode)'),
     ('GL_VIEWPORT', 'glViewport(viewport[0], viewport[1], viewport[2], viewport[3])'),
+    ('GL_PIXEL_UNPACK_BUFFER_BINDING', 'glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixel_unpack_buffer_binding)'),
     ('GL_UNPACK_SWAP_BYTES', 'glPixelStorei(GL_UNPACK_SWAP_BYTES, unpack_swap_bytes)'),
     ('GL_UNPACK_LSB_FIRST', 'glPixelStorei(GL_UNPACK_LSB_FIRST, unpack_lsb_first)'),
+    ('GL_PIXEL_PACK_BUFFER_BINDING', 'glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_pack_buffer_binding)'),
     ('GL_PACK_SWAP_BYTES', 'glPixelStorei(GL_PACK_SWAP_BYTES, pack_swap_bytes)'),
     ('GL_PACK_LSB_FIRST', 'glPixelStorei(GL_PACK_LSB_FIRST, pack_lsb_first)'),
     ('GL_CLAMP_READ_COLOR', 'glClampColor(GL_CLAMP_READ_COLOR, clamp_read_color)'),
     ('GL_PROVOKING_VERTEX', 'glProvokingVertex(provoking_vertex)'),
-    ('GL_ALPHA_TEST_FUNC', ''),
-    ('GL_ALPHA_TEST_REF', ''),
-    ('GL_BLEND_DST', ''),
-    ('GL_BLEND_SRC', ''),
+    ('GL_ALPHA_TEST_FUNC,GL_ALPHA_TEST_REF', 'glAlphaFunc(alpha_test_func, alpha_test_ref)'),
+    ('GL_BLEND_SRC_RGB,GL_BLEND_DST_RGB,GL_BLEND_SRC_ALPHA,GL_BLEND_DST_ALPHA', 'glBlendFuncSeparate(blend_src_rgb, blend_dst_rgb, blend_src_alpha, blend_dst_alpha)'),
+    #('GL_BLEND_DST', ''), ## dont handle this since it could override glBlendFuncSeparate
+    #('GL_BLEND_SRC', ''), ## dont handle this since it could override glBlendFuncSeparate
     ('GL_LOGIC_OP_MODE', 'glLogicOp(logic_op_mode)'),
     ('GL_DRAW_BUFFER', 'glDrawBuffer(draw_buffer)'),
     ('GL_READ_BUFFER', 'glReadBuffer(read_buffer)'),
@@ -682,7 +738,37 @@ state_setters = (
     ('GL_POLYGON_SMOOTH_HINT', 'glHint(GL_POLYGON_SMOOTH_HINT, polygon_smooth_hint)'),
     ('GL_FOG_HINT', 'glHint(GL_FOG_HINT, fog_hint)'),
     ('GL_BLEND_COLOR', 'glBlendColor(blend_color[0], blend_color[1], blend_color[2], blend_color[3])'),
-    ('GL_BLEND_EQUATION', 'glBlendEquation(blend_equation)'),
+    ('GL_BLEND_EQUATION_RGB,GL_BLEND_EQUATION_ALPHA', 'glBlendEquationSeparate(blend_equation_rgb, blend_equation_alpha)'),
+    #('GL_BLEND_EQUATION', 'glBlendEquation(blend_equation)'), ## dont handle this since it could override glBlendEquationSeparate
+    ('GL_POLYGON_OFFSET_FACTOR,GL_POLYGON_OFFSET_UNITS', 'glPolygonOffset(polygon_offset_factor, polygon_offset_units)'),
+    ('GL_UNPACK_SWAP_BYTES', 'glPixelStorei(GL_UNPACK_SWAP_BYTES, unpack_swap_bytes)'),
+    ('GL_UNPACK_LSB_FIRST', 'glPixelStorei(GL_UNPACK_LSB_FIRST, unpack_lsb_first)'),
+    ('GL_UNPACK_ROW_LENGTH', 'glPixelStorei(GL_UNPACK_ROW_LENGTH, unpack_row_length)'),
+    ('GL_UNPACK_SKIP_ROWS','glPixelStorei(GL_UNPACK_SKIP_ROWS, unpack_skip_rows)'),
+    ('GL_UNPACK_SKIP_PIXELS','glPixelStorei(GL_UNPACK_SKIP_PIXELS, unpack_skip_pixels)'),
+    ('GL_UNPACK_ALIGNMENT','glPixelStorei(GL_UNPACK_ALIGNMENT, unpack_alignment)'),
+    ('GL_UNPACK_IMAGE_HEIGHT','glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, unpack_image_height)'),
+    ('GL_UNPACK_SKIP_IMAGES','glPixelStorei(GL_UNPACK_SKIP_IMAGES, unpack_skip_images)'),
+    ('GL_PACK_SWAP_BYTES', 'glPixelStorei(GL_PACK_SWAP_BYTES, pack_swap_bytes)'),
+    ('GL_PACK_LSB_FIRST', 'glPixelStorei(GL_PACK_LSB_FIRST, pack_lsb_first)'),
+    ('GL_PACK_ROW_LENGTH', 'glPixelStorei(GL_PACK_ROW_LENGTH, pack_row_length)'),
+    ('GL_PACK_SKIP_ROWS','glPixelStorei(GL_PACK_SKIP_ROWS, pack_skip_rows)'),
+    ('GL_PACK_SKIP_PIXELS','glPixelStorei(GL_PACK_SKIP_PIXELS, pack_skip_pixels)'),
+    ('GL_PACK_ALIGNMENT','glPixelStorei(GL_PACK_ALIGNMENT, pack_alignment)'),
+    ('GL_PACK_IMAGE_HEIGHT','glPixelStorei(GL_PACK_IMAGE_HEIGHT, pack_image_height)'),
+    ('GL_PACK_SKIP_IMAGES','glPixelStorei(GL_PACK_SKIP_IMAGES, pack_skip_images)'),
+    ('GL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ARRAY_BUFFER, array_buffer_binding)'),
+    ('GL_ELEMENT_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_array_buffer_binding)'),
+    ('GL_VERTEX_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_VERTEX_ARRAY_BUFFER, vertex_array_buffer_binding)'),
+    ('GL_NORMAL_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_NORMAL_ARRAY_BUFFER, normal_array_buffer_binding)'),
+    ('GL_COLOR_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_COLOR_ARRAY_BUFFER, color_array_buffer_binding)'),
+    ('GL_INDEX_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_INDEX_ARRAY_BUFFER, index_array_buffer_binding)'),
+    ('GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_TEXTURE_COORD_ARRAY_BUFFER, texture_coord_array_buffer_binding)'),
+    ('GL_EDGE_FLAG_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_EDGE_FLAG_ARRAY_BUFFER, edge_flag_array_buffer_binding)'),
+    ('GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_SECONDARY_COLOR_ARRAY_BUFFER, secondary_color_array_buffer_binding)'),
+    ('GL_FOG_COORD_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_FOG_COORD_ARRAY_BUFFER, fog_coord_array_buffer_binding)'),
+    ('GL_WEIGHT_ARRAY_BUFFER_BINDING', 'glBindBuffer(GL_WEIGHT_ARRAY_BUFFER, weight_array_buffer_binding)'),
+    ('GL_SAMPLE_COVERAGE_VALUE,GL_SAMPLE_COVERAGE_INVERT', 'glSampleCoverage(sample_coverage_value, sample_coverage_invert)'),
 
     ## texture-related state that is queried using glGetTexParameter,
     ('GL_TEXTURE_BORDER_COLOR', 'glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, texture_border_color)'),
@@ -820,7 +906,6 @@ class StateGetter(Visitor):
 
     def __call__(self, *args):
         pname = args[-1]
-
         for type, count, name in self.iter():
             if name == pname:
                 if count != 1:
@@ -828,6 +913,7 @@ class StateGetter(Visitor):
 
                 return type, self.visit(type, args)
 
+        print '// *** "%s" was not implemented' % pname
         raise NotImplementedError
 
     def temp_name(self, args):
@@ -906,12 +992,14 @@ class StateGetter(Visitor):
 
     def emit_setter(self, args):
         name = args[-1]
-        for stateName, setter in state_setters:
-            if stateName == name:
-                if (len(setter) == 0):
+        for stateNames, setters in state_setters:
+             if name in stateNames.split(','):
+                if (setters == ''):
                     print '            // We dont want to replay this state'
                 else:
-                    print '            _trace_%s, false);' % setter[:-1]
+                    for setter in setters.split(';'):
+                        if len(setter) > 0:
+                            print '            _trace_%s, false);' % setter[:-1]
                 return 1
         return 0
 
@@ -948,6 +1036,8 @@ glGetShader = StateGetter('glGetShaderiv', {I: 'iv'})
 glGetProgram = StateGetter('glGetProgram', {I: 'iv'})
 glGetProgramARB = StateGetter('glGetProgram', {I: 'iv', F: 'fv', S: 'Stringv'}, 'ARB')
 glGetFramebufferAttachmentParameter = StateGetter('glGetFramebufferAttachmentParameter', {I: 'iv'})
+glGetBufferParameter = StateGetter('glGetBufferParameter', {I: 'iv', I64: 'i64v', B: 'iv', P: 'v'})
+glGetRenderbufferParameter = StateGetter('glGetRenderbufferParameter', {I: 'iv'})
 
 class StateSnapshot:
     '''Class to generate code to snapshot all GL state and recreate it in the trace file.'''
@@ -988,9 +1078,12 @@ class StateSnapshot:
 
         self.snapshot_material_params()
         self.snapshot_light_params()
+        self.snapshot_samplers()
+        self.snapshot_buffers()
         self.snapshot_vertex_attribs()
         self.snapshot_program_params()
         self.snapshot_texture_parameters()
+        self.snapshot_renderbuffer_parameters()
         self.snapshot_framebuffer_parameters()
 
         print '}'
@@ -1059,12 +1152,148 @@ class StateSnapshot:
                     self.snapshot_atom(glGetTexEnv, '        ', target, name) 
             print '//    }'
 
+    def snapshot_samplers(self):
+        print '    { // SAMPLERS'
+        print '        // TODO: instead of iterating over all the created samplers, it would be more efficient'
+        print '        // to flag the samplers that have changed and only update those. Or, always trace the '
+        print '        // glSamplerParameter* calls to trace what the app calls.'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::list<GLuint>::iterator iter = pContext->samplers.begin(); iter != pContext->samplers.end(); ++iter) {'
+        print '            GLint sampler = *iter;'
+        print '            GLint texture_wrap_s = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_S, &texture_wrap_s);'
+        print '            GLint texture_wrap_t = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_T, &texture_wrap_t);'
+        print '            GLint texture_wrap_r = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_WRAP_R, &texture_wrap_r);'
+        print '            GLint texture_min_filter = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MIN_FILTER, &texture_min_filter);'
+        print '            GLint texture_mag_filter = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MAG_FILTER, &texture_mag_filter);'
+        print '            GLint texture_min_lod = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MIN_LOD, &texture_min_lod);'
+        print '            GLint texture_max_lod = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_MAX_LOD, &texture_max_lod);'
+        print '            GLint texture_lod_bias = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_LOD_BIAS, &texture_lod_bias);'
+        print '            GLfloat texture_border_color[4];'
+        print '            memset(texture_border_color, 0, sizeof(GLfloat) * 4);'
+        print '            _glGetSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, texture_border_color);'
+        print '            GLint texture_compare_mode = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_COMPARE_MODE, &texture_compare_mode);'
+        print '            GLint texture_compare_func = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_COMPARE_FUNC, &texture_compare_func);'
+        print '            GLint texture_srgb_decode_ext = 0;'
+        print '            _glGetSamplerParameteriv(sampler, GL_TEXTURE_SRGB_DECODE_EXT, &texture_srgb_decode_ext);'
+        print
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, texture_wrap_s, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, texture_wrap_t, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_WRAP_R, texture_wrap_r, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, texture_min_filter, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, texture_mag_filter, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MIN_LOD, texture_min_lod, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_MAX_LOD, texture_max_lod, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_LOD_BIAS, texture_lod_bias, false);'
+        print '            _trace_glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, texture_border_color, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_MODE, texture_compare_mode, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_FUNC, texture_compare_func, false);'
+        print '            _trace_glSamplerParameteri(sampler, GL_TEXTURE_SRGB_DECODE_EXT, texture_srgb_decode_ext, false);'
+        print '        }'
+        print
+        print '        // bind samplers to the appropriate texture units'
+        glGet("GL_ACTIVE_TEXTURE")
+        glGet("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS")
+        print '        for (GLint unit = 0; unit < max_combined_texture_image_units; ++unit) {'
+        print '            _glActiveTexture(GL_TEXTURE0 + unit);'
+        print '            GLint sampler_binding = 0;'
+        print '            _glGetIntegerv(GL_SAMPLER_BINDING, &sampler_binding);'
+        print '            if (sampler_binding != 0) {'
+        print '                _trace_glBindSampler(unit, sampler_binding, false);'
+        print '            }'
+        print '        }'
+        print
+        print '        _glActiveTexture(active_texture);'
+        print '    } // end SAMPLERS'
+
+
+    def snapshot_buffers(self):
+        print '    { // BUFFERS'
+        print '        // capture current active buffers'
+        for target, binding in buffer_targets:
+            glGet(binding)
+        print
+        print '        // recreate all buffer objects'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::list<GLuint>::iterator iter = pContext->bufferObjects.begin(); iter != pContext->bufferObjects.end(); ++iter) {'
+        print '             _trace_glBindBuffer(GL_ARRAY_BUFFER, *iter, true);'
+        print '              GLint64 buffer_size = 0;'
+        print '             _glGetBufferParameteri64v(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &buffer_size);'
+        print '              GLint buffer_usage = 0;'
+        print '             _glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_USAGE, &buffer_usage);'
+        print '             _glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);'
+        print '              GLint buffer_mapped = 0;'
+        print '             _glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_MAPPED, &buffer_mapped);'
+        print '              GLvoid *buffer_map_pointer;'
+        print '             _glGetBufferPointerv(GL_ARRAY_BUFFER, GL_BUFFER_MAP_POINTER, &buffer_map_pointer);'
+        print '             _glUnmapBuffer(GL_ARRAY_BUFFER);'
+        print '             _trace_glBufferData(GL_ARRAY_BUFFER, buffer_size, buffer_map_pointer, buffer_usage, false);'
+        print '        }'
+        print
+        print '        // rebind the previously active buffers'
+        for target, binding in buffer_targets:
+            print '        _trace_glBindBuffer(%s, %s, true);' % (target, binding[3:].lower())
+        print ''
+        print '    } // end BUFFERS'
+        print
+
     def snapshot_vertex_attribs(self):
-        print '    GLint max_vertex_attribs = 0;'
-        print '    _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
-        print '    for (GLint index = 0; index < max_vertex_attribs; ++index) {'
-        self.snapshot_atoms(glGetVertexAttrib, '    ', 'index')
-        print '    }'
+        print '    { // VERTEX ARRAYS'
+        print '        GLint vertex_array_binding = 0;'
+        print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
+        print '        GLint array_buffer = 0;'
+        print '        _glGetIntegerv(GL_ARRAY_BUFFER, &array_buffer);'
+        print '        GLint max_vertex_attribs = 0;'
+        print '        _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::list<GLuint>::iterator iter = pContext->vertexArrays.begin(); iter != pContext->vertexArrays.end(); ++iter) {'
+        print '            _trace_glBindVertexArray(*iter, true);'
+        print '            for (GLint index = 0; index < max_vertex_attribs; ++index) {'
+
+        print '                // TODO: this could cause undefined behavior since we currently dont know'
+        print '                // what format the data was originally specified in, but we are reading it back as a double.'
+        print '                // We might have to track this state from the beginning of the trace.'
+        glGetVertexAttrib('index', "GL_CURRENT_VERTEX_ATTRIB")
+        print '                _trace_glVertexAttrib4dv(index, current_vertex_attrib, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING")
+        print '                _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
+        print '                _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
+        print '                if (vertex_attrib_array_integer == GL_TRUE) {'
+        print '                    _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                } else {'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
+        print '                    _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                }'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
+        print '                if (vertex_attrib_array_enabled == GL_TRUE) {'
+        print '                    _trace_glEnableVertexAttribArray(index, false);'
+        print '                } else {'
+        print '                    _trace_glDisableVertexAttribArray(index, false);'
+        print '                }'
+        print '            }'
+        print '        }'
+        print '        _trace_glBindBuffer(GL_ARRAY_BUFFER, array_buffer, true);'
+        print '        _trace_glBindVertexArray(vertex_array_binding, true);'
+        print '    } // end VERTEX ARRAYS'
         print
 
     program_targets = [
@@ -1202,7 +1431,7 @@ class StateSnapshot:
         print
 
         print '        // switch back to the previously active texture unit'
-        print '        _glActiveTexture(active_texture);'
+        print '        _trace_glActiveTexture(active_texture, true);'
 
         print '        delete [] pBindings1D; pBindings1D = NULL;'
         print '        delete [] pBindings2D; pBindings2D = NULL;'
@@ -1287,35 +1516,101 @@ class StateSnapshot:
         print '%s}' % indentation
         print '%s}' % indentation
 
+    def snapshot_renderbuffer_parameters(self):
+        print '    // RENDERBUFFERS'
+        print '    {'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        // get the current active renderbuffer'
+        print '        GLint renderbuffer_binding = 0;'
+        print '        _glGetIntegerv(GL_RENDERBUFFER_BINDING, &renderbuffer_binding);'
+        print 
+        print '        // recreate all the renderbuffers'
+        print '        for (std::list<GLuint>::iterator iter = pContext->renderbuffers.begin(); iter != pContext->renderbuffers.end(); ++iter) {'
+        print '            _trace_glBindRenderbuffer(GL_RENDERBUFFER, *iter, true);'
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_SAMPLES")
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_INTERNAL_FORMAT")
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_WIDTH")
+        glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_HEIGHT")
+        print '            _trace_glRenderbufferStorageMultisample(GL_RENDERBUFFER, renderbuffer_samples, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
+
+        print '            // TODO: Need to read from existing renderbuffers and write that data into the new Renderbuffers (to recreate their contents)'
+        print '            // This may or may not be required depending on how the renderbuffer is being used. If its drawn to and used every frame, then'
+        print '            // there is no need to restore its contents, but if it is rendered in one frame and used in subsequent frames, then restoring them is important.'
+
+        print '        }'
+        print
+        print '        // switch back to the previously active renderbuffer'
+        print '        _glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_binding);'
+        print '    }'
+        print
+
     def snapshot_framebuffer_parameters(self):
         print '    { // FRAMEBUFFERS'
+        print '        // backup current bindings'
+        print '        GLint draw_framebuffer_binding = 0;'
+        print '        _glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_framebuffer_binding);'
+        print '        GLint read_framebuffer_binding = 0;'
+        print '        _glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_framebuffer_binding);'
+        print
+        print '        GLint max_draw_buffers = 0;'
+        print '        _glGetIntegerv(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);'
+        print '        for (GLint i = 0; i < max_draw_buffers; ++i) {';
+        print '            GLboolean color_writemask[4];'
+        print '            _glGetBooleanIndexedvEXT(GL_COLOR_WRITEMASK, i, color_writemask);'
+        print '            _trace_glColorMaskIndexedEXT(i, color_writemask[0], color_writemask[1], color_writemask[2], color_writemask[3], false);'
+        print '        }'
+        print
         print '        GLint max_color_attachments = 0;'
         print '        _glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);'
-        print '        GLint framebuffer;'
-        for target, binding in framebuffer_targets:
-            print '            // %s' % target
-            print '            framebuffer = 0;'
-            print '            _glGetIntegerv(%s, &framebuffer);' % binding
-            print '            if (framebuffer) {'
-            print '                for (GLint i = 0; i < max_color_attachments; ++i) {'
-            print '                    GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
-            print '                    snapshotFramebufferAttachmentParameters(%s, color_attachment);' % target
-            print '                }'
-            print '                snapshotFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
-            print '                snapshotFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
+
+        print '        gltrace::Context *ctx = gltrace::getContext();'
+        for target in ('GL_DRAW_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER'):
+            print '        // %s' % target
+            print '        for (std::list<GLuint>::iterator iter = ctx->framebuffers.begin(); iter != ctx->framebuffers.end(); ++iter) {'
+            print '            _trace_glBindFramebuffer(%s, *iter, true);' % target
+            print '            for (GLint i = 0; i < max_color_attachments; ++i) {'
+            print '                GLint color_attachment = GL_COLOR_ATTACHMENT0 + i;'
+            print '                snapshotFramebufferAttachmentParameters(%s, color_attachment);' % target
             print '            }'
-            print
-        print '    }'
+            print '            snapshotFramebufferAttachmentParameters(%s, GL_DEPTH_ATTACHMENT);' % target
+            print '            snapshotFramebufferAttachmentParameters(%s, GL_STENCIL_ATTACHMENT);' % target
+            print '        }'
+        print '        _trace_glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding, true);'
+        print '        _trace_glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding, true);'
+        print '    } // end FRAMEBUFFERS'
         print
 
     def snapshot_attachment_parameters(self, target, attachment):
         print '    {'
         print '        GLint object_type = GL_NONE;'
         print '        _glGetFramebufferAttachmentParameteriv(%s, %s, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &object_type);' % (target, attachment)
-        print '        if (object_type != GL_NONE) {'
-        self.snapshot_atoms(glGetFramebufferAttachmentParameter, '            ', target, attachment)
+        print '        if (object_type == GL_TEXTURE) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME")
+        print '            if (framebuffer_attachment_object_name != 0) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL")
+        print '                GLenum texTarget = GL_NONE;'
+        print '                gltrace::Context *ctx = gltrace::getContext();'
+        print '                texTarget = ctx->textures[framebuffer_attachment_object_name].m_target;'
+        print '                if (texTarget == GL_TEXTURE_1D) {'
+        print '                    _trace_glFramebufferTexture1D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
+        print '                } else if (texTarget == GL_TEXTURE_2D) {'
+        print '                    _trace_glFramebufferTexture2D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
+        print '                } else if (texTarget == GL_TEXTURE_3D) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER")
+        print '                    _trace_glFramebufferTexture3D(%s, %s, texTarget, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, framebuffer_attachment_texture_layer, false);' % (target, attachment)
+        print '                } else if (texTarget == GL_TEXTURE_CUBE_MAP) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE")
+        print '                    _trace_glFramebufferTexture2D(%s, %s, framebuffer_attachment_texture_cube_map_face, framebuffer_attachment_object_name, framebuffer_attachment_texture_level, false);' % (target, attachment)
+        print '                }'
+        print '            }'
+        print '        } else if (object_type == GL_RENDERBUFFER) {'
+        glGetFramebufferAttachmentParameter(target, attachment, "GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME")
+        print '            if (framebuffer_attachment_object_name != 0) {'
+        print '                _trace_glFramebufferRenderbuffer(%s, %s, GL_RENDERBUFFER, framebuffer_attachment_object_name, false);' % (target, attachment)
+        print '            }'
         print '        }'
         print '    }'
+        print
 
     def snapshot_atoms(self, getter, indentation, *args):
         for _, _, name in getter.iter():
@@ -1331,10 +1626,43 @@ class StateSnapshot:
         if name == 'GL_SAMPLER_BINDING' and platform.system() == 'Darwin':
             return
 
-        print '%s// %s' % (indentation, name)
+        # only output state that we have a setter for
+        stateNames = ''
+        for names, _ in state_setters:
+            if name in names.split(','):
+                if (name == names.split(',')[0]):
+                    stateNames = names
+                    break
+                else:
+                    ## this state will be handled by a different one
+                    #print '// handled somewhere else: %s' % name
+                    #print
+                    return;
+        if stateNames == '':
+            for stateName in state_enable_disable:
+                if stateName == name:
+                    stateNames = name
+                    break
+        if stateNames == '':
+            if name in state_deprecated_before_gl33:
+                #print '// deprecated: %s' % name
+                pass
+            else:
+                #print '// unhandled state: %s' % name
+                pass
+            #print
+            return
+
+        print '%s// %s' % (indentation, stateNames)
         print '%s{' % indentation
         #print '%s    assert(_glGetError() == GL_NO_ERROR);' % indentation
-        type, value = getter(*args)
+
+        if stateNames in state_enable_disable:
+            type, value = getter(*args)
+        else:
+            for stateName in stateNames.split(','):
+                type, value = getter(*(args[:-1] + (stateName,)))
+
         print '%s    if (_glGetError() != GL_NO_ERROR) {' % indentation
         #print '%s       std::cerr << "warning: %s(%s) failed\\n";' % (indentation, inflection, name)
         print '%s        while (_glGetError() != GL_NO_ERROR) {}' % indentation
