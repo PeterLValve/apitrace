@@ -263,6 +263,24 @@ state_that_cannot_replay = (
     'GL_MAX_PROGRAM_IF_DEPTH_NV',
     'GL_MAX_PROGRAM_LOOP_DEPTH_NV',
     'GL_MAX_PROGRAM_LOOP_COUNT_NV',
+    'GL_PROGRAM_LENGTH_ARB',
+    'GL_PROGRAM_ALU_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_TEX_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_TEX_INDIRECTIONS_ARB',
+    'GL_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB',
+    'GL_PROGRAM_FORMAT_ARB',
+    'GL_PROGRAM_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_NATIVE_INSTRUCTIONS_ARB',
+    'GL_PROGRAM_TEMPORARIES_ARB',
+    'GL_PROGRAM_NATIVE_TEMPORARIES_ARB',
+    'GL_PROGRAM_PARAMETERS_ARB',
+    'GL_PROGRAM_NATIVE_PARAMETERS_ARB',
+    'GL_PROGRAM_NATIVE_ATTRIBS_ARB',
+    'GL_PROGRAM_ADDRESS_REGISTERS_ARB',
+    'GL_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB',
+    'GL_PROGRAM_UNDER_NATIVE_LIMITS_ARB',
     'GL_RGBA_FLOAT_MODE_ARB',
     'GL_RGBA_INTEGER_MODE_EXT',
     'GL_FRAMEBUFFER_SRGB_CAPABLE_EXT',
@@ -273,8 +291,7 @@ state_that_cannot_replay = (
     'GL_TEXTURE_RENDERBUFFER_DATA_STORE_BINDING_NV',
     'GL_SUBPIXEL_BITS',
     'GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH',
-    'GL_COMPRESSED_TEXTURE_FORMATS',
-)
+    'GL_COMPRESSED_TEXTURE_FORMATS',)
 
 state_deprecated_before_gl33 = (
     'GL_CURRENT_COLOR',
@@ -1046,6 +1063,192 @@ class StateSnapshot:
     def __init__(self):
         pass
 
+    def generateUniformCalls(self, funcPrefix, firstParam):
+        print '            { // UNIFORMS'
+        print '            GLchar uniformName[1024];'
+        print '            memset(uniformName, 0, 1024);'
+        print '            GLenum uniformType = GL_NONE;'
+        print '            GLint uniformSize = 0;'
+        print '            GLfloat fParams[16];'
+        print '            GLint iParams[16];'
+        print '            GLdouble dParams[16];'
+        print '            GLuint uiParams[16];'
+        print '            memset(fParams, 0, 16*sizeof(GLfloat));'
+        print '            memset(iParams, 0, 16*sizeof(GLint));'
+        print '            memset(dParams, 0, 16*sizeof(GLdouble));'
+        print '            memset(uiParams, 0, 16*sizeof(GLuint));'
+        print '            GLint active_uniforms = 0;'
+        print '            _glGetProgramiv(programName, GL_ACTIVE_UNIFORMS, &active_uniforms);'
+        print '            for (GLint index = 0; index < active_uniforms; ++index) {'
+        print '                _glGetActiveUniform(programName, index, 1024, NULL, &uniformSize, &uniformType, uniformName);'
+        print '                if (strncmp(uniformName, "gl_", 3) == 0 ) { continue; }'
+        print '                if (uniformSize > 1 && strncmp(&uniformName[strlen(uniformName)-3], "[0]", 3) == 0) { uniformName[strlen(uniformName)-3] = \'\\0\'; }'
+        print '                size_t nameLen = strlen(uniformName);'
+        print '                for (unsigned int i = 0; i < uniformSize; ++i) {'
+        print '                    if (uniformSize > 1) {'
+        print '                        std::string nameString(uniformName);'
+        print '                        sprintf(uniformName, "%s[%d]", nameString.substr(0, nameLen).c_str(), i);'
+        print '                    }'
+        print '                    // Get the uniform location'
+        print '                    GLint location = _glGetUniformLocation(programName, uniformName);'
+        print '                    // Now emit a trace call to get the uniform location, and supply the known result.'
+        print '                    // This will allow the replayer to use the correct uniform location.'
+        print '                    _trace_glGetUniformLocation(programName, uniformName, location, false);'
+        print '                    if (location == -1) { continue; }'
+        for datatype, count, type in (('GL_INT',      '1', 'i'), ('GL_BOOL',      '1', 'i'),
+                                      ('GL_INT_VEC2', '2', 'i'), ('GL_BOOL_VEC2', '2', 'i'),
+                                      ('GL_INT_VEC3', '3', 'i'), ('GL_BOOL_VEC3', '3', 'i'),
+                                      ('GL_INT_VEC4', '4', 'i'), ('GL_BOOL_VEC4', '4', 'i'),
+                                      ('GL_UNSIGNED_INT',      '1', 'ui'),
+                                      ('GL_UNSIGNED_INT_VEC2', '2', 'ui'),
+                                      ('GL_UNSIGNED_INT_VEC3', '3', 'ui'),
+                                      ('GL_UNSIGNED_INT_VEC4', '4', 'ui'),
+                                      ('GL_FLOAT',      '1', 'f'),
+                                      ('GL_FLOAT_VEC2', '2', 'f'),
+                                      ('GL_FLOAT_VEC3', '3', 'f'),
+                                      ('GL_FLOAT_VEC4', '4', 'f'),
+                                      ('GL_DOUBLE',      '1', 'd'),
+                                      ('GL_DOUBLE_VEC2', '2', 'd'),
+                                      ('GL_DOUBLE_VEC3', '3', 'd'),
+                                      ('GL_DOUBLE_VEC4', '4', 'd'),
+                                     ):
+            print '                    if (uniformType == %s) {' % datatype
+            print '                        _glGetUniform%sv(programName, location, %sParams);' % (type, type)
+            print '                        _trace_gl%sUniform%s%sv(%slocation, 1, %sParams, false);' % (funcPrefix, count, type, firstParam, type)
+            print '                    } else'
+        for datatype, count, type in (('GL_FLOAT_MAT2', '2', 'f'),
+                                      ('GL_FLOAT_MAT3', '3', 'f'),
+                                      ('GL_FLOAT_MAT4', '4', 'f'),
+                                      ('GL_FLOAT_MAT2x3', '2x3', 'f'),
+                                      ('GL_FLOAT_MAT2x4', '2x4', 'f'),
+                                      ('GL_FLOAT_MAT3x2', '3x2', 'f'),
+                                      ('GL_FLOAT_MAT3x4', '3x4', 'f'),
+                                      ('GL_FLOAT_MAT4x2', '4x2', 'f'),
+                                      ('GL_DOUBLE_MAT2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT3', '3', 'd'),
+                                      ('GL_DOUBLE_MAT4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT2x3', '2x3', 'd'),
+                                      ('GL_DOUBLE_MAT2x4', '2x4', 'd'),
+                                      ('GL_DOUBLE_MAT3x2', '3x2', 'd'),
+                                      ('GL_DOUBLE_MAT3x4', '3x4', 'd'),
+                                      ('GL_DOUBLE_MAT4x2', '4x2', 'd'),
+                                      ('GL_DOUBLE_MAT4x3', '4x3', 'd'),
+                                     ):
+            print '                    if (uniformType == %s) {' % datatype
+            print '                        _glGetUniform%sv(programName, location, %sParams);' % (type, type)
+            print '                        _trace_gl%sUniformMatrix%s%sv(%slocation, 1, GL_FALSE, %sParams, false);' % (funcPrefix, count, type, firstParam, type)
+            print '                    } else'
+        
+        print '                    {'
+        print '                        switch (uniformType) {'
+        print '                            case GL_SAMPLER_1D: case GL_SAMPLER_2D: case GL_SAMPLER_3D: case GL_SAMPLER_CUBE: case GL_SAMPLER_1D_SHADOW: case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE: case GL_SAMPLER_CUBE_SHADOW: case GL_SAMPLER_BUFFER: case GL_SAMPLER_2D_RECT: case GL_SAMPLER_2D_RECT_SHADOW:'
+        print '                            case GL_INT_SAMPLER_1D: case GL_INT_SAMPLER_2D: case GL_INT_SAMPLER_3D: case GL_INT_SAMPLER_CUBE: case GL_INT_SAMPLER_2D_MULTISAMPLE: case GL_INT_SAMPLER_BUFFER: case GL_INT_SAMPLER_2D_RECT:'
+        print '                            case GL_UNSIGNED_INT_SAMPLER_1D: case GL_UNSIGNED_INT_SAMPLER_2D: case GL_UNSIGNED_INT_SAMPLER_3D: case GL_UNSIGNED_INT_SAMPLER_CUBE: case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: case GL_UNSIGNED_INT_SAMPLER_BUFFER: case GL_UNSIGNED_INT_SAMPLER_2D_RECT:'
+        print '                            case GL_SAMPLER_1D_ARRAY: case GL_SAMPLER_2D_ARRAY: case GL_SAMPLER_1D_ARRAY_SHADOW: case GL_SAMPLER_2D_ARRAY_SHADOW: case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:'
+        print '                            case GL_INT_SAMPLER_1D_ARRAY: case GL_INT_SAMPLER_2D_ARRAY: case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:'
+        print '                            case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:'
+        print '                                { _glGetUniformiv(programName, location, iParams); _trace_gl%sUniform1iv(%slocation, 1, iParams, false); }' % (funcPrefix, firstParam)
+        print '                        }'
+        print '                    }'
+        print '                }'
+        print '            }'
+        print '            }'
+
+
+    def generateAttribCalls(self):
+        print '            { // ATTRIBS'
+        print '            GLchar name[1024];'
+        print '            memset(name, 0, 1024);'
+        print '            GLenum type = GL_NONE;'
+        print '            GLfloat fParams[16];'
+        print '            GLint iParams[16];'
+        print '            GLdouble dParams[16];'
+        print '            GLuint uiParams[16];'
+        print '            memset(fParams, 0, 16*sizeof(GLfloat));'
+        print '            memset(iParams, 0, 16*sizeof(GLint));'
+        print '            memset(dParams, 0, 16*sizeof(GLdouble));'
+        print '            memset(uiParams, 0, 16*sizeof(GLuint));'
+        print '            GLint active_attribs = 0;'
+        print '            _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &active_attribs);'
+        print '            for (GLint index = 0; index < active_attribs; ++index) {'
+        print '                GLint vertex_attrib_array_buffer_binding = 0;'
+        print '                _glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &vertex_attrib_array_buffer_binding);'
+        print '                if (vertex_attrib_array_buffer_binding != 0) {'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
+        print '                    if (vertex_attrib_array_enabled == GL_TRUE) {'
+        print '                        _trace_glEnableVertexAttribArray(index, false);'
+        print '                    } else {'
+        print '                        _trace_glDisableVertexAttribArray(index, false);'
+        print '                    }'
+        print '                    _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
+        print '                    _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
+        print
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
+        print '                    if (vertex_attrib_array_integer == GL_TRUE) {'
+        print '                        _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                    } else {'
+        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
+        print '                        _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
+        print '                    }'
+        print '                } else if (index != 0) {'
+
+        for datatype, count, getType, setType in (('GL_INT',      'I1', 'Ii', 'i'), ('GL_BOOL',      'I1', 'Ii', 'i'),
+                                                  ('GL_INT_VEC2', 'I2', 'Ii', 'i'), ('GL_BOOL_VEC2', 'I2', 'Ii', 'i'),
+                                                  ('GL_INT_VEC3', 'I3', 'Ii', 'i'), ('GL_BOOL_VEC3', 'I3', 'Ii', 'i'),
+                                                  ('GL_INT_VEC4', 'I4', 'Ii', 'i'), ('GL_BOOL_VEC4', 'I4', 'Ii', 'i'),
+                                                  ('GL_UNSIGNED_INT',      'I1', 'Iui', 'ui'),
+                                                  ('GL_UNSIGNED_INT_VEC2', 'I2', 'Iui', 'ui'),
+                                                  ('GL_UNSIGNED_INT_VEC3', 'I3', 'Iui', 'ui'),
+                                                  ('GL_UNSIGNED_INT_VEC4', 'I4', 'Iui', 'ui'),
+                                                  ('GL_FLOAT',      '1', 'f', 'f'),
+                                                  ('GL_FLOAT_VEC2', '2', 'f', 'f'),
+                                                  ('GL_FLOAT_VEC3', '3', 'f', 'f'),
+                                                  ('GL_FLOAT_VEC4', '4', 'f', 'f'),
+                                                  ('GL_DOUBLE',      'L1', 'd', 'd'),
+                                                  ('GL_DOUBLE_VEC2', 'L2', 'd', 'd'),
+                                                  ('GL_DOUBLE_VEC3', 'L3', 'd', 'd'),
+                                                  ('GL_DOUBLE_VEC4', 'L4', 'd', 'd'),
+                                     ):
+            print '                    if (type == %s) {' % datatype
+            print '                        _glGetVertexAttrib%sv(index, GL_CURRENT_VERTEX_ATTRIB, %sParams);' % (getType, setType)
+            print '                        _trace_glVertexAttrib%s%sv(index, %sParams, false);' % (count, setType, setType)
+            print '                    } else'
+        
+        
+        for datatype, count, type in (('GL_FLOAT_MAT2', '2', 'f'),
+                                      ('GL_FLOAT_MAT3', '3', 'f'),
+                                      ('GL_FLOAT_MAT4', '4', 'f'),
+                                      ('GL_FLOAT_MAT2x3', '3', 'f'),
+                                      ('GL_FLOAT_MAT2x4', '4', 'f'),
+                                      ('GL_FLOAT_MAT3x2', '2', 'f'),
+                                      ('GL_FLOAT_MAT3x4', '4', 'f'),
+                                      ('GL_FLOAT_MAT4x2', '2', 'f'),
+                                      ('GL_DOUBLE_MAT2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT3', '3', 'd'),
+                                      ('GL_DOUBLE_MAT4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT2x3', '3', 'd'),
+                                      ('GL_DOUBLE_MAT2x4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT3x2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT3x4', '4', 'd'),
+                                      ('GL_DOUBLE_MAT4x2', '2', 'd'),
+                                      ('GL_DOUBLE_MAT4x3', '3', 'd'),
+                                     ):
+            print '                    if (type == %s) {' % datatype
+            print '                        _glGetVertexAttrib%sv(index, GL_CURRENT_VERTEX_ATTRIB, %sParams);' % (type, type)
+            print '                        _trace_glVertexAttrib%s%sv(index, %sParams, false);' % (count, type, type)
+            print '                    } else'
+        
+        print '                    { // Unhandled type'
+        print '                    }'
+        print '                }'
+        print '            }'
+        print '            }'
+
     def generateFile(self):
         print '#include <assert.h>'
         print '#include <string.h>'
@@ -1072,6 +1275,7 @@ class StateSnapshot:
         print '{'
         print '    ScopedAllocator _allocator;'
         print '    (void)_allocator;'
+        print '    _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: State Snapshot", false);'
         print
 
         self.snapshot_atoms(glGet, '    ')
@@ -1086,6 +1290,7 @@ class StateSnapshot:
         self.snapshot_renderbuffer_parameters()
         self.snapshot_framebuffer_parameters()
 
+        print '    _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: State Snapshot", false);'
         print '}'
         print
         
@@ -1250,63 +1455,150 @@ class StateSnapshot:
         print '    { // VERTEX ARRAYS'
         print '        GLint vertex_array_binding = 0;'
         print '        _glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertex_array_binding);'
-        print '        GLint array_buffer = 0;'
-        print '        _glGetIntegerv(GL_ARRAY_BUFFER, &array_buffer);'
-        print '        GLint max_vertex_attribs = 0;'
-        print '        _glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);'
         print '        gltrace::Context* pContext = gltrace::getContext();'
         print '        for (std::list<GLuint>::iterator iter = pContext->vertexArrays.begin(); iter != pContext->vertexArrays.end(); ++iter) {'
         print '            _trace_glBindVertexArray(*iter, true);'
-        print '            for (GLint index = 0; index < max_vertex_attribs; ++index) {'
+        print '            GLint element_array_buffer_binding = 0;'
+        print '            _glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_array_buffer_binding);'
+        print '            _trace_glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_array_buffer_binding, false);'
 
-        print '                // TODO: this could cause undefined behavior since we currently dont know'
-        print '                // what format the data was originally specified in, but we are reading it back as a double.'
-        print '                // We might have to track this state from the beginning of the trace.'
-        glGetVertexAttrib('index', "GL_CURRENT_VERTEX_ATTRIB")
-        print '                _trace_glVertexAttrib4dv(index, current_vertex_attrib, false);'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING")
-        print '                _trace_glBindBuffer(GL_ARRAY_BUFFER, vertex_attrib_array_buffer_binding, false);'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_SIZE")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_STRIDE")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_TYPE")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_INTEGER")
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_DIVISOR")
-        print '                _trace_glVertexAttribDivisor(index, vertex_attrib_array_divisor, false);'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_POINTER")
-        print '                if (vertex_attrib_array_integer == GL_TRUE) {'
-        print '                    _trace_glVertexAttribIPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
-        print '                } else {'
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_NORMALIZED")
-        print '                    _trace_glVertexAttribPointer(index, vertex_attrib_array_size, vertex_attrib_array_type, vertex_attrib_array_normalized, vertex_attrib_array_stride, vertex_attrib_array_pointer, false);'
-        print '                }'
-        print
-        glGetVertexAttrib('index', "GL_VERTEX_ATTRIB_ARRAY_ENABLED")
-        print '                if (vertex_attrib_array_enabled == GL_TRUE) {'
-        print '                    _trace_glEnableVertexAttribArray(index, false);'
-        print '                } else {'
-        print '                    _trace_glDisableVertexAttribArray(index, false);'
-        print '                }'
-        print '            }'
+        self.generateAttribCalls()
+
         print '        }'
-        print '        _trace_glBindBuffer(GL_ARRAY_BUFFER, array_buffer, true);'
         print '        _trace_glBindVertexArray(vertex_array_binding, true);'
         print '    } // end VERTEX ARRAYS'
         print
 
-    program_targets = [
-        'GL_FRAGMENT_PROGRAM_ARB',
-        'GL_VERTEX_PROGRAM_ARB',
-    ]
 
     def snapshot_program_params(self):
-        for target in self.program_targets:
-            print '    if (glIsEnabled(%s)) {' % target
-            self.snapshot_atoms(glGetProgramARB, '    ', target)
-            print '    }'
-            print
+        print '    { // PROGRAM PIPELINES'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating program pipelines", false);'
+        print '        GLint program_pipeline_binding = 0;'
+        print '        _glGetIntegerv(GL_PROGRAM_PIPELINE_BINDING, &program_pipeline_binding);'
+        print
+        print '        // recreate all the shader programs'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pContext->separateShaders.begin(); shaderIter != pContext->separateShaders.end(); ++shaderIter) {'
+        print '            GLuint programName = shaderIter->first;'
+        print '            gltrace::Shader* pShader = &(shaderIter->second);'
+        print '            _trace_glCreateShaderProgramv(pShader->type, pShader->count, pShader->sources, programName, false);'
+        self.generateUniformCalls("Program", 'programName, ')
+        print '        }'
+        print
+        print '        GLenum shaderTypes[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_GEOMETRY_SHADER, GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER };'
+        print '        GLenum shaderTypeBits[] = { GL_VERTEX_SHADER_BIT, GL_FRAGMENT_SHADER_BIT, GL_GEOMETRY_SHADER_BIT, GL_TESS_CONTROL_SHADER_BIT, GL_TESS_EVALUATION_SHADER_BIT };'
+        print '        GLint shaderNames[] = { 0, 0, 0, 0, 0 };'
+        print '        unsigned int count = sizeof(shaderTypes) / sizeof(GLenum);'
+        print
+        print '        // setup program pipelines with shaders and uniforms'
+        print '        for (std::list<GLuint>::iterator pipelineIter = pContext->pipelines.begin(); pipelineIter != pContext->pipelines.end(); ++pipelineIter) {'
+        print '            GLuint pipelineName = *pipelineIter;'
+        print '            GLint active_program = 0;'
+        print '            _glGetProgramPipelineiv(pipelineName, GL_ACTIVE_PROGRAM, &active_program);'
+        print
+        print '            for (unsigned int i = 0; i < count; ++i ) {'
+        print '                _glGetProgramPipelineiv(pipelineName, shaderTypes[i], &shaderNames[i]);'
+        print '                if (shaderNames[i] != 0) {'
+        print '                    _trace_glUseProgramStages(pipelineName, shaderTypeBits[i], shaderNames[i], false);'
+        print '                }'
+        print '            }'
+        print '            _trace_glActiveShaderProgram(pipelineName, active_program, false);'
+        print '        }'
+        print
+        print '        if (program_pipeline_binding != 0) {'
+        print '            _trace_glBindProgramPipeline(program_pipeline_binding, false);'
+        print '        }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating program pipelines", false);'
+        print '    } // end PROGRAM PIPELINES'
+        print
+        print '    { // SHADERS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating shaders", false);'
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print '        for (std::map<GLuint, gltrace::Shader>::iterator shaderIter = pContext->shaderObjects.begin(); shaderIter != pContext->shaderObjects.end(); ++shaderIter) {'
+        print '            GLuint shaderName = shaderIter->first;'
+        print '            // set source and compile'
+        print '            GLint shaderType = GL_NONE;'
+        print '            _glGetShaderiv(shaderName, GL_SHADER_TYPE, &shaderType);'
+        print '            GLint shaderLength = 0;'
+        print '            _glGetShaderiv(shaderName, GL_SHADER_SOURCE_LENGTH, &shaderLength);'
+        print '            GLchar* shaderSource = (GLchar*)malloc(sizeof(GLchar) * shaderLength);'
+        print '            if (shaderSource != NULL) {'
+        print '                _glGetShaderSource(shaderName, shaderLength, NULL, shaderSource);'
+        print '                _trace_glShaderSource(shaderName, 1, &shaderSource, &shaderLength, false);'
+        print '                _trace_glCompileShader(shaderName, false);'
+        print '                free(shaderSource);'
+        print '                shaderSource = NULL;'
+        print '            }'
+        print '        }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating shaders", false);'
+        print '    } // end SHADERS'
+        print 
+        print '    { // PROGRAMS'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "Begin: Recreating programs", false);'
+        print '        // get the currently active program before recreating all program uniforms'
+        glGet("GL_ACTIVE_PROGRAM")
+        print '        gltrace::Context* pContext = gltrace::getContext();'
+        print
+        print '        // recreate programs based on GL_ARB_vertex_program and GL_ARB_fragment_program'
+        print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programsARB.begin(); iter != pContext->programsARB.end(); ++iter) {'
+        print '            GLuint programName = iter->first;'
+        print '            gltrace::Program* pProgram = &(iter->second);'
+        print '            _trace_glGenProgramsARB(1, &programName, false);'
+        print '            if (pProgram->shaders.size() > 0) {'
+        print '                // set source, compile, and attach all shaders'
+        print '                for (std::list<GLuint>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
+        print '                    GLuint shaderName = *shaderIter;'
+        print '                    _trace_glAttachShader(programName, shaderName, false);'
+        print '                }'
+        print '                _trace_glLinkProgramARB(programName, false);'
+        print
+        print '                _trace_glUseProgram(programName, true);'
+
+        self.generateUniformCalls("", "")
+
+        print '            } // end if pProgram->shaders.size() > 0'
+        print '        } // end for each program'
+        print
+        print '        // recreate programs based on GL_ARB_shader_objects'
+        print '        for (std::map<GLuint, gltrace::Program>::iterator iter = pContext->programs.begin(); iter != pContext->programs.end(); ++iter) {'
+        print '            GLuint programName = iter->first;'
+        print '            gltrace::Program* pProgram = &(iter->second);'
+        print '            if (pProgram->m_createdWithObjectARB) {'
+        print '                _trace_glCreateProgramObjectARB(programName, false);'
+        print '            } else {'
+        print '                _trace_glCreateProgram(programName, false);'
+        print '            }'
+        print '            if (pProgram->shaders.size() > 0) {'
+        print '                // set source, compile, and attach all shaders'
+        print '                for (std::list<GLuint>::iterator shaderIter = pProgram->shaders.begin(); shaderIter != pProgram->shaders.end(); ++shaderIter) {'
+        print '                    GLuint shaderName = *shaderIter;'
+        print '                    if (pProgram->m_linkedWithARB) {'
+        print '                        _trace_glAttachObjectARB(programName, shaderName, false);'
+        print '                    } else {'
+        print '                        _trace_glAttachShader(programName, shaderName, false);'
+        print '                    }'
+        print '                }'
+        print '                if (pProgram->m_linkedWithARB) {'
+        print '                    _trace_glLinkProgramARB(programName, false);'
+        print '                } else {'
+        print '                    _trace_glLinkProgram(programName, false);'
+        print '                }'
+        print
+        print '                _trace_glUseProgram(programName, true);'
+
+        self.generateUniformCalls("", "")
+
+        print '            } // end if pProgram->shaders.size() > 0'
+        print '        } // end for each program based on GL_ARB_vertex_program and GL_ARB_fragment_program'
+        print
+        print '        if (pContext->programs.size() > 0 || pContext->programsARB.size() > 0) {'
+        print '            // restore previously active program;'
+        print '            _trace_glUseProgram(active_program, true);'
+        print '        }'
+        print '        _trace_glDebugMessageInsert(GL_DEBUG_SOURCE_THIRD_PARTY, GL_DEBUG_TYPE_OTHER, 0, GL_DEBUG_SEVERITY_LOW, -1, "End: Recreating programs", false);'
+        print '    } // end PROGRAMS'
+        print
+
 
     def snapshot_texture_parameters(self):
         print '    // TEXTURES'
@@ -1531,7 +1823,10 @@ class StateSnapshot:
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_INTERNAL_FORMAT")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_WIDTH")
         glGetRenderbufferParameter("GL_RENDERBUFFER", "GL_RENDERBUFFER_HEIGHT")
-        print '            _trace_glRenderbufferStorageMultisample(GL_RENDERBUFFER, renderbuffer_samples, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
+        print '            if (renderbuffer_samples == 0)'
+        print '                _trace_glRenderbufferStorage(GL_RENDERBUFFER, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
+        print '            else '
+        print '                _trace_glRenderbufferStorageMultisample(GL_RENDERBUFFER, renderbuffer_samples, renderbuffer_internal_format, renderbuffer_width, renderbuffer_height, false);'
 
         print '            // TODO: Need to read from existing renderbuffers and write that data into the new Renderbuffers (to recreate their contents)'
         print '            // This may or may not be required depending on how the renderbuffer is being used. If its drawn to and used every frame, then'

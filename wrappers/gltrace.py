@@ -483,20 +483,10 @@ class GlTracer(Tracer):
         'glDeleteQueries',
         'glGenBuffers',
         'glDeleteBuffers',
-        'glCreateProgram',
-        'glDeleteProgram',
-        'glCreateShader',
-        'glDeleteShader',
-        'glGenProgramsARB',
-        'glDeleteProgramsARB',
         'glGenBuffersARB',
         'glDeleteBuffersARB',
         'glGenQueriesARB',
         'glDeleteQueriesARB',
-        'glCreateShaderObjectARB',
-        'glCreateProgramObjectARB',
-        'glCreateShaderProgramv',
-        'glCreateShaderProgramEXT',
         'glDeleteObjectARB',
         'glGenRenderbuffers',
         'glDeleteRenderbuffers',
@@ -511,8 +501,6 @@ class GlTracer(Tracer):
         'glDeleteSamplers',
         'glGenTransformFeedbacks',
         'glDeleteTransformFeedbacks',
-        'glGenProgramPipelines',
-        'glDeleteProgramPipelines',
         'glGenTexturesEXT',
         'glDeleteTexturesEXT',
         'glGenAsyncMarkersSGIX',
@@ -574,6 +562,7 @@ class GlTracer(Tracer):
         'wglAllocateMemoryNV',
         'wglFreeMemoryNV',
 
+
         ## texture state
         'glTexImage1D',
         'glTexImage2D',
@@ -583,44 +572,7 @@ class GlTracer(Tracer):
         'glCompressedTexImage3D',
         'glGenerateMipmap',
 
-        ## ARB shaders and programs
 
-        'glBindProgramARB',
-        'glShaderSourceARB',
-        'glCompileShaderARB',
-        'glAttachObjectARB',
-        'glLinkProgramARB',
-        'glBindAttribLocationARB',
-        'glGetUniformLocationARB',
-        'glUniform1fvARB',
-        'glUniform2fvARB',
-        'glUniform3fvARB',
-        'glUniform4fvARB',
-        'glUniform1ivARB',
-        'glUniform2ivARB',
-        'glUniform3ivARB',
-        'glUniform4ivARB',
-        'glUniform1iARB',
-        'glUniform2iARB',
-        'glUniform3iARB',
-        'glUniform4iARB',
-        'glUniform1fARB',
-        'glUniform2fARB',
-        'glUniform3fARB',
-        'glUniform4fARB',
-        'glUniform1uiARB',
-        'glUniform2uiARB',
-        'glUniform3uiARB',
-        'glUniform4uiARB',
-        'glUniformMatrix2fvARB',
-        'glUniformMatrix3fvARB',
-        'glUniformMatrix4fvARB',
-        'glUniformMatrix2x3fvARB',
-        'glUniformMatrix3x2fvARB',
-        'glUniformMatrix2x4fvARB',
-        'glUniformMatrix4x2fvARB',
-        'glUniformMatrix3x4fvARB',
-        'glUniformMatrix4x3fvARB',
 
         ## texture EXT_direct_state_access
         'glTextureImage1D',
@@ -642,7 +594,6 @@ class GlTracer(Tracer):
         'glDeleteProgramsARB',
         'glCreateShaderObjectARB',
         'glCreateProgramObjectARB',
-        'glProgramStringARB',
         'glLinkProgramARB',
 
         ## ARB separate shader objects
@@ -667,7 +618,7 @@ class GlTracer(Tracer):
         for function in api.getAllFunctions():
             self.traceFunctionDecl(function)
 
-    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+    def generateTraceFunctionImplBody(self, function):
         # Defer tracing of user array pointers...
         if function.name in self.array_pointer_function_names:
             print '    GLint _array_buffer = 0;'
@@ -853,52 +804,105 @@ class GlTracer(Tracer):
             self.emit_memcpy('(char *)map + offset', '(const char *)map + offset', 'length')
             print '    }'
 
-        # Don't leave vertex attrib locations to chance.  Instead emit fake
-        # glBindAttribLocation calls to ensure that the same locations will be
-        # used when retracing.  Trying to remap locations after the fact would
-        # be an herculian task given that vertex attrib locations appear in
-        # many entry-points, including non-shader related ones.
-        if function.name == 'glLinkProgram':
-            Tracer.invokeFunction(self, function, '    ')
-            print '    GLint active_attributes = 0;'
-            print '    _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &active_attributes);'
-            print '    for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
-            print '        GLint size = 0;'
-            print '        GLenum type = 0;'
-            print '        GLchar name[256];'
-            # TODO: Use ACTIVE_ATTRIBUTE_MAX_LENGTH instead of 256
-            print '        _glGetActiveAttrib(program, attrib, sizeof name, NULL, &size, &type, name);'
-            print "        if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
-            print '            GLint location = _glGetAttribLocation(program, name);'
-            print '            if (location >= 0) {'
-            bind_function = glapi.glapi.getFunctionByName('glBindAttribLocation')
-            self.fake_call(bind_function, ['program', 'location', 'name'])
-            print '            }'
-            print '        }'
-            print '    }'
-        if function.name == 'glLinkProgramARB':
-            Tracer.invokeFunction(self, function, '    ')
-            print '    GLint active_attributes = 0;'
-            print '    _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_ATTRIBUTES_ARB, &active_attributes);'
-            print '    for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
-            print '        GLint size = 0;'
-            print '        GLenum type = 0;'
-            print '        GLcharARB name[256];'
-            # TODO: Use ACTIVE_ATTRIBUTE_MAX_LENGTH instead of 256
-            print '        _glGetActiveAttribARB(programObj, attrib, sizeof name, NULL, &size, &type, name);'
-            print "        if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
-            print '            GLint location = _glGetAttribLocationARB(programObj, name);'
-            print '            if (location >= 0) {'
-            bind_function = glapi.glapi.getFunctionByName('glBindAttribLocationARB')
-            self.fake_call(bind_function, ['programObj', 'location', 'name'])
-            print '            }'
-            print '        }'
-            print '    }'
-
         self.shadowBufferProlog(function)
 
-        if function.name == 'glLinkProgram' or function.name == 'glLinkProgramARB':
-            Tracer.generateTraceFunctionImplBody(self, function, 0)
+        if function.name in ('glCreateShaderProgramv', 'glCreateShaderProgramEXT'):
+            print '    // When tracing setup functions we do not want to trace the call.'
+            print '    // Instead will query some parameters and emit the trace call at a later time.'
+            print '    if (trace::isTracingStateSetupFunctions() == false)'
+            print '    {'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            if function.name == 'glCreateShaderProgramEXT':
+                print '        GLuint count = 1;'
+                print '        const GLchar * const * strings = &string;'
+            print '        if (count > 0 && strings != NULL) {'
+            print '            gltrace::Context *ctx = gltrace::getContext();'
+            print '            ctx->separateShaders[_result].SetSources(type, count, strings, NULL);'
+            print '        }'
+            print '        return _result;'
+            print '    }'
+            print
+
+        elif function.name in ('glLinkProgram', 'glLinkProgramARB'):
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+
+            print '    // When tracing setup functions we do not want to trace the call.'
+            print '    // Instead will query some parameters and emit the trace call at a later time.'
+            print '    if (trace::isTracingStateSetupFunctions() == false) {'
+
+            # Don't leave vertex attrib locations to chance.  Instead emit fake
+            # glBindAttribLocation calls to ensure that the same locations will be
+            # used when retracing.  Trying to remap locations after the fact would
+            # be an herculian task given that vertex attrib locations appear in
+            # many entry-points, including non-shader related ones.
+            if function.name == 'glLinkProgram':
+                print '        GLint active_attributes = 0;'
+                print '        _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &active_attributes);'
+                print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
+                print '            GLint size = 0;'
+                print '            GLenum type = 0;'
+                print '            GLint active_attribute_max_length = 0;'
+                print '            _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &active_attribute_max_length);'
+                print '            GLchar* name = (GLchar*)malloc(sizeof(GLchar) * active_attribute_max_length);'
+                print '            _glGetActiveAttrib(program, attrib, sizeof name, NULL, &size, &type, name);'
+                print "            if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
+                print '                GLint location = _glGetAttribLocation(program, name);'
+                print '                if (location >= 0) {'
+                bind_function = glapi.glapi.getFunctionByName('glBindAttribLocation')
+                self.fake_call(bind_function, ['program', 'location', 'name'])
+                print '                }'
+                print '            }'
+                print '            free(name);'
+                print '        }'
+            if function.name == 'glLinkProgramARB':
+                print '        GLint active_attributes = 0;'
+                print '        _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_ATTRIBUTES_ARB, &active_attributes);'
+                print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
+                print '            GLint size = 0;'
+                print '            GLenum type = 0;'
+                print '            GLint active_attribute_max_length = 0;'
+                print '            _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_UNIFORM_MAX_LENGTH_ARB, &active_attribute_max_length);'
+                print '            GLcharARB* name = (GLcharARB*)malloc(sizeof(GLcharARB) * active_attribute_max_length);'
+                print '            _glGetActiveAttribARB(programObj, attrib, sizeof name, NULL, &size, &type, name);'
+                print "            if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
+                print '                GLint location = _glGetAttribLocationARB(programObj, name);'
+                print '                if (location >= 0) {'
+                bind_function = glapi.glapi.getFunctionByName('glBindAttribLocationARB')
+                self.fake_call(bind_function, ['programObj', 'location', 'name'])
+                print '                }'
+                print '            }'
+                print '            free(name);'
+                print '        }'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    } else {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        GLint numAttachedShaders = 0;'
+            print '        _glGetProgramiv(%s, GL_ATTACHED_SHADERS, &numAttachedShaders);' % function.args[0].name
+            print '        GLuint* shaders = (GLuint*)malloc(sizeof(GLuint) * numAttachedShaders);'
+            print '        _glGetAttachedShaders(%s, numAttachedShaders, NULL, shaders);' % function.args[0].name
+            print '        for (GLint shaderIndex = 0; shaderIndex < numAttachedShaders; ++shaderIndex) {'
+            print '            if (_glIsProgram(%s) == GL_TRUE) {' % function.args[0].name
+            print '                ctx->programs[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
+            print '            } else if (_glIsProgramARB(%s) == GL_TRUE) {' % function.args[0].name
+            print '                ctx->programsARB[%s].AddShader(shaders[shaderIndex]);' % function.args[0].name
+            print '            } else {'
+            print '                assert(!"Unknown program type");'
+            print '            }'
+            print '        }'
+            print '        free(shaders);'
+            print '        shaders = NULL;'
+            if function.name == 'glLinkProgramARB':
+                print '        if (_glIsProgram(%s) == GL_TRUE) {' % function.args[0].name
+                print '            ctx->programs[%s].m_linkedWithARB = true;' % function.args[0].name
+                print '        } else {'
+                print '            ctx->programsARB[%s].m_linkedWithARB = true;' % function.args[0].name
+                print '        }'
+            print '    }'
         elif function.name in ('glGenerateMipmap'):
             print '    // glGenerateMipmap calls are special cased'
             print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
@@ -922,7 +926,35 @@ class GlTracer(Tracer):
             Tracer.generateTraceFunctionImplBodyArgs(self, function)
             print '    _tmpCall = _call;'
             print '    }'
-            Tracer.generateTraceFunctionImplBodyRealCall(self, function, bInvoke)
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '    if (trace::isTracingStateSetupFunctions() == false) {'
+            print '    unsigned _call = _tmpCall;'
+            Tracer.generateTraceFunctionImplBodyReturn(self, function)
+            print '    }'
+        elif function.name in ('glGenerateMipmap'):
+            print '    // glGenerateMipmap calls are special cased'
+            print '    // when tracing setup functions we only want to track the parameters, not trace the call.'
+            print '    // The actual call will be added to the trace at a later time.'
+            print '    unsigned _tmpCall = 0;'
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        GLint boundTexture = 0;'
+            print '        if (target == GL_TEXTURE_1D) _glGetIntegerv(GL_TEXTURE_BINDING_1D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_1D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_1D_ARRAY, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_2D) _glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_2D_ARRAY) _glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_3D) _glGetIntegerv(GL_TEXTURE_BINDING_3D, &boundTexture);'
+            print '        else if (target == GL_TEXTURE_CUBE_MAP) _glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTexture);'
+            
+            print '        _glGetIntegerv(target, &boundTexture);'
+            print '        if (boundTexture > 0) {'
+            print '            ctx->textures[boundTexture].m_generateMipmap = true;'
+            print '        }'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBodyArgs(self, function)
+            print '    _tmpCall = _call;'
+            print '    }'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '    if (trace::isTracingStateSetupFunctions() == false) {'
             print '    unsigned _call = _tmpCall;'
             Tracer.generateTraceFunctionImplBodyReturn(self, function)
@@ -938,23 +970,19 @@ class GlTracer(Tracer):
             Tracer.generateTraceFunctionImplBodyArgs(self, function)
             print '    _tmpCall = _call;'
             print '    }'
-            Tracer.generateTraceFunctionImplBodyRealCall(self, function, 1)
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
             print '    if (trace::isTracingStateSetupFunctions() == false) {'
             print '    unsigned _call = _tmpCall;'
             Tracer.generateTraceFunctionImplBodyReturn(self, function)
             print '    }'
-        else:
-            Tracer.generateTraceFunctionImplBody(self, function, 1)
-        self.frameTerminationTraceFunction(function, '        ')
-
-        if function.name  in ('glGenTextures', 'glGenTexturesEXT'):
+        elif function.name  in ('glGenTextures', 'glGenTexturesEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->textures[textures[i]];'
             print '        }'
             print '    }'
-        if function.name in ('glDeleteTextures', 'glDeleteTexturesEXT'):
+        elif function.name in ('glDeleteTextures', 'glDeleteTexturesEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
@@ -962,14 +990,14 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
-        if function.name in ('glGenFramebuffers', 'glGenFramebuffersEXT'):
+        elif function.name in ('glGenFramebuffers', 'glGenFramebuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->framebuffers.push_back(framebuffers[i]);'
             print '        }'
             print '    }'
-        if function.name in ('glDeleteFramebuffers', 'glDeleteFramebuffersEXT'):
+        elif function.name in ('glDeleteFramebuffers', 'glDeleteFramebuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
@@ -977,14 +1005,14 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
-        if function.name == 'glGenVertexArrays':
+        elif function.name == 'glGenVertexArrays':
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->vertexArrays.push_back(arrays[i]);'
             print '        }'
             print '    }'
-        if function.name == 'glDeleteVertexArrays':
+        elif function.name == 'glDeleteVertexArrays':
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
@@ -999,7 +1027,7 @@ class GlTracer(Tracer):
             print '            ctx->bufferObjects.push_back(%s[i]);' % function.args[1].name
             print '        }'
             print '    }'
-        if function.name in ('glDeleteBuffers', 'glDeleteBuffersARB'):
+        elif function.name in ('glDeleteBuffers', 'glDeleteBuffersARB'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
@@ -1007,14 +1035,14 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
-        if function.name == 'glGenSamplers':
+        elif function.name == 'glGenSamplers':
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < count; ++i){'
             print '            ctx->samplers.push_back(samplers[i]);'
             print '        }'
             print '    }'
-        if function.name == 'glDeleteSamplers':
+        elif function.name == 'glDeleteSamplers':
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < count; ++i){'
@@ -1022,20 +1050,93 @@ class GlTracer(Tracer):
             print '        }'
             print '    }'
 
-        if function.name in ('glGenRenderbuffers', 'glGenRenderbuffersEXT'):
+        elif function.name in ('glGenRenderbuffers', 'glGenRenderbuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->renderbuffers.push_back(renderbuffers[i]);'
             print '        }'
             print '    }'
-        if function.name in ('glDeleteRenderbuffers', 'glDeleteRenderbuffersEXT'):
+        elif function.name in ('glDeleteRenderbuffers', 'glDeleteRenderbuffersEXT'):
             print '    if (trace::isTracingStateSetupFunctions()) {'
             print '        gltrace::Context *ctx = gltrace::getContext();'
             print '        for (GLint i = 0; i < n; ++i){'
             print '            ctx->renderbuffers.remove(renderbuffers[i]);'
             print '        }'
             print '    }'
+
+        elif function.name in ('glCreateShaderObjectARB', 'glCreateShader'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            print '        gltrace::Shader shader;'
+            print '        shader.SetSources(%s, 0, NULL, NULL);' % function.args[0].name
+            if function.name == 'glCreateShaderObjectARB':
+                print '        shader.m_createdWithObjectARB = true;'
+            else:
+                print '        shader.m_createdWithObjectARB = false;'
+            print '        ctx->shaderObjects[_result] = shader;'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glDeleteShaderObjectARB', 'glDeleteShader'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            print '        ctx->shaderObjects.erase(shader);'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glCreateProgram', 'glCreateProgramObjectARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            if function.name == 'glCreateProgramObjectARB':
+                print '        ctx->programs[_result].m_createdWithObjectARB = true;'
+            else:
+                print '        ctx->programs[_result];'
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glDeleteProgram', 'glDeleteObjectARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            Tracer.generateTraceFunctionImplBodyRealCall(self, function)
+            print '        gltrace::Context* ctx = gltrace::getContext();'
+            print '        ctx->programs.erase(%s);' % function.args[0].name
+            print '    } else {'
+            Tracer.generateTraceFunctionImplBody(self, function)
+            print '    }'
+        elif function.name in ('glGenProgramsARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->programsARB[programs[i]].m_createdWithGenProgramsARB = true;'
+            print '        }'
+            print '    }'
+        elif function.name in ('glDeleteProgramsARB'):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->programsARB.erase(programs[i]);'
+            print '        }'
+            print '    }'
+
+        elif function.name  in ('glGenProgramPipelines',):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->pipelines.push_back(pipelines[i]);'
+            print '        }'
+            print '    }'
+        elif function.name in ('glDeleteProgramPipelines',):
+            print '    if (trace::isTracingStateSetupFunctions()) {'
+            print '        gltrace::Context *ctx = gltrace::getContext();'
+            print '        for (GLint i = 0; i < n; ++i){'
+            print '            ctx->pipelines.remove(pipelines[i]);'
+            print '        }'
+            print '    }'
+        else:
+            Tracer.generateTraceFunctionImplBody(self, function)
 
     def generateTraceTexImage(self, function):
         print '        gltrace::Context *ctx = gltrace::getContext();'
