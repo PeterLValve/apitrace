@@ -25,16 +25,17 @@
  *
  *********************************************************************/
 #include <gltrace.hpp>
-#include "../../retrace/glstate.hpp"
-
 #ifdef WIN32
 #include "wgltrace_tracefuncs.h"
+#include "../../retrace/glstate.hpp"
 #endif
 #ifdef __linux
-#include "glxtrace_tracefuncs.h"
+#include "../build32/wrappers/glxtrace_tracefuncs.h"
+#include "../../retrace/glstate.hpp"
 #endif
 #ifdef __APPLE__
-#include "cgltrace_tracefuncs.h"
+#include "../build/wrappers/cgltrace_tracefuncs.h"
+#include "../../retrace/glstate.hpp"
 #endif
 
 namespace gltrace {

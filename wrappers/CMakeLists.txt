@@ -7,7 +7,6 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/helpers
     ${CMAKE_BINARY_DIR}/dispatch
     ${CMAKE_SOURCE_DIR}/dispatch
-    ${CMAKE_BINARY_DIR}/wrappers
 )
 
 add_library (common_trace STATIC
