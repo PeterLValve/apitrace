@@ -44,6 +44,8 @@ const char *enumToString(GLenum pname);
 
 void dumpCurrentContext(std::ostream &os);
 
+void snapshotParameters(void);
+
 image::Image *
 getDrawBufferImage(void);
 

@@ -54,7 +54,7 @@ class CglTracer(GlTracer):
         # all OpenGL symbols are visible on MacOSX
         return True
 
-    def traceFunctionImplBody(self, function):
+    def generateTraceFunctionImplBody(self, function):
         if function.name == 'CGLReleaseContext':
             # Unlike other GL APIs like EGL or GLX, CGL will make the context
             # not current if it's the current context.
@@ -99,13 +99,18 @@ if __name__ == '__main__':
     print '#include <stdlib.h>'
     print '#include <string.h>'
     print
-    print '#include "trace_writer_local.hpp"'
-    print
     print '// To validate our prototypes'
     print '#define GL_GLEXT_PROTOTYPES'
     print
-    print '#include "glproc.hpp"'
-    print '#include "glsize.hpp"'
+    print '#include "gltrace_state_snapshot.hpp"'
+    print
+    print 'namespace trace'
+    print '{'
+    print 'void snapshotState(void)'
+    print '{'
+    print '    gltrace::snapshotState();'
+    print '}'
+    print '}'
     print
     
     module = Module()

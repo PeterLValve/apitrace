@@ -62,11 +62,11 @@ class GlxTracer(GlTracer):
         'glXMakeCurrentReadSGI',
     ]
 
-    def traceFunctionImplBody(self, function):
+    def generateTraceFunctionImplBody(self, function):
         if function.name in self.destroyContextFunctionNames:
             print '    gltrace::releaseContext((uintptr_t)ctx);'
 
-        GlTracer.traceFunctionImplBody(self, function)
+        GlTracer.generateTraceFunctionImplBody(self, function)
 
         if function.name in self.createContextFunctionNames:
             print '    if (_result != NULL)'
@@ -104,8 +104,8 @@ class GlxTracer(GlTracer):
                     break;
                 default:
                     os::log("apitrace: warning: %s: unsupported GLX_TEXTURE_TARGET_EXT 0x%u\n", __FUNCTION__, glx_target);
-                    target = GL_NONE;
-                    break;
+                   target = GL_NONE;
+                   break;
                 }
                 GLint level = 0;
                 GLint internalformat = GL_NONE;
@@ -160,15 +160,20 @@ if __name__ == '__main__':
     print '#include <stdlib.h>'
     print '#include <string.h>'
     print
-    print '#include "trace_writer_local.hpp"'
-    print
     print '// To validate our prototypes'
     print '#define GL_GLEXT_PROTOTYPES'
     print '#define GLX_GLXEXT_PROTOTYPES'
     print
     print '#include "dlopen.hpp"'
-    print '#include "glproc.hpp"'
-    print '#include "glsize.hpp"'
+    print '#include "gltrace_state_snapshot.hpp"'
+    print
+    print 'namespace trace'
+    print '{'
+    print 'void snapshotState(void)'
+    print '{'
+    print '    gltrace::snapshotState();'
+    print '}'
+    print '}'
     print
 
     module = Module()

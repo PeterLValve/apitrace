@@ -112,7 +112,7 @@ bool releaseContext(uintptr_t context_id)
     return res;
 }
 
-void createContext(uintptr_t context_id)
+void createContext(uintptr_t hdc, uintptr_t context_id)
 {
     // wglCreateContextAttribsARB causes internal calls to wglCreateContext to be
     // traced, causing context to be defined twice.
@@ -121,6 +121,10 @@ void createContext(uintptr_t context_id)
     }
 
     context_ptr_t ctx(new Context);
+    ctx->hdc = hdc;
+#ifdef __linux
+    ctx->dpy = hdc;
+#endif
 
     context_map_mutex.lock();
 
@@ -129,6 +133,24 @@ void createContext(uintptr_t context_id)
 
     context_map_mutex.unlock();
 }
+
+#ifdef __linux
+void setContext(uintptr_t dpy, GLXDrawable drawable)
+{
+    ThreadState *ts = get_ts();
+    context_ptr_t ctx;
+
+    context_map_mutex.lock();
+
+    assert(context_map.find(dpy) != context_map.end());
+    ctx = context_map[dpy];
+    ctx->m_drawable = drawable;
+
+    context_map_mutex.unlock();
+
+    ts->current_context = ctx;
+}
+#endif
 
 void setContext(uintptr_t context_id)
 {

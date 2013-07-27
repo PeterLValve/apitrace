@@ -120,6 +120,7 @@ if __name__ == '__main__':
     api = API()
     api.addModule(module)
     tracer = EglTracer()
+    tracer.generateTraceCalls(api)
     tracer.traceApi(api)
 
     print r'''
