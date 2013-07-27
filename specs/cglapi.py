@@ -257,16 +257,16 @@ cglapi.addFunctions([
     # TODO: A potentially simpler alternative would be to use the
     # DYLD_INTERPOSE mechanism and only intercept the calls that we
     # really care about
-    Function(CGLError, "CGLOpenCLMuxLockDown", [], internal=True),
-    Function(GLboolean, "CGLAreContextsShared", [(CGLContextObj, "ctx1"), (CGLContextObj, "ctx2")], internal=True),
-    Function(CGLContextObj, "CGLGetNextContext", [(CGLContextObj, "ctx")], internal=True),
-    Function(OpaquePointer(Void), "CGLFrontDispatch", [(CGLContextObj, "ctx")], internal=True),
-    Function(OpaquePointer(Void), "CGLBackDispatch", [(CGLContextObj, "ctx")], internal=True),
-    Function(Void, "CGLSelectDispatch", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "dispatch")], internal=True),
-    Function(Void, "CGLSelectDispatchBounded", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "dispatch"), (GLint, "size")], internal=True),
-    Function(Void, "CGLSelectDispatchFunction", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "functionPtr"), (GLint, "functionId")], internal=True),
-    Function(Void, "CGLRestoreDispatch", [(CGLContextObj, "ctx")], internal=True),
-    Function(Void, "CGLRestoreDispatchFunction", [(CGLContextObj, "ctx"), (GLint, "functionId")], internal=True),
-    Function(CGLError, "CGLSetPBufferVolatileState", [(CGLPBufferObj, "pbuffer"), (OpaquePointer(Void), "state")], internal=True),
+    Function(CGLError, "CGLOpenCLMuxLockDown", []),
+    Function(GLboolean, "CGLAreContextsShared", [(CGLContextObj, "ctx1"), (CGLContextObj, "ctx2")]),
+    Function(CGLContextObj, "CGLGetNextContext", [(CGLContextObj, "ctx")]),
+    Function(OpaquePointer(Void), "CGLFrontDispatch", [(CGLContextObj, "ctx")]),
+    Function(OpaquePointer(Void), "CGLBackDispatch", [(CGLContextObj, "ctx")]),
+    Function(Void, "CGLSelectDispatch", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "dispatch")]),
+    Function(Void, "CGLSelectDispatchBounded", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "dispatch"), (GLint, "size")]),
+    Function(Void, "CGLSelectDispatchFunction", [(CGLContextObj, "ctx"), (OpaquePointer(Void), "functionPtr"), (GLint, "functionId")]),
+    Function(Void, "CGLRestoreDispatch", [(CGLContextObj, "ctx")]),
+    Function(Void, "CGLRestoreDispatchFunction", [(CGLContextObj, "ctx"), (GLint, "functionId")]),
+    Function(CGLError, "CGLSetPBufferVolatileState", [(CGLPBufferObj, "pbuffer"), (OpaquePointer(Void), "state")]),
 ])
 

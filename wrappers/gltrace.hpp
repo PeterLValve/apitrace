@@ -96,6 +96,7 @@ public:
     bool user_arrays_arb;
     bool user_arrays_nv;
     unsigned retain_count;
+    uintptr_t hdc;
 
     // Whether it has been bound before
     bool bound;
@@ -109,6 +110,7 @@ public:
         user_arrays_arb(false),
         user_arrays_nv(false),
         retain_count(0),
+        hdc((uintptr_t)NULL),
         bound(false)
     { }
 
@@ -120,7 +122,7 @@ public:
 };
 
 void
-createContext(uintptr_t context_id);
+createContext(uintptr_t hdc, uintptr_t context_id);
 
 void
 retainContext(uintptr_t context_id);

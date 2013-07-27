@@ -33,7 +33,7 @@ from specs.glapi import glapi
 from specs.wglapi import wglapi
 
 
-class WglTracer(GlTracer):
+class WglTraceCallWriter(GlTracer):
 
     getProcAddressFunctionNames = [
         "wglGetProcAddress",
@@ -86,19 +86,15 @@ if __name__ == '__main__':
     print '#include <string.h>'
     print '#include <windows.h>'
     print
+    print '#include "trace_writer_local.hpp"'
+    print '#include "os.hpp"'
+    print
     print '// To validate our prototypes'
     print '#define GL_GLEXT_PROTOTYPES'
     print '#define WGL_GLXEXT_PROTOTYPES'
     print
-    print '#include "gltrace_state_snapshot.hpp"'
-    print
-    print 'namespace trace'
-    print '{'
-    print 'void snapshotState(void)'
-    print '{'
-    print '    gltrace::snapshotState();'
-    print '}'
-    print '}'
+    print '#include "glproc.hpp"'
+    print '#include "glsize.hpp"'
     print
 
     module = Module()
@@ -106,5 +102,5 @@ if __name__ == '__main__':
     module.mergeModule(wglapi)
     api = API()
     api.addModule(module)
-    tracer = WglTracer()
-    tracer.traceApi(api)
+    tracer = WglTraceCallWriter()
+    tracer.generateTraceCalls(api)

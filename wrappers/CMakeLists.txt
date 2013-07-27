@@ -7,6 +7,7 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/helpers
     ${CMAKE_BINARY_DIR}/dispatch
     ${CMAKE_SOURCE_DIR}/dispatch
+    ${CMAKE_BINARY_DIR}/wrappers
 )
 
 add_library (common_trace STATIC
@@ -322,10 +323,32 @@ if (WIN32)
                 ${CMAKE_SOURCE_DIR}/specs/winapi.py
                 ${CMAKE_SOURCE_DIR}/specs/stdapi.py
     )
+    add_custom_command (
+        OUTPUT wgltrace_tracefuncs.hpp
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/wgltrace_tracefuncs.py > ${CMAKE_CURRENT_BINARY_DIR}/wgltrace_tracefuncs.hpp
+        DEPENDS
+                wgltrace_tracefuncs.py
+                gltrace.py
+                trace.py
+                ${CMAKE_SOURCE_DIR}/dispatch/dispatch.py
+                ${CMAKE_SOURCE_DIR}/specs/wglapi.py
+                ${CMAKE_SOURCE_DIR}/specs/wglenum.py
+                ${CMAKE_SOURCE_DIR}/specs/glapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/winapi.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
     add_library (wgltrace MODULE opengl32.def
         wgltrace.cpp
+        wgltrace_tracefuncs.hpp
         glcaps.cpp
         gltrace_state.cpp
+        gltrace_state_snapshot.hpp
+        wgltrace.py
+        wgltrace_tracefuncs.py
+        gltrace.py
+        trace.py
     )
     add_dependencies (wgltrace glproc)
     target_link_libraries (wgltrace
@@ -356,15 +379,32 @@ elseif (APPLE)
             ${CMAKE_SOURCE_DIR}/specs/gltypes.py
             ${CMAKE_SOURCE_DIR}/specs/stdapi.py
     )
+    add_custom_command (
+        OUTPUT cgltrace_tracefuncs.hpp
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cgltrace_tracefuncs.py > ${CMAKE_CURRENT_BINARY_DIR}/cgltrace_tracefuncs.hpp
+        DEPENDS
+                cgltrace_tracefuncs.py
+                gltrace.py
+                trace.py
+                ${CMAKE_SOURCE_DIR}/dispatch/dispatch.py
+                ${CMAKE_SOURCE_DIR}/specs/cglapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glapi.py
+                ${CMAKE_SOURCE_DIR}/specs/glparams.py
+                ${CMAKE_SOURCE_DIR}/specs/gltypes.py
+                ${CMAKE_SOURCE_DIR}/specs/stdapi.py
+    )
 
     add_library (cgltrace SHARED
         cgltrace.cpp
+        cgltrace_tracefuncs.hpp
         glcaps.cpp
         gltrace_state.cpp
         gltrace.hpp
         trace.cpp
         trace.hpp
+        gltrace_state_snapshot.hpp
         cgltrace.py
+        cgltrace_tracefuncs.py
         gltrace.py
         trace.py
     )

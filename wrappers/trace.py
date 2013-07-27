@@ -462,7 +462,7 @@ class Tracer:
 
         return ValueSerializer()
 
-    def traceApi(self, api):
+    def generateTraceCalls(self, api):
         self.api = api
 
         self.header(api)
@@ -488,10 +488,26 @@ class Tracer:
         for function in api.getAllFunctions():
             self.traceFunctionDecl(function)
         for function in api.getAllFunctions():
-            self.traceFunctionImpl(function)
+            self.generateTraceFunctionImpl(function)
         print
 
         self.footer(api)
+
+    def traceApi(self, api):
+        self.api = api
+
+        # Includes
+        for module in api.modules:
+            for header in module.headers:
+                print header
+        print
+
+        # Function wrappers
+        self.interface = None
+        self.base = None
+        for function in api.getAllFunctions():
+            self.generateEntrypointImpl(function)
+        print
 
     def header(self, api):
         print '#ifdef _WIN32'
@@ -512,14 +528,23 @@ class Tracer:
 
     def traceFunctionDecl(self, function):
         # Per-function declarations
-
         if not function.internal:
             if function.args:
                 print 'static const char * _%s_args[%u] = {%s};' % (function.name, len(function.args), ', '.join(['"%s"' % arg.name for arg in function.args]))
             else:
                 print 'static const char ** _%s_args = NULL;' % (function.name,)
             print 'static const trace::FunctionSig _%s_sig = {%u, "%s", %u, _%s_args};' % (function.name, self.getFunctionSigId(), function.name, len(function.args), function.name)
+
+            argString = ''
+            if function.args:
+                argString = ', '.join([str(arg.type) + ' ' + arg.name for arg in function.args]) + ', '
+            resultString = ''
+            if function.type is not stdapi.Void:
+                resultString = '%s& _result, ' % function.type
+            print 'extern %s _trace_%s(%s%sbool makeRealCall);' % (function.type, function.name, argString, resultString)
             print
+        else:
+            print '// skipping internal function %s' % function.name
 
     def getFunctionSigId(self):
         id = Tracer.__id
@@ -541,24 +566,58 @@ class Tracer:
             print '        return;'
         print '    }'
 
-    def traceFunctionImpl(self, function):
+    def frameTermination(self, function, indentation):
+        pass
+
+    def generateTraceFunctionImpl(self, function):
+        if not function.internal:
+            argString = ''
+            if function.args:
+                argString = ', '.join([str(arg.type) + ' ' + arg.name for arg in function.args]) + ', '
+            resultString = ''
+            if function.type is not stdapi.Void:
+                resultString = '%s& _result, ' % function.type
+            print '%s _trace_%s(%s%sbool makeRealCall) {' % (function.type, function.name, argString, resultString)
+
+            self.generateTraceFunctionImplBody(function)
+            if function.type is not stdapi.Void:
+                print '    return _result;'
+            print '}'
+            print
+        else:
+            print '// skipping internal function %s' % function.name
+            
+    def generateEntrypointImpl(self, function):
         if self.isFunctionPublic(function):
             print 'extern "C" PUBLIC'
         else:
             print 'extern "C" PRIVATE'
         print function.prototype() + ' {'
+
+        argParams = ''
+        if function.args:
+            argParams = ', '.join([str(arg.name) for arg in function.args]) + ', '
+
+        resultEq = ''
+        resultParam = ''
         if function.type is not stdapi.Void:
             print '    %s _result;' % function.type
+            resultEq = '_result = '
+            resultParam = '_result, '
 
-        self.traceEnabledCheck(function)
-
-        self.traceFunctionImplBody(function)
+        # No-op if tracing is disabled
+        print '    if (!trace::isTracingEnabled()) {'
+        self.doInvokeFunction(function, '        ')
+        print '    } else {'
+        print '        %s_trace_%s(%s%strue);' % (resultEq, function.name, argParams, resultParam)
+        print '    }'
+        self.frameTermination(function, '    ')
         if function.type is not stdapi.Void:
             print '    return _result;'
         print '}'
         print
 
-    def traceFunctionImplBody(self, function):
+    def generateTraceFunctionImplBodyArgs(self, function):
         if not function.internal:
             print '    unsigned _call = trace::localWriter.beginEnter(&_%s_sig);' % (function.name,)
             for arg in function.args:
@@ -568,7 +627,18 @@ class Tracer:
                 if not arg.output:
                     self.serializeArg(function, arg)
             print '    trace::localWriter.endEnter();'
-        self.invokeFunction(function)
+
+
+    def generateTraceFunctionImplBodyRealCall(self, function, bInvoke):
+        print '    if ( makeRealCall ) {'
+        if bInvoke:
+            self.invokeFunction(function, '        ')
+        else:
+            print '        // Intentionally not making the real call here'
+        print '    }'
+
+
+    def generateTraceFunctionImplBodyReturn(self, function):
         if not function.internal:
             print '    trace::localWriter.beginLeave(_call);'
             print '    if (%s) {' % self.wasFunctionSuccessful(function)
@@ -582,42 +652,26 @@ class Tracer:
             if function.type is not stdapi.Void:
                 self.wrapRet(function, "_result")
             print '    trace::localWriter.endLeave();'
+        else:
+            print '// skipping internal function %s' % function.name
 
-    def traceFunctionImplBodyNoInvoke(self, function):
-        if not function.internal:
-            print '    unsigned _call = trace::localWriter.beginEnter(&_%s_sig);' % (function.name,)
-            for arg in function.args:
-                if not arg.output:
-                    self.unwrapArg(function, arg)
-            for arg in function.args:
-                if not arg.output:
-                    self.serializeArg(function, arg)
-            print '    trace::localWriter.endEnter();'
-        if not function.internal:
-            print '    trace::localWriter.beginLeave(_call);'
-            print '    if (%s) {' % self.wasFunctionSuccessful(function)
-            for arg in function.args:
-                if arg.output:
-                    self.serializeArg(function, arg)
-                    self.wrapArg(function, arg)
-            print '    }'
-            if function.type is not stdapi.Void:
-                self.serializeRet(function, "_result")
-            if function.type is not stdapi.Void:
-                self.wrapRet(function, "_result")
-            print '    trace::localWriter.endLeave();'
+    def generateTraceFunctionImplBody(self, function, bInvoke = 1):
+        self.generateTraceFunctionImplBodyArgs(function)
+        self.generateTraceFunctionImplBodyRealCall(function, bInvoke)
+        self.generateTraceFunctionImplBodyReturn(function)
 
-    def invokeFunction(self, function):
-        self.doInvokeFunction(function)
 
-    def doInvokeFunction(self, function, prefix='_', suffix=''):
+    def invokeFunction(self, function, indentation):
+        self.doInvokeFunction(function, indentation)
+
+    def doInvokeFunction(self, function, indentation, prefix='_', suffix=''):
         # Same as invokeFunction() but called both when trace is enabled or disabled.
         if function.type is stdapi.Void:
             result = ''
         else:
             result = '_result = '
         dispatch = prefix + function.name + suffix
-        print '    %s%s(%s);' % (result, dispatch, ', '.join([str(arg.name) for arg in function.args]))
+        print '%s%s%s(%s);' % (indentation, result, dispatch, ', '.join([str(arg.name) for arg in function.args]))
 
     def wasFunctionSuccessful(self, function):
         if function.type is stdapi.Void:
