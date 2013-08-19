@@ -314,8 +314,24 @@ public:
 
     void AddShader(GLuint shaderName)
     {
-        shaders.push_back(shaderName);
-        shaders.unique();
+        // check to see if the shader is already in the list.
+        // NOTE: Previously this code always added the shader, then std::list::unique was called
+        // to remove duplicates, but it was not working on OSX. So manually perform the check now.
+        bool alreadyContainsShader = false;
+        for (std::list<GLuint>::iterator iter = shaders.begin(); iter != shaders.end(); ++iter)
+        {
+            if (*iter == shaderName)
+            {
+                alreadyContainsShader = true;
+                break;
+            }
+        }
+        
+        // add the shader if it doesn't already exist in the list
+        if (alreadyContainsShader == false)
+        {
+            shaders.push_back(shaderName);
+        }
     }
 
     Program() :
