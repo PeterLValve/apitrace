@@ -672,6 +672,7 @@ state_enable_disable = (
     'GL_SAMPLE_ALPHA_TO_COVERAGE',
     'GL_SAMPLE_ALPHA_TO_ONE',
     'GL_SAMPLE_COVERAGE',
+    'GL_MULTISAMPLE',
 )
 
 ## this is a collection of simple state that can easily be set.

@@ -882,41 +882,40 @@ class GlTracer(Tracer):
             if function.name == 'glLinkProgram':
                 print '        GLint active_attributes = 0;'
                 print '        _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &active_attributes);'
+                print '        GLint active_attribute_max_length = 0;'
+                print '        _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &active_attribute_max_length);'
+                print '        GLchar* name = (GLchar*)malloc(sizeof(GLchar) * active_attribute_max_length);'
                 print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
+                print '            memset(name, 0, active_attribute_max_length * sizeof(GLchar));'
                 print '            GLint size = 0;'
                 print '            GLenum type = 0;'
-                print '            GLint active_attribute_max_length = 0;'
-                print '            _glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &active_attribute_max_length);'
-                print '            GLchar* name = (GLchar*)malloc(sizeof(GLchar) * active_attribute_max_length);'
-                print '            _glGetActiveAttrib(program, attrib, sizeof name, NULL, &size, &type, name);'
-                print "            if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
+                print '            _glGetActiveAttrib(program, attrib, active_attribute_max_length, NULL, &size, &type, name);'
+                print '            if (name[0] != \'g\' || name[1] != \'l\' || name[2] != \'_\') {'
                 print '                GLint location = _glGetAttribLocation(program, name);'
                 print '                if (location >= 0) {'
-                bind_function = glapi.glapi.getFunctionByName('glBindAttribLocation')
-                self.fake_call(bind_function, ['program', 'location', 'name'])
+                print '                   _trace_glBindAttribLocation(program, location, name, false);'
                 print '                }'
                 print '            }'
-                print '            free(name);'
                 print '        }'
+                print '        free(name);'
             if function.name == 'glLinkProgramARB':
                 print '        GLint active_attributes = 0;'
                 print '        _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_ATTRIBUTES_ARB, &active_attributes);'
+                print '        GLint active_attribute_max_length = 0;'
+                print '        _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_UNIFORM_MAX_LENGTH_ARB, &active_attribute_max_length);'
+                print '        GLcharARB* name = (GLcharARB*)malloc(sizeof(GLcharARB) * active_attribute_max_length);'
                 print '        for (GLint attrib = 0; attrib < active_attributes; ++attrib) {'
                 print '            GLint size = 0;'
                 print '            GLenum type = 0;'
-                print '            GLint active_attribute_max_length = 0;'
-                print '            _glGetObjectParameterivARB(programObj, GL_OBJECT_ACTIVE_UNIFORM_MAX_LENGTH_ARB, &active_attribute_max_length);'
-                print '            GLcharARB* name = (GLcharARB*)malloc(sizeof(GLcharARB) * active_attribute_max_length);'
-                print '            _glGetActiveAttribARB(programObj, attrib, sizeof name, NULL, &size, &type, name);'
-                print "            if (name[0] != 'g' || name[1] != 'l' || name[2] != '_') {"
+                print '            _glGetActiveAttribARB(programObj, attrib, active_attribute_max_length, NULL, &size, &type, name);'
+                print '            if (name[0] != \'g\' || name[1] != \'l\' || name[2] != \'_\') {'
                 print '                GLint location = _glGetAttribLocationARB(programObj, name);'
                 print '                if (location >= 0) {'
-                bind_function = glapi.glapi.getFunctionByName('glBindAttribLocationARB')
-                self.fake_call(bind_function, ['programObj', 'location', 'name'])
+                print '                   _trace_glBindAttribLocationARB(programObj, location, name, false);'
                 print '                }'
                 print '            }'
-                print '            free(name);'
                 print '        }'
+                print '        free(name);'
             Tracer.generateTraceFunctionImplBodyArgs(self, function)
             Tracer.generateTraceFunctionImplBodyReturn(self, function)
             print '    } else {'
