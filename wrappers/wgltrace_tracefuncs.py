@@ -33,7 +33,7 @@ from specs.glapi import glapi
 from specs.wglapi import wglapi
 
 
-class WglTracer(GlTracer):
+class WglTraceCallWriter(GlTracer):
 
     getProcAddressFunctionNames = [
         "wglGetProcAddress",
@@ -55,6 +55,39 @@ class WglTracer(GlTracer):
         'wglMakeContextCurrentEXT',
     ]
 
+    def generateTraceFunctionImplBody(self, function):
+        if function.name in self.destroyContextFunctionNames:
+            # Unlike other GL APIs like EGL or GLX, WGL will make the context
+            # inactive if it's currently the active context.
+            print '    if ( makeRealCall ) {'
+            print '        if (_wglGetCurrentContext() == hglrc) {'
+            print '            gltrace::clearContext();'
+            print '        }'
+            print '        gltrace::releaseContext((uintptr_t)hglrc);'
+            print '    }'
+
+        GlTracer.generateTraceFunctionImplBody(self, function)
+
+        if function.name in self.createContextFunctionNames:
+            print '    if ( makeRealCall ) {'
+            print '        if (_result)'
+            hdcParam = 'hdc'
+            if function.name == 'wglCreateContextAttribsARB':
+                hdcParam = 'hDC'
+            print '            gltrace::createContext((uintptr_t)%s, (uintptr_t)_result);' % hdcParam
+            print '    }'
+
+        if function.name in self.makeCurrentFunctionNames:
+            print '    if ( makeRealCall ) {'
+            print '        if (_result) {'
+            print '            if (hglrc != NULL)'
+            print '                gltrace::setContext((uintptr_t)hglrc);'
+            print '            else'
+            print '                gltrace::clearContext();'
+            print '        }'
+            print '    }'
+
+
 if __name__ == '__main__':
     print
     print '#define _GDI32_'
@@ -62,25 +95,11 @@ if __name__ == '__main__':
     print '#include <string.h>'
     print '#include <windows.h>'
     print
-    print '#include "trace_writer_local.hpp"'
-    print '#include "os.hpp"'
+    print '#include "wgltrace_tracefuncs.h"'
     print
     print '// To validate our prototypes'
     print '#define GL_GLEXT_PROTOTYPES'
     print '#define WGL_GLXEXT_PROTOTYPES'
-    print
-    print '#include "glproc.hpp"'
-    print '#include "glsize.hpp"'
-    print '#include "trace.hpp"'
-    print '#include "gltrace_state_snapshot.hpp"'
-    print
-    print 'namespace trace'
-    print '{'
-    print 'void snapshotState(void)'
-    print '{'
-    print '    gltrace::snapshotState();'
-    print '}'
-    print '}'
     print
 
     module = Module()
@@ -88,5 +107,5 @@ if __name__ == '__main__':
     module.mergeModule(wglapi)
     api = API()
     api.addModule(module)
-    tracer = WglTracer()
-    tracer.generateEntrypoints(api)
+    tracer = WglTraceCallWriter()
+    tracer.generateTraceCalls(api)

@@ -37,6 +37,10 @@ namespace trace {
 void incrementFrameNumber(void);
 bool isFrameToTrace(void);
 
+void snapshotState(void);
+
+bool isTracingStateSetupFunctions(void);
+
 #ifdef ANDROID
 
 bool isTracingEnabled(void);

@@ -85,4 +85,6 @@ if __name__ == '__main__':
     api = API()
     api.addModule(d3d8)
     tracer = D3D8Tracer()
-    tracer.traceApi(api)
+    tracer.generateTraceCallDecls(api)
+    tracer.generateTraceCalls(api)
+    tracer.generateEntrypoints(api)

@@ -133,6 +133,11 @@ if __name__ == '__main__':
     print '#include "os.hpp"'
     print
     print '#include "d3dcommonshader.hpp"'
+    print '#include "trace.hpp"'
+    print
+    print 'namespace trace {'
+    print 'void snapshotState(void) {}'
+    print '}'
     print
 
     moduleNames = sys.argv[1:]
@@ -160,4 +165,6 @@ if __name__ == '__main__':
         api.addModule(d3d11.d3d11)
 
     tracer = D3DCommonTracer()
-    tracer.traceApi(api)
+    tracer.generateTraceCallDecls(api)
+    tracer.generateTraceCalls(api)
+    tracer.generateEntrypoints(api)

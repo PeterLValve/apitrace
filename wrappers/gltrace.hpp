@@ -30,9 +30,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <map>
-
+#include <list>
 #include "glimports.hpp"
-
+#include "glsize.hpp"
 
 namespace gltrace {
 
@@ -89,6 +89,327 @@ public:
     }
 };
 
+struct TextureLevel
+{
+    GLenum m_target;
+    GLint m_level;
+    GLsizei m_width;
+    GLsizei m_height;
+    GLsizei m_depth;
+    GLsizei m_imageSize;
+};
+
+// this helps track texture parameters that are needed to recreate a texture
+class Texture {
+public:
+    GLenum m_name;
+    GLenum m_target;
+    GLint m_internalFormat;
+    GLenum m_format;
+    GLenum m_type;
+    bool m_generateMipmap;
+    bool m_createdWithEXT;
+
+    // list of mipmap levels that had contents uploaded
+    std::list<TextureLevel> m_levels;
+
+    Texture() :
+       m_name(GL_NONE),
+       m_target(GL_NONE),
+       m_format(GL_NONE),
+       m_type(GL_NONE),
+       m_generateMipmap(false),
+       m_createdWithEXT(false)
+    {}
+
+    ~Texture() {
+    }
+
+    void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLenum format, GLenum type)
+    {
+        SetTextureInfo(name, target, internalFormat, format, type);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, 1, 1, true);
+        AddTextureLevel(target, level, width, 1, 1, imageSize);
+    }
+
+    void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type)
+    {
+        SetTextureInfo(name, target, internalFormat, format, type);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, 1, true);
+        AddTextureLevel(target, level, width, height, 1, imageSize);
+    }
+
+    void texImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type)
+    {
+        SetTextureInfo(name, target, internalFormat, format, type);
+        GLsizei imageSize = (GLsizei)_gl_image_size(format, type, width, height, depth, true);
+        AddTextureLevel(target, level, width, height, depth, imageSize);
+    }
+
+    void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei imageSize)
+    {
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, 1, 1, imageSize);
+    }
+
+    void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei imageSize)
+    {
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, height, 1, imageSize);
+    }
+
+    void compressedTexImage(GLuint name, GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLsizei imageSize)
+    {
+        SetTextureInfo(name, target, internalFormat, GL_NONE, GL_NONE);
+        AddTextureLevel(target, level, width, height, depth, imageSize);
+    }
+
+private:
+    void SetTextureInfo(GLuint name, GLenum target, GLint internalFormat, GLenum format, GLenum type)
+    {
+        if (m_name == 0)
+        {
+            // we only want to populate this information the first time
+            m_name = name;
+            if (target == GL_TEXTURE_CUBE_MAP_POSITIVE_X || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X ||
+                target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y ||
+                target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z || target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z )
+            {
+                m_target = GL_TEXTURE_CUBE_MAP;
+            } else {
+                m_target = target;
+            }
+            m_internalFormat = internalFormat;
+            m_format = format;
+            m_type = type;
+        }
+    }
+
+    void AddTextureLevel(GLenum target, GLint level, GLsizei width, GLsizei height, GLsizei depth, GLsizei compressedImageSize)
+    {
+        // see if the level and target is already in the list
+        std::list<gltrace::TextureLevel>::iterator iter = m_levels.begin();
+        for (; iter != m_levels.end(); ++iter)
+        {
+            if (iter->m_level == level && iter->m_target == target)
+            {
+                // level already exists
+                break;
+            }
+        }
+
+        if (iter != this->m_levels.end())
+        {
+            // update the level
+            iter->m_target = target;
+            iter->m_width = width;
+            iter->m_height = height;
+            iter->m_depth = depth;
+            iter->m_imageSize = compressedImageSize;
+        }
+        else
+        {
+            TextureLevel texLevel;
+            texLevel.m_target = target;
+            texLevel.m_level = level;
+            texLevel.m_width = width;
+            texLevel.m_height = height;
+            texLevel.m_depth = depth;
+            texLevel.m_imageSize = compressedImageSize;
+            this->m_levels.push_back(texLevel);
+        }
+    }
+};
+
+class Shader {
+public:
+    GLsizei count;
+    GLchar** sources;
+    GLsizei* lengths;
+    GLenum type;
+    bool m_createdWithObjectARB;
+
+    Shader()
+        : count(0),
+        sources(NULL),
+        lengths(NULL),
+        type(GL_NONE),
+        m_createdWithObjectARB(false)
+    {
+    }
+
+    ~Shader()
+    {
+        Cleanup();
+    }
+
+    void SetSources(GLenum type, GLsizei n, const GLchar* const * shaderSources, GLsizei* shaderLengths)
+    {
+        Cleanup();
+
+        this->type = type;
+        count = n;
+
+        if (count > 0) {
+            sources = (GLchar**)malloc(sizeof(GLchar*) * count);
+            lengths = (GLsizei*)malloc(sizeof(GLsizei) * count);
+
+            if (sources != NULL && lengths != NULL) {
+                for (GLsizei i = 0; i < n; ++i) {
+                    GLsizei length = 0;
+                    if (shaderLengths != NULL) {
+                        length = shaderLengths[i];
+                    } else {
+                        length = (GLsizei)strlen(shaderSources[i]) + 1;
+                    }
+
+                    sources[i] = (GLchar*)malloc(sizeof(GLchar) * length);
+                    if (sources[i] != NULL)
+                    {
+                        memcpy(sources[i], shaderSources[i], length*sizeof(GLchar));
+                        sources[i][length-1] = '\0';
+                        lengths[i] = length;
+                    }
+                }
+            }
+            else
+            {
+                assert(!"Out of memory when attempting to allocate memory for shader sources.");
+                Cleanup();
+            }
+        }
+    }
+
+private:
+    void Cleanup()
+    {
+        if (sources != NULL)
+        {
+            for (GLsizei i = 0; i < count; ++i) {
+                free(sources[i]);
+                sources[i] = NULL;
+            }
+
+            free(sources);
+            sources = NULL;
+        }
+
+        if (lengths != NULL)
+        {
+            free(lengths);
+            lengths = NULL;
+        }
+
+        count = 0;
+        type = GL_NONE;
+    }
+};
+
+class Program {
+public:
+    std::list<GLuint> shaders;
+    bool m_createdWithObjectARB;
+    bool m_createdWithGenProgramsARB;
+    bool m_linkedWithARB;
+
+    void AddShader(GLuint shaderName)
+    {
+        shaders.push_back(shaderName);
+        shaders.unique();
+    }
+
+    Program() :
+        m_createdWithObjectARB(false),
+        m_createdWithGenProgramsARB(false),
+        m_linkedWithARB(false)
+    {
+    }
+
+    ~Program()
+    {
+        shaders.clear();
+    }
+};
+
+class BufferObject {
+public:
+    bool m_createdWithARB;
+
+    BufferObject() :
+        m_createdWithARB(false)
+    {
+    }
+
+    ~BufferObject()
+    {
+    }
+};
+
+class Framebuffer {
+public:
+    bool m_createdWithEXT;
+
+    Framebuffer() :
+        m_createdWithEXT(false)
+    {
+    }
+
+    ~Framebuffer()
+    {
+    }
+};
+
+
+class Renderbuffer {
+public:
+    bool m_createdWithEXT;
+
+    Renderbuffer() :
+        m_createdWithEXT(false)
+    {
+    }
+
+    ~Renderbuffer()
+    {
+    }
+};
+
+class Query {
+public:
+    bool m_createdWithARB;
+
+    Query() :
+        m_createdWithARB(false)
+    {
+    }
+
+    ~Query()
+    {
+    }
+};
+
+class Sync {
+public:
+    GLenum m_condition;
+    GLbitfield m_flags;
+
+    Sync() :
+        m_condition(GL_SYNC_GPU_COMMANDS_COMPLETE),
+        m_flags(0)
+    {
+    }
+
+    Sync(GLenum condition, GLbitfield flags) :
+        m_condition(condition),
+        m_flags(flags)
+    {
+    }
+
+    ~Sync()
+    {
+    }
+};
+
 class Context {
 public:
     enum Profile profile;
@@ -96,6 +417,11 @@ public:
     bool user_arrays_arb;
     bool user_arrays_nv;
     unsigned retain_count;
+    uintptr_t hdc;
+    uintptr_t dpy;
+#ifdef __linux
+    GLXDrawable m_drawable;
+#endif
 
     // Whether it has been bound before
     bool bound;
@@ -103,14 +429,48 @@ public:
     // TODO: This will fail for buffers shared by multiple contexts.
     std::map <GLuint, Buffer> buffers;
 
+    // Used by state snapshot
+    std::map<GLuint, Texture> textures;
+    std::map<GLuint, Shader> shaderObjects;
+    std::map<GLuint, Program> programs;
+    std::map<GLuint, Program> programsARB;
+    std::list<GLuint> pipelines;
+    std::map<GLuint, Shader> separateShaders;
+    std::map<GLuint, Framebuffer> framebuffers;
+    std::list<GLuint> vertexArrays;
+    std::map<GLuint, BufferObject> bufferObjects;
+    std::list<GLuint> samplers;
+    std::map<GLuint, Renderbuffer> renderbuffers;
+    std::map<GLuint, Query> queries;
+    std::map<GLsync, Sync> syncObjects;
+
     Context(void) :
         profile(PROFILE_COMPAT),
         user_arrays(false),
         user_arrays_arb(false),
         user_arrays_nv(false),
         retain_count(0),
+        hdc((uintptr_t)NULL),
+        dpy((uintptr_t)NULL),
         bound(false)
     { }
+
+    ~Context(void)
+    {
+        buffers.clear();
+        shaderObjects.clear();
+        textures.clear();
+        programs.clear();
+        programsARB.clear();
+        pipelines.clear();
+        separateShaders.clear();
+        framebuffers.clear();
+        vertexArrays.clear();
+        bufferObjects.clear();
+        samplers.clear();
+        renderbuffers.clear();
+        syncObjects.clear();
+    }
 
     inline bool
     needsShadowBuffers(void)
@@ -120,13 +480,18 @@ public:
 };
 
 void
-createContext(uintptr_t context_id);
+createContext(uintptr_t hdc, uintptr_t context_id);
 
 void
 retainContext(uintptr_t context_id);
 
 bool
 releaseContext(uintptr_t context_id);
+
+#ifdef __linux
+void
+setContext(uintptr_t dpy, GLXDrawable drawable);
+#endif
 
 void
 setContext(uintptr_t context_id);
