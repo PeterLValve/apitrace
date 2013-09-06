@@ -554,18 +554,6 @@ class Tracer:
     def isFunctionPublic(self, function):
         return True
 
-    def traceEnabledCheck(self, function):
-        # No-op if tracing is disabled
-        print '    if (!trace::isTracingEnabled()) {'
-        self.invokeFunction(function)
-        if function.name in self.frame_terminator_functions:
-            print '    trace::incrementFrameNumber();'
-        if function.type is not stdapi.Void:
-            print '        return _result;'
-        else:
-            print '        return;'
-        print '    }'
-
     def frameTermination(self, function, indentation):
         pass
 
@@ -605,13 +593,14 @@ class Tracer:
             resultEq = '_result = '
             resultParam = '_result, '
 
-        # No-op if tracing is disabled
-        print '    if (!trace::isTracingEnabled()) {'
-        self.doInvokeFunction(function, '        ')
-        print '    } else {'
+        print '    if (trace::isTracingEnabled()) {'
         print '        %s_trace_%s(%s%strue);' % (resultEq, function.name, argParams, resultParam)
+        print '    } else {'
+        # No-op if tracing is disabled
+        self.doInvokeFunction(function, '        ')
         print '    }'
         self.frameTermination(function, '    ')
+        
         if function.type is not stdapi.Void:
             print '    return _result;'
         print '}'
@@ -637,7 +626,6 @@ class Tracer:
             print '        // Intentionally not making the real call here'
         print '    }'
 
-
     def generateTraceFunctionImplBodyReturn(self, function):
         if not function.internal:
             print '    trace::localWriter.beginLeave(_call);'
@@ -659,7 +647,6 @@ class Tracer:
         self.generateTraceFunctionImplBodyArgs(function)
         self.generateTraceFunctionImplBodyRealCall(function, bInvoke)
         self.generateTraceFunctionImplBodyReturn(function)
-
 
     def invokeFunction(self, function, indentation):
         self.doInvokeFunction(function, indentation)

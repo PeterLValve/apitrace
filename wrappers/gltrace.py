@@ -328,7 +328,6 @@ class GlTracer(Tracer):
         Tracer.generateTraceCalls(self, api)
         print
 
-
     def traceApi(self, api):
         Tracer.traceApi(self, api)
         if self.getProcAddressFunctionNames:
